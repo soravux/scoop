@@ -24,7 +24,7 @@ How to use SCOOP in your code
 The philosophy of SCOOP is build around the *futures* module proposed by :pep:`3148`. It defines ``map()`` and ``join()`` functions allowing asynchroneous computation which SCOOP will propagate to it's local and foreign workers.
 Please check our :doc:`api` for any details of implentation of the proposed functions.
 
-You should also be aware that your main function, meaning your parent function that will contain multiple ``map()``s and ``join()``s, must be launched using the ``futures.startup()``. This ensures the proper initialization of SCOOP.
+You should also be aware that your main function, meaning your parent function that will contain multiple ``map()`` and ``join()``, must be launched using the ``futures.startup()``. This ensures the proper initialization of SCOOP.
 
 
 How to launch a task
