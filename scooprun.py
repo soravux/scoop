@@ -30,7 +30,7 @@ parser.add_argument('executable',
                     help='The executable to start with scoop and its arguments')
 args = parser.parse_args()
 
-hosts = [args.hosts] if type(args.hosts) != list else args.hosts
+hosts = [] if args.hosts == None else args.hosts
 hosts += ['127.0.0.1'] # Ensure local machine is in the list
 created_subprocesses = []
 
