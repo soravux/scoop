@@ -1,4 +1,20 @@
 #!/usr/bin/env python
+#
+#    This file is part of Scalable COncurrent Operations in Python (SCOOP).
+#
+#    SCOOP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as
+#    published by the Free Software Foundation, either version 3 of
+#    the License, or (at your option) any later version.
+#
+#    SCOOP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
+#
 from __future__ import print_function
 import subprocess
 import argparse
@@ -108,13 +124,14 @@ IS_ORIGIN=0 \
 WORKER_NAME=worker{3} \
 BROKER_NAME=broker \
 BROKER_ADDRESS=tcp://{2}:5555 \
-META_ADDRESS=tcp://{2}:5556 {4} {0} {1}'.format(
+META_ADDRESS=tcp://{2}:5556 {6} {4} {0} {1}'.format(
                     os.path.join(args.path + "/", args.executable[0]),
                     " ".join(args.executable[1:]),
                     '127.0.0.1' if args.e else broker_hostname,
                     workers_left,
                     args.python_executable[0],
-                    os.environ.get("PYTHONPATH", "$PYTHONPATH"))
+                    os.environ.get("PYTHONPATH", "$PYTHONPATH"),
+                    ('', 'nice -n {0}'.format(args.nice))[args.nice != None])
                 # TODO: start every worker in one SSH channel.
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 if args.e:
@@ -134,5 +151,9 @@ finally:
     log('Destroying local elements of the federation...', 1)
     for process in created_subprocesses:
         try: process.terminate()
+        except: pass
+    time.sleep(0.2)
+    for process in created_subprocesses:
+        try: process.kill()
         except: pass
     log('Finished destroying spawned subprocesses.', 2)
