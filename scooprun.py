@@ -30,9 +30,13 @@ parser.add_argument('--verbose', '-v',
                     help="Verbosity level")
 parser.add_argument('-N',
                     help="Number of process",
-                    type=int)
+                    type=int,
+                    default=2)
 parser.add_argument('-b',
                     help="Don't start additional workers on the local machine, only the broker and the origin",
+                    action='store_true')
+parser.add_argument('-e',
+                    help="Activate encryption on broker sockets over remote connections(may eliminate routing problems)",
                     action='store_true')
 parser.add_argument('executable',
                     nargs='+',
@@ -49,8 +53,10 @@ args = parser.parse_args()
 hosts = [] if args.hosts == None else args.hosts
 hosts += ['127.0.0.1'] if not args.b else []
 hosts = set(hosts)
-workers_left = args.N
+workers_left = args.N - 1 # One is the origin, already taken into account
 created_subprocesses = []
+
+log('Deploying {0} workers over {1} host(s).'.format(args.N, len(hosts)), 2)
 
 # Division of workers pseudo-equally upon the hosts
 maximum_workers = {}
@@ -58,11 +64,10 @@ for index, host in enumerate(hosts):
     maximum_workers[host] = (args.N / (len(hosts)) + int((args.N % len(hosts)) > index))
 
 if args.broker_hostname == None:
-    # Remove link-local and loopback from interfaces (see RFC 5735 and RFC 3330)
-    broker_ip = [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.") and not ip.startswith("169.254.")][0]
-    log('Using IPv4 {0} address for broker.'.format(broker_ip), 1)
+    broker_hostname = socket.gethostname()
 else:
-    broker_ip = args.broker_hostname[0]
+    broker_hostname = args.broker_hostname[0]
+log('Using hostname/ip: "{0}" as external broker reference.'.format(broker_hostname), 1)
 
 try:
     # Launching the local broker
@@ -98,18 +103,25 @@ try:
             log('Initialising remote workers of host {0} attached to the local broker...'.format(host), 1)
             for a in range(min(maximum_workers.get(host, 8), workers_left)):
                 log('Initialising remote worker {0}'.format(workers_left), 2)
-                command = 'PYTHONPATH={5} IS_ORIGIN=0 WORKER_NAME=worker{3}\
-                BROKER_NAME=broker BROKER_ADDRESS=tcp://{2}:5555 META_ADDRESS=tcp://{2}:5556 {4} {0} {1}'.format(
-                    os.path.join(args.path, args.executable[0]),
+                command = 'PYTHONPATH={5} \
+IS_ORIGIN=0 \
+WORKER_NAME=worker{3} \
+BROKER_NAME=broker \
+BROKER_ADDRESS=tcp://{2}:5555 \
+META_ADDRESS=tcp://{2}:5556 {4} {0} {1}'.format(
+                    os.path.join(args.path + "/", args.executable[0]),
                     " ".join(args.executable[1:]),
-                    broker_ip,
+                    '127.0.0.1' if args.e else broker_hostname,
                     workers_left,
                     args.python_executable[0],
-                    os.environ.get("PYTHONPATH", ":"))
+                    os.environ.get("PYTHONPATH", "$PYTHONPATH"))
                 # TODO: start every worker in one SSH channel.
-                shell = subprocess.Popen(['ssh', '-x', '-n',
-                                          '-oStrictHostKeyChecking=no', host, '-p24680', 
-                                          command])
+                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+                if args.e:
+                    ssh_command += ['-R 5555:127.0.0.1:5555', '-R 5556:127.0.0.1:5556']
+                shell = subprocess.Popen(ssh_command + [host,
+                                                        command])
+                created_subprocesses.append(shell)
                 workers_left -= 1
         if workers_left <= 0: break
     # Everything has been started everywhere, we can then launch our origin.
@@ -121,6 +133,6 @@ finally:
     # Ensure everything is cleaned up on exit
     log('Destroying local elements of the federation...', 1)
     for process in created_subprocesses:
-        try: process.kill()
+        try: process.terminate()
         except: pass
     log('Finished destroying spawned subprocesses.', 2)
