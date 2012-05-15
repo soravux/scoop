@@ -35,6 +35,7 @@ Requirements
 
 You may want to run your distributed and parallel tasks over a tightly integrated grid such as a supercomputer or you may want to test a bunch of computers laying there in the laboratory of put to good use some heterogeneous systems at home. SCOOP allows you to scale your parallel tasks to all these situations without modification to your source code.
 
+* argparse >= 1.2.1 (for python 2.6)
 * Python >= 2.6
 * Greenlets >= 0.3.4
 * PyZMQ as well as libzmq >= 2.2.0
@@ -60,6 +61,11 @@ An usage example may be as follow::
 
 This will run 4 workers on each 3 remotes hosts as well as the local machine that will execute ``you_program.py``.
 
+.. note::
+
+    Please keep in mind that connecting to remote hosts must be done without a shell, meaning that you possibly won't be able to write your password when ssh asks for it. Ensure that you have properly created ssh keys that allows for passwordless authentication over ssh on your remote hosts.
+    
+    If your remote hosts need special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ~/.ssh/config). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
 Manual launch
 ~~~~~~~~~~~~~
 
