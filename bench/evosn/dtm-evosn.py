@@ -24,7 +24,7 @@ from deap import dtm
 
 import sortingnetwork as sn
 
-INPUTS = 6 if len(sys.argv) < 2 else int(sys.argv[1])
+INPUTS = 12 if len(sys.argv) < 2 else int(sys.argv[1])
 
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
@@ -82,7 +82,7 @@ def main():
     stats.register("Min", min)
     stats.register("Max", max)
 
-    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 10
+    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 20
     
     # Evaluate every individuals
     fitnesses = toolbox.map(toolbox.evaluate, population)

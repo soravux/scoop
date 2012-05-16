@@ -16,7 +16,7 @@
 import sys
 import random
 import logging
-import multiprocessing
+from scoop import futures
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -27,7 +27,7 @@ from deap import tools
 
 import sortingnetwork as sn
 
-INPUTS = 6 if len(sys.argv) < 2 else int(sys.argv[1])
+INPUTS = 12 if len(sys.argv) < 2 else int(sys.argv[1])
 
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
@@ -74,7 +74,7 @@ toolbox.register("select", tools.selNSGA2)
 
 def main():
     random.seed(64)
-
+    print("bonjour")
     population = toolbox.population(n=300)
     hof = tools.ParetoFront()
     
@@ -83,10 +83,10 @@ def main():
     stats.register("Std", tools.std)
     stats.register("Min", min)
     stats.register("Max", max)
-    pool = multiprocessing.Pool(processes=2)
-    toolbox.register("map", pool.map)
+    
+    toolbox.register("map", futures.mapJoin)
 
-    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 10
+    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 20
     
     # Evaluate every individuals
     fitnesses = toolbox.map(toolbox.evaluate, population)
@@ -142,4 +142,4 @@ def main():
     return population, stats, hof
 
 if __name__ == "__main__":
-    main()
+    futures.startup(main)

@@ -1,7 +1,11 @@
+from __future__ import print_function
 import subprocess
 import time
 import os
 import matplotlib.pyplot as plt
+import argparse
+
+#filename = "evosn"
 
 def main():
     benchmark = {'scoop-evosn.py': [],
@@ -29,8 +33,6 @@ def main():
     plt.figure()
     for a in benchmark.keys():
         plt.plot(test_range, benchmark[a], linewidth=1.0, marker='o', label=a)
-    #plt.plot(test_range, benchmark['deaptest.py'], linewidth=1.0, marker='o', label="SCOOP")
-    #plt.plot(test_range, benchmark['evosn.py'], linewidth=1.0, marker='o', label="Serial")
     plt.xlabel('size (N)')
     plt.ylabel('time (s)')
     plt.title('DEAP sorting network example')
