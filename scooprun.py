@@ -66,7 +66,7 @@ parser.add_argument('--broker-hostname',
 parser.add_argument('--python-executable',
                     nargs=1,
                     help='The python executable with which to execute the script (including path if necessary)',
-                    default=["python"])
+                    default=[sys.executable])
 args = parser.parse_args()
 
 hosts = [] if args.hosts == None else args.hosts
