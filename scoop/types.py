@@ -111,10 +111,14 @@ class TaskQueue(object):
     
     # updates the local queue with elements from 
     def updateQueue(self):
+        to_remove = []
         for task in self.inprogress:
             if task.index != None:
                 self.ready.append(task)
-                self.inprogress.remove(task)
+                to_remove.append(task)
+                #self.inprogress.remove(task)
+        for task in to_remove:
+            self.inprogress.remove(task)        
         for task in self.socket.recvTask():
             if task.id in Task.dict:
                 Task.dict[task.id].result = task.result

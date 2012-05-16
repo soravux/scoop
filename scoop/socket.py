@@ -18,7 +18,10 @@ from __future__ import print_function
 import zmq
 import scoop
 import time
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 
 class MySocket(object):

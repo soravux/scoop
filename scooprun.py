@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #    This file is part of Scalable COncurrent Operations in Python (SCOOP).
 #
@@ -43,7 +43,8 @@ parser.add_argument('--nice',
                     help="Nice level")
 parser.add_argument('--verbose', '-v',
                     action='count',
-                    help="Verbosity level")
+                    help="Verbosity level",
+                    default=0)
 parser.add_argument('-N',
                     help="Number of process",
                     type=int,
@@ -88,7 +89,8 @@ log('Using hostname/ip: "{0}" as external broker reference.'.format(broker_hostn
 try:
     # Launching the local broker
     log('Initialising local broker.', 1)
-    created_subprocesses.append(subprocess.Popen([args.python_executable[0], 'broker.py']))
+    #created_subprocesses.append(subprocess.Popen([args.python_executable[0], 'broker.py']))
+    created_subprocesses.append(subprocess.Popen(['broker.py']))
     # Let's wait until the local broker is up and running...
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     begin = time.time()
@@ -115,7 +117,7 @@ try:
                     + args.executable))
                 workers_left -= 1
         else:
-            # If the host is remote, connect with ssh
+            # If the host is remote, connect with osh
             log('Initialising remote workers of host {0} attached to the local broker...'.format(host), 1)
             for a in range(min(maximum_workers.get(host, 8), workers_left)):
                 log('Initialising remote worker {0}'.format(workers_left), 2)
