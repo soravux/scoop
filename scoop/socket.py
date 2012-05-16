@@ -33,15 +33,15 @@ class MySocket(object):
         self.socket = MySocket.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
         self.socket.connect(scoop.BROKER_ADDRESS)
-   
+
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
-        
+
         # socket for the shutdown signal
         self.infoSocket = MySocket.context.socket(zmq.SUB)
         if scoop.IS_ORIGIN == False:
             self.infoSocket.connect(scoop.META_ADDRESS)
-            self.infoSocket.setsockopt(zmq.SUBSCRIBE, "")
+            self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
             self.poller.register(self.infoSocket, zmq.POLLIN)
     
     def _poll(self, timeout):
@@ -63,17 +63,17 @@ class MySocket(object):
             yield self._recv()
         
     def sendTask(self, task):
-        self.socket.send_multipart(["TASK", pickle.dumps(task)])
+        self.socket.send_multipart([b"TASK", pickle.dumps(task)])
         
     def sendResult(self, task):
-        self.socket.send_multipart(["REPLY", pickle.dumps(task), task.id.worker[0]])
+        self.socket.send_multipart([b"REPLY", pickle.dumps(task), task.id.worker[0]])
 
     def sendRequest(self):
-        self.socket.send("REQUEST")
+        self.socket.send(b"REQUEST")
         
     def shutdown(self):
         if scoop.IS_ORIGIN == True:
-            self.socket.send("SHUTDOWN")
+            self.socket.send(b"SHUTDOWN")
             time.sleep(0.3)
             
 class Shutdown(Exception):

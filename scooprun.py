@@ -95,6 +95,7 @@ try:
     
     # Find the broker
     from broker import Broker
+
     created_subprocesses.append(subprocess.Popen([args.python_executable[0],
         os.path.abspath(sys.modules[Broker.__module__].__file__)]))
         
