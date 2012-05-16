@@ -20,9 +20,10 @@ import time
 import zmq
 from collections import deque
 
-REQUEST    = "REQUEST"
-TASK       = "TASK"
-REPLY      = "REPLY"
+REQUEST    = b"REQUEST"
+TASK       = b"TASK"
+REPLY      = b"REPLY"
+SHUTDOWN   = b"SHUTDOWN"
 
 
 class Broker(object):
@@ -70,7 +71,7 @@ class Broker(object):
                     if self.available_workers > 0:
                         self.available_workers -= 1
                         address = self.workers_list.pop()
-                        self.taskSocket.send_multipart([address, "TASK", task])
+                        self.taskSocket.send_multipart([address, TASK, task])
                     else:
                         self.unassigned_tasks.append(task)
                     
@@ -78,19 +79,19 @@ class Broker(object):
                     try:
                         address = msg[0]
                         task = self.unassigned_tasks.pop()
-                        self.taskSocket.send_multipart([address, "TASK", task])
+                        self.taskSocket.send_multipart([address, TASK, task])
                     except:
                         self.available_workers += 1
                         self.workers_list.append(msg[0])
                 elif msg_type == REPLY:
                     address = msg[3]
                     task = msg[2]
-                    self.taskSocket.send_multipart([address, "REPLY", task])
+                    self.taskSocket.send_multipart([address, REPLY, task])
                    
-                elif msg_type == "SHUTDOWN":
+                elif msg_type == SHUTDOWN:
                     break
 
-        self.infoSocket.send("SHUTDOWN")
+        self.infoSocket.send(SHUTDOWN)
         #out of infinite loop: do some housekeeping
         time.sleep (0.3)
         

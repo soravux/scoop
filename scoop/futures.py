@@ -173,7 +173,9 @@ def waitAll(*children):
     available before it can produce an output. See waitAny for an alternative 
     option."""
     for index, task in enumerate(children):
-        yield waitAny(task).next()
+        #yield waitAny(task).next()
+        for result in waitAny(task):
+            yield result
         
 def join(child):
     """This function is for joining the current task with one of its child 
@@ -184,7 +186,9 @@ def join(child):
     
     Only one task can be specified. The function returns a single corresponding 
     result as soon as it becomes available."""
-    return waitAny(child).next()
+    #return waitAny(child).next()
+    for result in waitAny(child):
+        return result
 
 
 def joinAll(*children):
