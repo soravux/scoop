@@ -66,6 +66,11 @@ This will run 4 workers on each 3 remotes hosts as well as the local machine tha
     Please keep in mind that connecting to remote hosts must be done without a shell, meaning that you possibly won't be able to write your password when ssh asks for it. Ensure that you have properly created ssh keys that allows for passwordless authentication over ssh on your remote hosts.
     
     If your remote hosts need special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ~/.ssh/config). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
+    
+.. note::
+    
+    Bear in mind that your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS setted up on your local netowrk or a system hosts file for this kind of routing, consider using the ``--broker-hostname`` argument to provide your externally routable IP.
+    
 Manual launch
 ~~~~~~~~~~~~~
 
@@ -98,3 +103,7 @@ BROKER_NAME           The name of this broker.                                  
 BROKER_ADDRESSES      List of other brokers assigned to the current task                                            [Empty]
 META_ADDRESSES        List of other brokers The address of the meta socket with protocol and port                   ['BROKER_ADDRESSES' with port incremented]
 ====================  ============================================================================================  ==========================================
+
+.. warning::
+
+    Be sure to launch every process using the SCOOP API using the same Python version. SCOOP uses Python serialisation which is known to be incompatible between versions. Using different Python versions, on a remote worker or locally, could lead in misinterpreted deserialisation which means cryptic and indecipherable errors which the Python traceback could probably misidentify.

@@ -16,7 +16,8 @@
 #
 import os
 
-__author__ = "Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner"
+__author__ = "Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner", \
+    "Yannick Hold-Geoffroy"
 __version__ = "0.5"
 __revision__ = "0.5.0"
 

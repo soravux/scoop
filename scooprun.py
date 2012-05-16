@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 #
 #    This file is part of Scalable COncurrent Operations in Python (SCOOP).
 #
@@ -17,16 +17,18 @@
 #
 from __future__ import print_function
 import subprocess
+from multiprocessing import Process
 import argparse
 import time
 import os
+import sys
 import socket
 
 def log(text, level=0):
     """Easily logs on screen the different events happening based on the
     verbosity level"""
     if args.verbose > level-1:
-        print("[{0}]\tscooprun -> {1}".format(time.time(), text))
+        print("[{0}]\t{2} -> {1}".format(time.time(), text, __file__))
 
 cwd = os.getcwd()
     
@@ -48,7 +50,7 @@ parser.add_argument('--verbose', '-v',
 parser.add_argument('-N',
                     help="Number of process",
                     type=int,
-                    default=2)
+                    default=1)
 parser.add_argument('-b',
                     help="Don't start additional workers on the local machine, only the broker and the origin",
                     action='store_true')
@@ -84,13 +86,18 @@ if args.broker_hostname == None:
     broker_hostname = socket.gethostname()
 else:
     broker_hostname = args.broker_hostname[0]
-log('Using hostname/ip: "{0}" as external broker reference.'.format(broker_hostname), 1)
+log('Using hostname/ip: "{0}" as external broker reference.'\
+    .format(broker_hostname), 1)
 
 try:
     # Launching the local broker
     log('Initialising local broker.', 1)
-    #created_subprocesses.append(subprocess.Popen([args.python_executable[0], 'broker.py']))
-    created_subprocesses.append(subprocess.Popen(['broker.py']))
+    
+    # Find the broker
+    from broker import Broker
+    created_subprocesses.append(subprocess.Popen([args.python_executable[0],
+        os.path.abspath(sys.modules[Broker.__module__].__file__)]))
+        
     # Let's wait until the local broker is up and running...
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     begin = time.time()
@@ -117,9 +124,9 @@ try:
                     + args.executable))
                 workers_left -= 1
         else:
-            # If the host is remote, connect with osh
+            # If the host is remote, connect with ssh
             log('Initialising remote workers of host {0} attached to the local broker...'.format(host), 1)
-            for a in range(min(maximum_workers.get(host, 8), workers_left)):
+            for a in range(min(maximum_workers.get(host, 1), workers_left)):
                 log('Initialising remote worker {0}'.format(workers_left), 2)
                 command = 'PYTHONPATH={5} \
 IS_ORIGIN=0 \
