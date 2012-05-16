@@ -146,12 +146,9 @@ def waitAny(*children):
     # check for available results and index those unavailable
     for index, task in enumerate(children):
         if task.result:
-#            if task.index == None:
-#                task.index = index
             yield task.result
             n -= 1
         else:
-#            if task.index == None:
             task.index = index
     task = Task.current
     while n > 0:
@@ -176,8 +173,6 @@ def waitAll(*children):
     available before it can produce an output. See waitAny for an alternative 
     option."""
     for index, task in enumerate(children):
-        #task.index = index
-        #Task.dict[task.id].index = index
         yield waitAny(task).next()
         
 def join(child):
