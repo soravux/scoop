@@ -69,7 +69,7 @@ This will run 4 workers on each 3 remotes hosts as well as the local machine tha
     
 .. note::
     
-    Bear in mind that your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS setted up on your local netowrk or a system hosts file for this kind of routing, consider using the ``--broker-hostname`` argument to provide your externally routable IP.
+    Bear in mind that your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly setted up on your local network or a system hosts file, consider using the ``--broker-hostname`` argument to provide your externally routable IP or DNS name.
     
 Manual launch
 ~~~~~~~~~~~~~
