@@ -173,7 +173,6 @@ def waitAll(*children):
     available before it can produce an output. See waitAny for an alternative 
     option."""
     for index, task in enumerate(children):
-        #yield waitAny(task).next()
         for result in waitAny(task):
             yield result
         
