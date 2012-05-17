@@ -69,18 +69,32 @@ parser.add_argument('--python-executable',
 args = parser.parse_args()
 
 hosts = [] if args.hosts == None else args.hosts
-hosts += ['127.0.0.1'] if not args.b else []
+hosts += ['127.0.0.1'] if not args.b and '127.0.0.1' not in hosts else []
+raw_hosts = hosts
 hosts = set(hosts)
 workers_left = args.N - 1 # One is the origin, already taken into account
 created_subprocesses = []
 
 log('Deploying {0} workers over {1} host(s).'.format(args.N, len(hosts)), 2)
 
-# Division of workers pseudo-equally upon the hosts
 maximum_workers = {}
-for index, host in enumerate(hosts):
-    maximum_workers[host] = (args.N / (len(hosts)) + int((args.N % len(hosts)) > index))
-
+# If multiple times the same host in argument, it means that the maximum number
+# of workers has been setted by the number of times it is in the array
+if len(raw_hosts) != len(hosts):
+    log('Using amount of duplicates in hosts entry to set the number of workers.',
+        1)
+    for host in hosts:
+        maximum_workers[host] = raw_hosts.count(host)
+else :
+    # No duplicate entries in hosts found, division of workers pseudo-equally
+    # upon the hosts
+    log('Dividing workers pseudo-equally over hosts', 1)
+    for index, host in enumerate(hosts):
+        maximum_workers[host] = (args.N / (len(hosts)) \
+                                + int((args.N % len(hosts)) > index))
+log('Worker distribution: {0}'.format(maximum_workers), 2)
+                                
+# Get the externally routable local hostname
 if args.broker_hostname == None:
     broker_hostname = socket.gethostname()
 else:
@@ -112,6 +126,7 @@ try:
     else:
         raise Exception('Could not start server!')
             
+    # Launch the workers
     for index, host in enumerate(hosts):
         if host in ["127.0.0.1", "localhost"]:
             # Launching the workers
@@ -149,17 +164,22 @@ META_ADDRESS=tcp://{2}:5556 {6} {4} {0} {1}'.format(
                                                         command])
                 created_subprocesses.append(shell)
                 workers_left -= 1
-        if workers_left <= 0: break
+        if workers_left <= 0:
+            # We've launched every worker we needed, so let's exit the loop!
+            break
+        
     # Ensure everything is started normaly
     for this_subprocess in created_subprocesses:
         if this_subprocess.poll() is not None:
             raise Exception('Subprocess {0} terminated abnormaly.')\
                 .format(this_subprocess)
+    
     # Everything has been started everywhere, we can then launch our origin.
     log('Initialising local origin.', 1)
     os.environ.update({'WORKER_NAME': 'root',
                        'IS_ORIGIN': '1'})
     created_subprocesses.append(subprocess.call([args.python_executable[0]] + args.executable))
+    
 finally:
     # Ensure everything is cleaned up on exit
     log('Destroying local elements of the federation...', 1)
