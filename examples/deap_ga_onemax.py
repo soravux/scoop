@@ -14,6 +14,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import array
 import logging
 import random
@@ -22,10 +23,14 @@ import sys
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 import random
 
-from deap import algorithms
-from deap import base
-from deap import creator
-from deap import tools
+try:
+    from deap import algorithms
+    from deap import base
+    from deap import creator
+    from deap import tools
+except Exception as e:
+    raise Exception("This test needs DEAP to be installed.")
+    
 from scoop import futures
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))

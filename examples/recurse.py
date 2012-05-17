@@ -18,10 +18,6 @@
 A very simple example of recursive nested tasks.
 Each task maps 2 others tasks, each of these 2 tasks maps 2 others, etc.,
 up to RECURSIVITY_LEVEL.
-
-Setting RECURSIVITY_LEVEL to a high value (typically more than 16) may
-produce some strange OS errors (as the kernel will probably complain about
-the number of active threads...
 """
 
 from scoop import futures
