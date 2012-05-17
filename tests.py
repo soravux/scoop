@@ -18,7 +18,7 @@ from __future__ import print_function
 from scoop import futures
 from scoop.types import Task
 import unittest
-import subprocess, multiprocessing
+import subprocess
 import time
 import copy
 import os
@@ -52,14 +52,7 @@ def main(n):
 def main_simple(n):
     task = futures.submit(func3, n)
     return futures.join(task)
-    
-def setup_multiworker():
-    Backupenv = os.environ.copy()
-    os.environ.update({'WORKER': '1-2', 'IS_ORIGIN': '0'})    
-    worker = subprocess.Popen([sys.executable, "tests.py"])
-    os.environ = Backupenv
-    return worker
-    
+        
     
 class TestScoopCommon(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -67,6 +60,14 @@ class TestScoopCommon(unittest.TestCase):
         self.default_Task = copy.deepcopy(Task)
         # Parent initialization
         super(TestScoopCommon, self).__init__(*args, **kwargs)
+        
+    def multiworker_set(self):
+        Backupenv = os.environ.copy()
+        os.environ.update({'WORKER': '1-2', 'IS_ORIGIN': '0'})    
+        worker = subprocess.Popen([sys.executable, "tests.py"])
+        os.environ = Backupenv
+        return worker
+
         
     def setUp(self):
         # Start the server
@@ -83,19 +84,16 @@ class TestScoopCommon(unittest.TestCase):
             except:
                 pass
         else:
-            raise Exception('Could not start server!')   
+            raise Exception('Could not start server!')
         # Reset any previously setted static variable
         Task = copy.deepcopy(self.default_Task)
     
     def tearDown(self):
-        # Destroy the server
-        try: self.server.kill()
+        try: self.w.kill()
         except: pass
-        if hasattr(self, 'p') and self.p != None:
-            try: self.p.kill()
-            except: pass
-        if hasattr(self, 'w') and self.w != None:
-            try: self.w.kill()
+        # Destroy the server
+        if self.server.poll() == None:
+            try: self.server.kill()
             except: pass
             
 
@@ -104,71 +102,71 @@ class TestMultiFunction(TestScoopCommon):
     def __init__(self, *args, **kwargs):
         # Parent initialization
         super(TestMultiFunction, self).__init__(*args, **kwargs)
-        self.test_main = main
+        self.main_func = main
         self.small_result = 77
         self.large_result = 76153
          
     def test_small_uniworker(self):
         Task.execQueue.highwatermark = 10
         Task.execQueue.lowwatermark = 5
-        result = futures.startup(self.test_main, 4)
+        result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_no_lowwatermark_uniworker(self):
         Task.execQueue.highwatermark = 9999999999999
         Task.execQueue.lowwatermark = 1
-        result = futures.startup(self.test_main, 4)
+        result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_small_foreign_uniworker(self):
         Task.execQueue.highwatermark = 1
-        result = futures.startup(self.test_main, 4)
+        result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_local_uniworker(self):
         Task.execQueue.highwatermark = 9999999999999
-        result = futures.startup(self.test_main, 4)
+        result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_large_uniworker(self):
         Task.execQueue.highwatermark = 9999999999999
-        result = futures.startup(self.test_main, 20)
+        result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_no_lowwatermark_uniworker(self):
         Task.execQueue.lowwatermark = 1
         Task.execQueue.highwatermark = 9999999999999
-        result = futures.startup(self.test_main, 20)
+        result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
 
     def test_large_foreign_uniworker(self):
         Task.execQueue.highwatermark = 1
-        result = futures.startup(self.test_main, 20)
+        result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_local_uniworker(self):
         Task.execQueue.highwatermark = 9999999999999
-        result = futures.startup(self.test_main, 20)
+        result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_small_local_multiworker(self):
-        self.w = setup_multiworker()
+        self.w = self.multiworker_set()
         Task.execQueue.highwatermark = 9999999999
         Backupenv = os.environ.copy()
         os.environ.update({'WORKER': 'master-node',
                            'IS_ORIGIN': '1'})
-        result = futures.startup(self.test_main, 4)
+        result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         time.sleep(0.5)
         os.environ = Backupenv
     
     def test_small_foreign_multiworker(self):
-        self.w = setup_multiworker()
+        self.w = self.multiworker_set()
         Task.execQueue.highwatermark = 1
         Backupenv = os.environ.copy()
         os.environ.update({'WORKER': 'master-node',
                            'IS_ORIGIN': '1'})
-        result = futures.startup(self.test_main, 4)
+        result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         time.sleep(0.5)
         os.environ = Backupenv
@@ -177,11 +175,11 @@ class TestSingleFunction(TestMultiFunction):
     def __init__(self, *args, **kwargs):
         # Parent initialization
         super(TestSingleFunction, self).__init__(*args, **kwargs)
-        self.test_main = main_simple
+        self.main_func = main_simple
         self.small_result = 30
         self.large_result = 2870 
 
-if __name__ == '__main__':
+if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
     complex = unittest.TestLoader().loadTestsFromTestCase(TestMultiFunction)
     if len(sys.argv) > 1:
@@ -191,3 +189,5 @@ if __name__ == '__main__':
             unittest.TextTestRunner(verbosity=2).run(complex)
     else:
         unittest.main()
+elif __name__ == '__main__':
+    futures.startup(main_simple)
