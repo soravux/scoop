@@ -27,22 +27,18 @@ import sys
 def func0(n):
     task = futures.submit(func1, n)
     result = futures.join(task)
-#    print("func 0:", result)
     return result
 
 def func1(n):
     result = futures.mapJoin(func2, [i+1 for i in range(0,n)])
-#    print("func 1:", result)
     return sum(result)
 
 def func2(n):
     result = futures.mapJoin(func3, [i+1 for i in range(0,n)])
-#    print("func 2:", result)
     return sum(result)
 
 def func3(n):
     result = futures.mapJoin(func4, [i+1 for i in range(0,n)])
-#    print("func 3:", result)
     return sum(result)
 
 def func4(n):
@@ -60,7 +56,7 @@ def main_simple(n):
 def setup_multiworker():
     Backupenv = os.environ.copy()
     os.environ.update({'WORKER': '1-2', 'IS_ORIGIN': '0'})    
-    worker = subprocess.Popen(["python", "test-scoop.py"])
+    worker = subprocess.Popen([sys.executable, "tests.py"])
     os.environ = Backupenv
     return worker
     
@@ -74,7 +70,7 @@ class TestScoopCommon(unittest.TestCase):
         
     def setUp(self):
         # Start the server
-        self.server = subprocess.Popen(["python", "broker.py"])
+        self.server = subprocess.Popen([sys.executable, "broker.py"])
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
@@ -101,7 +97,6 @@ class TestScoopCommon(unittest.TestCase):
         if hasattr(self, 'w') and self.w != None:
             try: self.w.kill()
             except: pass
-        time.sleep(0.5)
             
 
 
