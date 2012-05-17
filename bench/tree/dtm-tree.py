@@ -1,13 +1,17 @@
-import treeTester
+# -*- coding: utf-8 -*-
+from treeTester import *
 from deap import dtm
 
 filename = "tree.txt"
 
 def main():
-    #t = importTree(filename)
-    return treeTester.executeTree([])
+    return executeTree([])
 
 if __name__=="__main__":
-    treeTester.importTree(filename)
-    treeTester.registerMap(dtm.map)
-    dtm.start(main)
+    importTree(filename)
+    registerMap(dtm.map)
+    print(dtm.start(main))
+    
+    
+
+

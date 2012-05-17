@@ -1,13 +1,13 @@
-import treeTester
+# -*- coding: utf-8 -*-
+from treeTester import *
 from scoop import futures
 
 filename = "tree.txt"
 
 def main():
-    #t = importTree(filename)
-    return treeTester.executeTree([])
+    return executeTree([])
 
 if __name__=="__main__":
-    treeTester.importTree(filename)
-    treeTester.registerMap(futures.mapJoin)
-    futures.startup(main)
+    importTree(filename)
+    registerMap(futures.mapJoin)
+    print(futures.startup(main))
