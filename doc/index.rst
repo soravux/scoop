@@ -6,8 +6,6 @@
 Welcome to SCOOP's documentation!
 =================================
 
-Contents:
-
 SCOOP (Scalable COncurrent Operations in Python) is a distributed task
 module allowing concurrent parallel programming on various environments,
 including grids and supercomputers.
@@ -19,6 +17,7 @@ module see :pep:`3148`.
    :maxdepth: 2
    
    readme
+   gridusage
    api
    
 Indices and tables
