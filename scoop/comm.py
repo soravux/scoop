@@ -24,13 +24,13 @@ except ImportError:
     import pickle
 
 
-class MySocket(object):
+class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
     context = zmq.Context()
 
     def __init__(self):
         # socket for the tasks, replies and request
-        self.socket = MySocket.context.socket(zmq.DEALER)
+        self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
         self.socket.connect(scoop.BROKER_ADDRESS)
 
@@ -38,7 +38,7 @@ class MySocket(object):
         self.poller.register(self.socket, zmq.POLLIN)
 
         # socket for the shutdown signal
-        self.infoSocket = MySocket.context.socket(zmq.SUB)
+        self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
         if scoop.IS_ORIGIN == False:
             self.infoSocket.connect(scoop.META_ADDRESS)
             self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
