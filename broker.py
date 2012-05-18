@@ -62,7 +62,7 @@ class Broker(object):
         while True:
             if scoop.DEBUG:
                 with open("broker-broker", 'a') as f:
-                    f.write("%s %s\n" % (time.time(), len(Task.execQueue)))
+                    f.write("%s %s\n" % (time.time(), len(self.unassigned_tasks)))
             
             socks = dict(self.poller.poll())      
             if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
