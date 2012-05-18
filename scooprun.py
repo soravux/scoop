@@ -143,19 +143,19 @@ try:
             log('Initialising remote workers of host {0} attached to the local broker...'.format(host), 1)
             for a in range(min(maximum_workers.get(host, 1), workers_left)):
                 log('Initialising remote worker {0}'.format(workers_left), 2)
-                command = 'PYTHONPATH={5} \
+                command = 'bash -c \'PYTHONPATH={4} \
 IS_ORIGIN=0 \
-WORKER_NAME=worker{3} \
+WORKER_NAME=worker{2} \
 BROKER_NAME=broker \
-BROKER_ADDRESS=tcp://{2}:5555 \
-META_ADDRESS=tcp://{2}:5556 {6} {4} {0} {1}'.format(
-                    os.path.join(args.path + "/", args.executable[0]),
-                    " ".join(args.executable[1:]),
+BROKER_ADDRESS=tcp://{1}:5555 \
+META_ADDRESS=tcp://{1}:5556; cd {6} && {5} {3} {0}\''.format(
+                    " ".join(args.executable),
                     '127.0.0.1' if args.e else broker_hostname,
                     workers_left,
                     args.python_executable[0],
                     os.environ.get("PYTHONPATH", "$PYTHONPATH"),
-                    ('', 'nice -n {0}'.format(args.nice))[args.nice != None])
+                    ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
+                    args.path)
                 # TODO: start every worker in one SSH channel.
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 if args.e:
@@ -185,9 +185,5 @@ finally:
     log('Destroying local elements of the federation...', 1)
     for process in created_subprocesses:
         try: process.terminate()
-        except: pass
-    time.sleep(0.2)
-    for process in created_subprocesses:
-        try: process.kill()
         except: pass
     log('Finished destroying spawned subprocesses.', 2)
