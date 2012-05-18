@@ -44,6 +44,11 @@ def runController(callable, *args, **kargs):
     task = task.switch(task)
     
     while (task.parentId != rootId or task.result == None) or scoop.IS_ORIGIN == False:
+        # DEBUG
+        if scoop.DEBUG:
+            import time
+            with open("%s-%s" % (scoop.WORKER_NAME, scoop.BROKER_NAME), 'a') as f:
+                f.write("%s %s\n" % (time.time(), len(Task.execQueue)))
         # process task
         if task.result != None:
             # task is finished
