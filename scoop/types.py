@@ -55,9 +55,6 @@ TaskId = namedtuple('TaskId', ['worker', 'rank'])
 # This class encapsulates a queue of tasks that are pending execution. Within
 # this class lies the entry points for task communications.
 class TaskQueue(object):
-    
-    
-
     # initialize queue to empty elements and create a communication object.
     def __init__(self):
         self.movable = deque()

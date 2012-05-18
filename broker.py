@@ -19,6 +19,7 @@ from __future__ import print_function
 import time
 import zmq
 from collections import deque
+import scoop
 
 REQUEST    = b"REQUEST"
 TASK       = b"TASK"
@@ -59,6 +60,9 @@ class Broker(object):
 
     def run(self):
         while True:
+            if scoop.DEBUG:
+                with open("broker-broker", 'a') as f:
+                    f.write("%s %s\n" % (time.time(), len(Task.execQueue)))
             
             socks = dict(self.poller.poll())      
             if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
