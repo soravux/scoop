@@ -4,7 +4,9 @@ How to use SCOOP on a grid
 Environment setup
 -----------------
 
-Here is a scratchpad allowing you to set a minimal local python environment without the need to be administrator on a Linux system::
+Here is a scratchpad allowing you to set a working SCOOP environment.
+
+Follow this section if you need to use another Python version (ie. 2.7.3) than the system's::
 
     [~]$ mkdir downloads && cd downloads/
     [downloads]$ wget http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
@@ -16,25 +18,28 @@ Here is a scratchpad allowing you to set a minimal local python environment with
     [downloads]$ python distribute_setup.py
     [downloads]$ wget --no-check-certificate  https://raw.github.com/pypa/pip/master/contrib/get-pip.py
     [downloads]$ python get-pip.py
+    
+This section installs the requirements needed to run SCOOP::
+    
     [downloads]$ pip install -U greenlet==dev
     [downloads]$ wget http://download.zeromq.org/zeromq-2.2.0.tar.gz
     [downloads]$ tar xfvz zeromq-2.2.0.tar.gz && cd zeromq-2.2.0
-    [zeromq-2.2.0]$ ./configure --prefix=$HOME/zmq/ && make && make install
-    [zeromq-2.2.0]$ export PATH=$PATH:$HOME/zmq/lib
-    [zeromq-2.2.0]$ cd ..
+    [zeromq-2.2.0]$ ./configure --prefix=$HOME/zmq/ && make && make install && cd ..
     [downloads]$ wget --no-check-certificate https://github.com/downloads/zeromq/pyzmq/pyzmq-2.2.0.tar.gz
     [downloads]$ tar xfvz pyzmq-2.2.0.tar.gz && cd pyzmq-2.2.0
-    [pyzmq-2.2.0]$ python setup.py configure --zmq=$HOME/zmq && python setup.py install
-    [pyzmq-2.2.0]$ cd ..
+    [pyzmq-2.2.0]$ python setup.py configure --zmq=$HOME/zmq && python setup.py install && cd ..
+
+If you don't already have mercurial or scoop, you can use this section as reference::    
+
     [downloads]$ pip install mercurial
     [downloads]$ hg clone https://code.google.com/p/scoop/ ./scoop/
-    [downloads]$ cd scoop/
-    [downloads]$ python setup.py install
-    [examples]$ mkdir ~/.ssh && cd ~/.ssh
+    [downloads]$ cd scoop/ && python setup.py install
+    
+Ensure your ssh keys are up-to-date and allowed. You should log into every system that will be a foreign worker started by scooprun.py and ensure you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared /home/ over your systems, you can do as such::
+    
+    [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
     [.ssh]$ cat id_dsa.pub >> authorized_keys2
-    [.ssh]$ cd $HOME/downloads/scoop/examples/
-
 
 Startup scripts
 ---------------
