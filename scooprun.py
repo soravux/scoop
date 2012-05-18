@@ -171,8 +171,8 @@ META_ADDRESS=tcp://{2}:5556 {6} {4} {0} {1}'.format(
     # Ensure everything is started normaly
     for this_subprocess in created_subprocesses:
         if this_subprocess.poll() is not None:
-            raise Exception('Subprocess {0} terminated abnormaly.')\
-                .format(this_subprocess)
+            raise Exception('Subprocess {0} terminated abnormaly.'\
+                .format(this_subprocess))
     
     # Everything has been started everywhere, we can then launch our origin.
     log('Initialising local origin.', 1)
