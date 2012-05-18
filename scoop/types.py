@@ -17,8 +17,8 @@
 from __future__ import print_function
 from collections import namedtuple
 import scoop
-from .socket import MySocket
-from .socket import Shutdown
+from .comm import ZMQCommunicator
+from .comm import Shutdown
 import time
 import greenlet
 from collections import deque
@@ -48,9 +48,7 @@ class StopWatch(object):
     # set stopwatch to zero.
     def reset(self):
         self.__init__()
-
-TaskId = namedtuple('TaskId', ['worker', 'rank'])
-
+        
 
 # This class encapsulates a queue of tasks that are pending execution. Within
 # this class lies the entry points for task communications.
@@ -60,7 +58,7 @@ class TaskQueue(object):
         self.movable = deque()
         self.ready = deque()
         self.inprogress = deque()
-        self.socket = MySocket()
+        self.socket = ZMQCommunicator()
         self.lowwatermark  = 5
         self.highwatermark = 20
 
@@ -133,6 +131,8 @@ class TaskQueue(object):
         assert task.result != None, "The results are not valid"
         self.socket.sendResult(task)
 
+
+TaskId = namedtuple('TaskId', ['worker', 'rank'])
 
 # This class encapsulates and independent task that can be executed in parallel.
 # A task can spawn other parallel tasks which themselves can recursively spawn

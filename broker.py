@@ -64,7 +64,7 @@ class Broker(object):
                 with open("broker-broker", 'a') as f:
                     f.write("%s %s\n" % (time.time(), len(self.unassigned_tasks)))
             
-            socks = dict(self.poller.poll())      
+            socks = dict(self.poller.poll())
             if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
                         
                 msg = self.taskSocket.recv_multipart()
