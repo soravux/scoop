@@ -10,7 +10,7 @@ Here is a scratchpad allowing you to set a minimal local python environment with
     [downloads]$ wget http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
     [downloads]$ tar xfvj Python-2.7.3.tar.bz2 && cd Python-2.7.3
     [Python-2.7.3]$ ./configure --prefix=$HOME/python && make && make install
-    [Python-2.7.3]$ export PATH=$HOME/python/bin:$PATH && echo "You should put this line in your .bashrc for "
+    [Python-2.7.3]$ export PATH=$HOME/python/bin:$PATH && echo "You should put this line in your .bashrc for persistency."
     [Python-2.7.3]$ cd ..
     [downloads]$ wget --no-check-certificate http://python-distribute.org/distribute_setup.py
     [downloads]$ python distribute_setup.py
@@ -20,11 +20,12 @@ Here is a scratchpad allowing you to set a minimal local python environment with
     [downloads]$ wget http://download.zeromq.org/zeromq-2.2.0.tar.gz
     [downloads]$ tar xfvz zeromq-2.2.0.tar.gz && cd zeromq-2.2.0
     [zeromq-2.2.0]$ ./configure --prefix=$HOME/zmq/ && make && make install
+    [zeromq-2.2.0]$ export PATH=$PATH:$HOME/zmq/lib
     [zeromq-2.2.0]$ cd ..
-    [downloads]$ export PATH=$PATH:$HOME/zmq/lib
     [downloads]$ wget --no-check-certificate https://github.com/downloads/zeromq/pyzmq/pyzmq-2.2.0.tar.gz
     [downloads]$ tar xfvz pyzmq-2.2.0.tar.gz && cd pyzmq-2.2.0
     [pyzmq-2.2.0]$ python setup.py configure --zmq=$HOME/zmq && python setup.py install
+    [pyzmq-2.2.0]$ cd ..
     [downloads]$ pip install mercurial
     [downloads]$ hg clone https://code.google.com/p/scoop/ ./scoop/
     [downloads]$ cd scoop/
@@ -32,7 +33,7 @@ Here is a scratchpad allowing you to set a minimal local python environment with
     [examples]$ mkdir ~/.ssh && cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
     [.ssh]$ cat id_dsa.pub >> authorized_keys2
-    [downloads]$ cd $HOME/downloads/scoop/examples/
+    [.ssh]$ cd $HOME/downloads/scoop/examples/
 
 
 Startup scripts
