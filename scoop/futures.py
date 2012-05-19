@@ -42,13 +42,29 @@ def startup(rootTask, *args, **kargs):
     _controller = greenlet.greenlet(runController)
     try:
         result = _controller.switch(rootTask, *args, **kargs)
-    except scoop.socket.Shutdown:
+    except scoop.comm.Shutdown:
         return None
     return result
     
-def shutdown(): pass
+def shutdown(wait=True):
+    """Signal SCOOP that it should free any resources that it is using when the
+    currently pending futures are done executing. Calls to ``submit``, ``map`` 
+    or any other futures method made after shutdown will raise RuntimeError.
 
-def map(callable, *iterables, **kargs):
+    Regardless of the value of wait, the
+    entire Python program will not exit until all pending futures are done
+    executing.
+    
+    :param wait: If True, this method will be blocking, meaning that it will not
+    return until all the pending futures are done executing and the resources
+    associated with the executor have been freed. If wait is False, this method
+    wille return immediately and the resources associated with the executor will
+    be freed when all pending futures are done executing.
+    """
+    # TODO
+    pass
+
+def mapGen(callable, *iterables, **kargs):
     """This function is similar to the built-in map function, but each of its 
     iteration will spawn a separate independent parallel task that will run 
     either locally or remotely as `callable(*args, **kargs)`.
@@ -73,7 +89,7 @@ def map(callable, *iterables, **kargs):
         childrenList.append(submit(callable, *args, **kargs))
     return childrenList
 
-def mapJoin(callable, *iterables, **kargs):
+def map(callable, *iterables, **kargs):
     """This function is a helper function that simply calls joinAll on the 
     result of map. It returns with a list of the map results, one for every 
     iteration of the map.
@@ -86,7 +102,7 @@ def mapJoin(callable, *iterables, **kargs):
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
     :returns: A list of map results, each corresponding to one map iteration."""
-    return joinAll(*map(callable, *iterables, **kargs))
+    return joinAll(*mapGen(callable, *iterables, **kargs))
 
 def mapWait(callable, *iterables, **kargs):
     """This function is a helper function that simply calls waitAll on the 
@@ -102,7 +118,7 @@ def mapWait(callable, *iterables, **kargs):
         passed to the callable object. 
     :returns: A generator of map results, each corresponding to one map 
         iteration."""
-    return waitAll(*map(callable, *iterables, **kargs))
+    return waitAll(*mapGen(callable, *iterables, **kargs))
 
 def submit(callable, *args, **kargs):
     """This function is for submitting an independent parallel task that will 
