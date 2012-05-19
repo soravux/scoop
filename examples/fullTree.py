@@ -27,15 +27,15 @@ def func0(n):
     return result
 
 def func1(n):
-    result = futures.mapJoin(func2, [i+1 for i in range(0,n)])
+    result = futures.map(func2, [i+1 for i in range(0,n)])
     return sum(result)
 
 def func2(n):
-    result = futures.mapJoin(func3, [i+1 for i in range(0,n)])
+    result = futures.map(func3, [i+1 for i in range(0,n)])
     return sum(result)
 
 def func3(n):
-    result = futures.mapJoin(func4, [i+1 for i in range(0,n)])
+    result = futures.map(func4, [i+1 for i in range(0,n)])
     return sum(result)
 
 def func4(n):

@@ -27,7 +27,7 @@ def test(tries):
     return sum(hypot(random(), random()) < 1 for i in xrange(tries))
 
 def calcPi(n, t):
-    expr = futures.mapJoin(test, [t] * n)
+    expr = futures.map(test, [t] * n)
     pi_value = 4. * sum(expr) / float(n*t)
     print("pi = " + str(pi_value))
     return pi_value

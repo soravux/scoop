@@ -210,7 +210,7 @@ def main():
     stats.register("Min", min)
     stats.register("Max", max)
     
-    toolbox.register("map", futures.mapJoin)
+    toolbox.register("map", futures.map)
 
     CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 20
     
