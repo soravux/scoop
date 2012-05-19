@@ -182,8 +182,86 @@ class Task(object):
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(task)
     
-    # shutdown the task and it's children
-    def shutdown(self): pass
+    # The following methods are added to be compliant with PEP3148
+    def cancel(self):
+        """Attempt to cancel the call. 
+        
+        :returns: If the call is currently being executed then it cannot
+            be cancelled and the method will return False, otherwise
+            the call will be cancelled and the method will return True."""
+        # TODO
+        pass
+    
+    def cancelled(self):
+        """Returns a status flag of the process.
+        
+        :returns: True if the call was successfully cancelled, else
+            otherwise."""
+        # TODO
+        pass
+        
+    def running(self):
+        """Returns a status flag of the process.
+        
+        :returns: True if the call is currently being executed and cannot be
+            cancelled."""
+        # TODO
+        pass
+        
+    def done(self):
+        """Returns a status flag of the process.
+        
+        :returns: True if the call was successfully cancelled or finished
+            running."""
+        # TODO
+        pass
+    
+    def result(self, timeout=None):
+        """Return the value returned by the call. If the call hasn't yet
+        completed then this method will wait up to ''timeout'' seconds. If the
+        call hasn't completed in timeout seconds then a TimeoutError will be
+        raised. If timeout is not specified or None then there is no limit to
+        the wait time.
+        
+        If the future is cancelled before completing then CancelledError will
+        be raised.
+
+        If the call raised then this method will raise the same exception.
+        
+        :returns: The value returned by the call."""
+        # TODO
+        return self.result
+        
+    def exception(self, timeout=None):
+        """Return the exception raised by the call. If the call hasn't yet
+        completed then this method will wait up to timeout seconds. If the call
+        hasn't completed in timeout seconds then a TimeoutError will be raised.
+        If timeout is not specified or None then there is no limit to the wait
+        time.
+
+        If the future is cancelled before completing then CancelledError will be
+        raised.
+
+        If the call completed without raising then None is returned.
+        
+        :returns: The exception raised by the call."""
+        # TODO
+        pass
+        
+    def add_done_callback(self, callable):
+        """Attaches a callable to the future that will be called when the future
+        is cancelled or finishes running. Callable will be called with the
+        future as its only argument.
+
+        Added callables are called in the order that they were added and are
+        always called in a thread belonging to the process that added them. If
+        the callable raises an Exception then it will be logged and ignored. If
+        the callable raises another BaseException then behavior is not defined.
+
+        If the future has already completed or been cancelled then callable will
+        be called immediately."""
+        # TODO
+        pass
 
 
 class Future(object): pass

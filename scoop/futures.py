@@ -51,20 +51,19 @@ def shutdown(wait=True):
     currently pending futures are done executing. Calls to ``submit``, ``map`` 
     or any other futures method made after shutdown will raise RuntimeError.
 
-    Regardless of the value of wait, the
-    entire Python program will not exit until all pending futures are done
-    executing.
+    Regardless of the value of wait, the entire Python program will not exit
+    until all pending futures are done executing.
     
     :param wait: If True, this method will be blocking, meaning that it will not
-    return until all the pending futures are done executing and the resources
-    associated with the executor have been freed. If wait is False, this method
-    wille return immediately and the resources associated with the executor will
-    be freed when all pending futures are done executing.
-    """
+        return until all the pending futures are done executing and the
+        resources associated with the executor have been freed. If wait is
+        False, this method will return immediately and the resources associated
+        with the executor willbe freed when all pending futures are done
+        executing."""
     # TODO
     pass
 
-def mapGen(callable, *iterables, **kargs):
+def mapSubmit(callable, *iterables, **kargs):
     """This function is similar to the built-in map function, but each of its 
     iteration will spawn a separate independent parallel task that will run 
     either locally or remotely as `callable(*args, **kargs)`.
@@ -76,6 +75,7 @@ def mapGen(callable, *iterables, **kargs):
         callable object as a separate task. 
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
+        
     :returns: A list of task objects, each corresponding to an iteration of map.
     
     On return, the tasks are pending execution locally, but may also be
@@ -91,8 +91,8 @@ def mapGen(callable, *iterables, **kargs):
 
 def map(callable, *iterables, **kargs):
     """This function is a helper function that simply calls joinAll on the 
-    result of map. It returns with a list of the map results, one for every 
-    iteration of the map.
+    result of mapSubmit. It returns with a list of the map results, one for
+    every iteration of the map.
     
     :param callable: Any callable object (function or class object with __call__
         method); this object will be called to execute each task. 
@@ -101,13 +101,14 @@ def map(callable, *iterables, **kargs):
         callable object as a separate task. 
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
+        
     :returns: A list of map results, each corresponding to one map iteration."""
-    return joinAll(*mapGen(callable, *iterables, **kargs))
+    return joinAll(*mapSubmit(callable, *iterables, **kargs))
 
 def mapWait(callable, *iterables, **kargs):
     """This function is a helper function that simply calls waitAll on the 
-    result of map. It returns with a generator function for the map results, 
-    one result for every iteration of the map.
+    result of mapSubmit. It returns with a generator function for the map
+    results, one result for every iteration of the map.
     
     :param callable: Any callable object (function or class object with __call__
         method); this object will be called to execute the tasks. 
@@ -116,9 +117,10 @@ def mapWait(callable, *iterables, **kargs):
         callable object as a separate task. 
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
+        
     :returns: A generator of map results, each corresponding to one map 
         iteration."""
-    return waitAll(*mapGen(callable, *iterables, **kargs))
+    return waitAll(*mapSubmit(callable, *iterables, **kargs))
 
 def submit(callable, *args, **kargs):
     """This function is for submitting an independent parallel task that will 
@@ -130,6 +132,7 @@ def submit(callable, *args, **kargs):
         callable object. 
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable abject. 
+        
     :returns: A future object for retrieving the task result.
     
     On return, the task is pending execution locally, but may also be transfered
@@ -147,6 +150,7 @@ def waitAny(*children):
     
     :param children: A tuple of children task objects spawned by the calling 
         task.
+        
     :return: A generator function that iterates on (index, result) tuples.
     
     The generator produces two-element tuples. The first element is the index of
@@ -181,6 +185,7 @@ def waitAll(*children):
     
     :param children: A tuple of children task objects spawned by the calling 
         task.
+        
     :return: A generator function that iterates on task results.
     
     The generator produces results in the order that they are specified by
@@ -197,6 +202,7 @@ def join(child):
     task.
     
     :param child: A child task object spawned by the calling task.
+    
     :return: The result of the child task.
     
     Only one task can be specified. The function returns a single corresponding 
@@ -212,6 +218,7 @@ def joinAll(*children):
     
     :param children: A tuple of children task objects spawned by the calling 
         task.
+        
     :return: A list of corresponding results for the children tasks.
     
     This function will wait for the completion of all specified child tasks 
