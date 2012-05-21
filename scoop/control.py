@@ -15,10 +15,11 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
-from .types import Task, TaskId, TaskQueue
 import greenlet
 import os
+from .types import Task, TaskId, TaskQueue
 import scoop
+
 
 # Set module-scope variables about this controller
 worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker task id
@@ -63,7 +64,6 @@ def runController(callable, *args, **kargs):
                 # task is not local
                 execQueue.sendResult(task)
                 task = execQueue.pop()
-
             else:
                 # task is local, parent is waiting
                 if task.index != None:
@@ -74,8 +74,7 @@ def runController(callable, *args, **kargs):
                 else:
                     execQueue.append(task)
                     task = execQueue.pop()
-                        
-        else:                    
+        else:
             # task is in progress; run next task from pending execution queue.
             task = execQueue.pop()
 

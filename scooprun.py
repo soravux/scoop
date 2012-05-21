@@ -191,7 +191,7 @@ try:
 finally:
     # Ensure everything is cleaned up on exit
     log('Destroying local elements of the federation...', 1)
-    created_subprocesses.reverse()
+    created_subprocesses.reverse() # Kill the broker last
     for process in created_subprocesses:
         try: process.terminate()
         except: pass

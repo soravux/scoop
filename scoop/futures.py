@@ -51,23 +51,6 @@ def startup(rootTask, *args, **kargs):
     except scoop.comm.Shutdown:
         return None
     return result
-    
-def shutdown(wait=True):
-    """Signal SCOOP that it should free any resources that it is using when the
-    currently pending futures are done executing. Calls to ``submit``, ``map`` 
-    or any other futures method made after shutdown will raise RuntimeError.
-
-    Regardless of the value of wait, the entire Python program will not exit
-    until all pending futures are done executing.
-    
-    :param wait: If True, this method will be blocking, meaning that it will not
-        return until all the pending futures are done executing and the
-        resources associated with the executor have been freed. If wait is
-        False, this method will return immediately and the resources associated
-        with the executor willbe freed when all pending futures are done
-        executing."""
-    # TODO
-    pass
 
 def mapSubmit(callable, *iterables, **kargs):
     """This function is similar to the built-in map function, but each of its 
@@ -187,7 +170,7 @@ def waitAny(*children):
 
 def waitAll(*children):
     """This function is for waiting on all child tasks specified by a tuple of 
-    previously created task (using map or submit).
+    previously created task (using mapSubmit or submit).
     
     :param children: A tuple of children task objects spawned by the calling 
         task.
@@ -281,3 +264,25 @@ def joinAll(*children):
     This function will wait for the completion of all specified child tasks 
     before returning to the caller."""
     return [result for result in waitAll(*children)]
+
+def shutdown(wait=True):
+    """Signal SCOOP that it should free any resources that it is using when the
+    currently pending futures are done executing. Calls to ``submit``, ``map`` 
+    or any other futures method made after shutdown will raise RuntimeError.
+
+    Regardless of the value of wait, the entire Python program will not exit
+    until all pending futures are done executing.
+    
+    :param wait: If True, this method will be blocking, meaning that it will not
+        return until all the pending futures are done executing and the
+        resources associated with the executor have been freed. If wait is
+        False, this method will return immediately and the resources associated
+        with the executor willbe freed when all pending futures are done
+        executing."""
+    if wait == True:
+        joinAll(*control.dict.values())
+        
+        # Send shutdown to other workers
+        control.execQueue.socket.shutdown()
+        control.execQueue = None
+    # TODO: else
