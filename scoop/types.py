@@ -71,6 +71,9 @@ class Task(object):
         self.callback = None              # set callback
         # insert task into global dictionary
         control.task_dict[self.id] = self
+        # add link to parent
+        if scoop.DEBUG:
+           self.parent = str(scoop.control.current.id) if scoop.control.current != None else None
 
     def __lt__(self, other):
         """Order tasks by creation time."""

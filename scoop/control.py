@@ -28,14 +28,26 @@ is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
 current = None                                  # task currently running in greenlet
 task_dict = {}                                  # dictionary of existing tasks
 execQueue = TaskQueue()                         # queue of tasks pending execution
+if scoop.DEBUG:
+    import time
+    stats = {}
 
 # This is the callable greenlet for running tasks.
 def runTask(task):
+    if scoop.DEBUG:
+        stats.setdefault(task.id, {}).setdefault('start_time', []).append(time.time())
     task.waitTime = task.stopWatch.get()
     task.stopWatch.reset()
     task.result = task.callable(*task.args, **task.kargs)    
     assert task.result != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
+    if scoop.DEBUG:
+        stats[task.id].setdefault('end_time', []).append(time.time())
+        stats[task.id].update({'executionTime': task.executionTime,
+                               'worker': worker,
+                               'creationTime': task.creationTime,
+                               'callable': str(task.callable.__name__),
+                               'parent': task.parent})
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if task.callback != None:
         try: task.callback(task)
@@ -84,4 +96,7 @@ def runController(callable, *args, **kargs):
             task = task.switch(task)
 
     execQueue.socket.shutdown()
+    if scoop.DEBUG:
+        with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'a') as f:
+            f.write(str(stats))
     return task.result
