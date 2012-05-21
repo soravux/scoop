@@ -15,10 +15,16 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
-from .control import runController
+from collections import namedtuple
+import control
 from .types import Task
 import greenlet
 import scoop
+
+# Constants stated by PEP 4138 (http://www.python.org/dev/peps/pep-3148/#module-functions)
+ALL_COMPLETED = 0
+FIRST_COMPLETED = 1
+FIRST_EXCEPTION = 2
 
 # This is the greenlet for running the controller logic.
 _controller = None
@@ -39,7 +45,7 @@ def startup(rootTask, *args, **kargs):
     
     Be sure to launch your root task using this method."""
     global _controller
-    _controller = greenlet.greenlet(runController)
+    _controller = greenlet.greenlet(control.runController)
     try:
         result = _controller.switch(rootTask, *args, **kargs)
     except scoop.comm.Shutdown:
@@ -140,8 +146,8 @@ def submit(callable, *args, **kargs):
     on with any further computations while the task completes. To retrieve the
     task result, you need to either wait for or join with the parallel task. See
     functions waitAny or join."""
-    child = Task(Task.current.id, callable, *args, **kargs)
-    Task.execQueue.append(child)
+    child = Task(control.current.id, callable, *args, **kargs)
+    control.execQueue.append(child)
     return child
 
 def waitAny(*children):
@@ -170,7 +176,7 @@ def waitAny(*children):
             n -= 1
         else:
             task.index = index
-    task = Task.current
+    task = control.current
     while n > 0:
         # wait for remaining results; switch to controller
         task.stopWatch.halt()
@@ -196,7 +202,41 @@ def waitAll(*children):
     for index, task in enumerate(children):
         for result in waitAny(task):
             yield result
+
+DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
+def wait(fs, timeout=None, return_when=ALL_COMPLETED):
+    """Wait for the futures in the given sequence to complete.
+    
+    :param fs: 
+    fs: The sequence of Futures (possibly created by Executors) to wait upon.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time.
+    :param return_when: Indicates when this function should return. The options
+        are:
         
+            FIRST_COMPLETED - Return when any future finishes or is
+                              cancelled.
+            FIRST_EXCEPTION - Return when any future finishes by raising an
+                              exception. If no future raises an exception
+                              then it is equivalent to ALL_COMPLETED.
+            ALL_COMPLETED -   Return when all futures finish or are cancelled.
+        
+    :return: A named 2-tuple of sets. The first set, named 'done', contains the
+        futures that completed (is finished or cancelled) before the wait
+        completed. The second set, named 'not_done', contains uncompleted
+        futures."""
+    if return_when == FIRST_COMPLETED:
+        waitAny(*fs)
+    elif return_when == ALL_COMPLETED:
+        waitAll(*fs)
+    elif return_when == FIRST_EXCEPTION:
+        while f in fs:
+            # TODO Add exception handling
+            waitAny(*f)
+    done = set(f for f in fs if scoop.control.dict.get(f.id, {}).get('result', None) != None)
+    not_done = set(fs) - done
+    return DoneAndNotDoneFutures(done, not_done)
+
 def join(child):
     """This function is for joining the current task with one of its child 
     task.
@@ -207,10 +247,8 @@ def join(child):
     
     Only one task can be specified. The function returns a single corresponding 
     result as soon as it becomes available."""
-    #return waitAny(child).next()
     for result in waitAny(child):
         return result
-
 
 def joinAll(*children):
     """This function is for joining the current task with all of the children 

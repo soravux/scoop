@@ -15,10 +15,18 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
-from .types import Task, TaskId
+from .types import Task, TaskId, TaskQueue
 import greenlet
 import os
 import scoop
+
+# Set module-scope variables about this controller
+worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker task id
+rank = 0                                        # rank id for next task
+is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
+current = None                                  # task currently running in greenlet
+task_dict = {}                                  # dictionary of existing tasks
+execQueue = TaskQueue()                         # queue of tasks pending execution
 
 # This is the callable greenlet for running tasks.
 def runTask(task):
@@ -35,47 +43,42 @@ def runController(callable, *args, **kargs):
     rootId = TaskId(-1,0)
     
     # launch task if origin or try to pickup a task if slave worker
-    if scoop.IS_ORIGIN == True:
+    if is_origin == True:
         task = Task(rootId, callable, *args, **kargs)
     else:
-        task = Task.execQueue.pop()
+        task = execQueue.pop()
         
     task.greenlet = greenlet.greenlet(runTask)
     task = task.switch(task)
     
-    while (task.parentId != rootId or task.result == None) or scoop.IS_ORIGIN == False:
-        # DEBUG
-        if scoop.DEBUG:
-            import time
-            with open("%s-%s" % (scoop.WORKER_NAME, scoop.BROKER_NAME), 'a') as f:
-                f.write("%s %s\n" % (time.time(), len(Task.execQueue)))
+    while (task.parentId != rootId or task.result == None) or is_origin == False:
         # process task
         if task.result != None:
             # task is finished
-            if task.id.worker != Task.worker:
+            if task.id.worker != worker:
                 # task is not local
-                Task.execQueue.sendResult(task)
-                task = Task.execQueue.pop()
+                execQueue.sendResult(task)
+                task = execQueue.pop()
 
             else:
                 # task is local, parent is waiting
                 if task.index != None:
-                    parent = Task.dict[task.parentId]
+                    parent = task_dict[task.parentId]
                     assert parent.result == None
                     assert parent.greenlet != None
                     task = parent.switch(task.result)
                 else:
-                    Task.execQueue.append(task)
-                    task = Task.execQueue.pop()
+                    execQueue.append(task)
+                    task = execQueue.pop()
                         
         else:                    
             # task is in progress; run next task from pending execution queue.
-            task = Task.execQueue.pop()
+            task = execQueue.pop()
 
         if task.result == None and task.greenlet == None:
             # initialize if the task hasn't started
             task.greenlet = greenlet.greenlet(runTask)
             task = task.switch(task)
 
-    Task.execQueue.socket.shutdown()
+    execQueue.socket.shutdown()
     return task.result
