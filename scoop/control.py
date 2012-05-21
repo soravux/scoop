@@ -35,6 +35,10 @@ def runTask(task):
     task.result = task.callable(*task.args, **task.kargs)    
     assert task.result != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
+    # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
+    if task.callback != None:
+        try: task.callback(task)
+        except: pass # Ignored callback exception as stated in PEP 3148
     return task
 
 # This is the callable greenlet that implements the controller logic.

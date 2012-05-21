@@ -68,6 +68,7 @@ class Task(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result = None                # task result
+        self.callback = None              # set callback
         # insert task into global dictionary
         control.task_dict[self.id] = self
 
