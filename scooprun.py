@@ -35,7 +35,8 @@ parser = argparse.ArgumentParser(description='Starts the executable on the nodes
                                  fromfile_prefix_chars='@')
 parser.add_argument('--hosts', '--host',
                     help='A file containing a list of hosts',
-                    nargs='*')
+                    nargs='*',
+                    default=["127.0.0.1"])
 parser.add_argument('--path', '-p',
                     help="The path to the executable on remote hosts",
                     default=cwd)
@@ -50,9 +51,6 @@ parser.add_argument('-N',
                     help="Number of process",
                     type=int,
                     default=1)
-parser.add_argument('-b',
-                    help="Don't start additional workers on the local machine, only the broker and the origin",
-                    action='store_true')
 parser.add_argument('-e',
                     help="Activate encryption on broker sockets over remote connections(may eliminate routing problems)",
                     action='store_true')
@@ -68,11 +66,11 @@ parser.add_argument('--python-executable',
                     default=[sys.executable])
 args = parser.parse_args()
 
-hosts = [] if args.hosts == None else args.hosts
-hosts += ['127.0.0.1'] if not args.b and '127.0.0.1' not in hosts else []
-raw_hosts = hosts
-hosts = set(hosts)
-workers_left = args.N - 1 # One is the origin, already taken into account
+assert type(args.hosts) == list and args.hosts != [], "You should at least specify one host."
+args.hosts.reverse()
+hosts = set(args.hosts)
+raw_hosts = args.hosts[:]
+workers_left = args.N
 created_subprocesses = []
 
 log('Deploying {0} workers over {1} host(s).'.format(args.N, len(hosts)), 2)
@@ -131,7 +129,7 @@ try:
         if host in ["127.0.0.1", "localhost"]:
             # Launching the workers
             log('Initialising local workers attached to the local broker...', 1)
-            for n in range(min(maximum_workers['127.0.0.1'], workers_left)):
+            for n in range(min(maximum_workers['127.0.0.1'], workers_left - 1)):
                 log('Initialising local worker {0}.'.format(n), 2)
                 os.environ.update({'WORKER_NAME': 'worker{0}'.format(n),
                                    'IS_ORIGIN': '0'})
@@ -140,8 +138,9 @@ try:
                 workers_left -= 1
         else:
             # If the host is remote, connect with ssh
+            port_redir_done = False
             log('Initialising remote workers of host {0} attached to the local broker...'.format(host), 1)
-            for a in range(min(maximum_workers.get(host, 1), workers_left)):
+            for a in range(min(maximum_workers.get(host, 1), workers_left - 1)):
                 log('Initialising remote worker {0}'.format(workers_left), 2)
                 command = 'bash -c \'PYTHONPATH={4} \
 IS_ORIGIN=0 \
@@ -158,13 +157,14 @@ META_ADDRESS=tcp://{1}:5556; cd {6} && {5} {3} {0}\''.format(
                     args.path)
                 # TODO: start every worker in one SSH channel.
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                if args.e:
+                if args.e and port_redir_done == False:
                     ssh_command += ['-R 5555:127.0.0.1:5555', '-R 5556:127.0.0.1:5556']
+                    port_redir_done = True
                 shell = subprocess.Popen(ssh_command + [host,
                                                         command])
                 created_subprocesses.append(shell)
                 workers_left -= 1
-        if workers_left <= 0:
+        if workers_left <= 1:
             # We've launched every worker we needed, so let's exit the loop!
             break
         
@@ -174,11 +174,34 @@ META_ADDRESS=tcp://{1}:5556; cd {6} && {5} {3} {0}\''.format(
             raise Exception('Subprocess {0} terminated abnormaly.'\
                 .format(this_subprocess))
     
-    # Everything has been started everywhere, we can then launch our origin.
-    log('Initialising local origin.', 1)
-    os.environ.update({'WORKER_NAME': 'root',
-                       'IS_ORIGIN': '1'})
-    created_subprocesses.append(subprocess.call([args.python_executable[0]] + args.executable))
+    # Everything has been started everywhere, we can then launch our origin on
+    # the first host stated.
+    if host in ["127.0.0.1", "localhost"]:
+        log('Initialising local origin.', 1)
+        os.environ.update({'WORKER_NAME': 'root',
+                           'IS_ORIGIN': '1'})
+        created_subprocesses.append(subprocess.call([args.python_executable[0]] + args.executable))
+    else:
+        log('Initialising remote worker {0}'.format(workers_left), 2)
+        command = 'bash -c \'PYTHONPATH={4} \
+IS_ORIGIN=0 \
+WORKER_NAME=worker{2} \
+BROKER_NAME=broker \
+BROKER_ADDRESS=tcp://{1}:5555 \
+META_ADDRESS=tcp://{1}:5556; cd {6} && {5} {3} {0}\''.format(
+            " ".join(args.executable),
+            '127.0.0.1' if args.e else broker_hostname,
+            workers_left,
+            args.python_executable[0],
+            os.environ.get("PYTHONPATH", "$PYTHONPATH"),
+            ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
+            args.path)
+        # TODO: start every worker in one SSH channel.
+        ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+        if args.e:
+            ssh_command += ['-R 5555:127.0.0.1:5555', '-R 5556:127.0.0.1:5556']
+        shell = subprocess.call(ssh_command + [host,
+                                               command])
     
 finally:
     # Ensure everything is cleaned up on exit
