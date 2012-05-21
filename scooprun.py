@@ -101,8 +101,8 @@ if args.verbose > 1:
     for worker, number in maximum_workers.items():
         log('   {0}: {1} {2}'.format(
             worker,
-            number - 1 if worker == args.hosts[0] else number,
-            "+ origin" if worker == args.hosts[0] else ""), 2)
+            number - 1 if worker == args.hosts[-1] else number,
+            "+ origin" if worker == args.hosts[-1] else ""), 2)
 
 log('Using hostname/ip: "{0}" as external broker reference.'\
     .format(args.broker_hostname[0]), 1)
@@ -175,7 +175,7 @@ try:
                 shell = subprocess.Popen(ssh_command + [host, command])
                 created_subprocesses.append(shell)
             workers_left -= 1
-        if workers_left <= 1:
+        if workers_left <= 0:
             # We've launched every worker we needed, so let's exit the loop!
             break
         
