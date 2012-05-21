@@ -57,16 +57,15 @@ class Broker(object):
         self.poller = zmq.Poller()
         self.poller.register(self.taskSocket, zmq.POLLIN)
         self.poller.register(self.infoSocket, zmq.POLLIN)
+        
+        # init statistics
+        if scoop.DEBUG:
+            self.stats = []
 
     def run(self):
         while True:
-            if scoop.DEBUG:
-                with open("broker-broker", 'a') as f:
-                    f.write("%s %s\n" % (time.time(), len(self.unassigned_tasks)))
-            
             socks = dict(self.poller.poll())
             if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
-                        
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
                 if msg_type == TASK:
@@ -78,7 +77,7 @@ class Broker(object):
                         self.taskSocket.send_multipart([address, TASK, task])
                     else:
                         self.unassigned_tasks.append(task)
-                    
+                
                 elif msg_type == REQUEST:
                     try:
                         address = msg[0]
@@ -87,6 +86,7 @@ class Broker(object):
                     except:
                         self.available_workers += 1
                         self.workers_list.append(msg[0])
+                
                 elif msg_type == REPLY:
                     address = msg[3]
                     task = msg[2]
@@ -94,15 +94,22 @@ class Broker(object):
                    
                 elif msg_type == SHUTDOWN:
                     break
+                    
+                if scoop.DEBUG:
+                    self.stats.append((time.time(), msg_type))
 
         self.infoSocket.send(SHUTDOWN)
-        #out of infinite loop: do some housekeeping
+        # out of infinite loop: do some housekeeping
         time.sleep (0.3)
         
         self.taskSocket.close()
         self.infoSocket.close()
         context.term()
-    
+        
+        # write down statistics about this run if asked
+        if scoop.DEBUG:
+            with open("broker-" + scoop.BROKER_NAME, 'a') as f:
+                f.write(str(self.stats))
 
 if __name__=="__main__":
     this_broker = Broker()
