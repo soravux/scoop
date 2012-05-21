@@ -51,13 +51,13 @@ This way, you will be able to invoke your program after setting the environment 
 scooprun.py script
 ~~~~~~~~~~~~~~~~~~
 
-The script ``scooprun.py`` alows you to automatically spawn the needed brokers and workers on a given list of computer, including remote ones via ssh. It will automatically generate the environment variables needed for the execution of the parallel task on the remote workers.
+The script ``scooprun.py`` allows you to automatically spawn the needed brokers and workers on a given list of computer, including remote ones via ssh.
 
 You can pass the argument ``--help`` to scooprun.py to get the list of available arguments.
 
 An usage example may be as follow::
 
-    python ./scooprun.py --hosts 192.168.1.101 192.168.1.102 192.168.1.103 -vv -N 16 your_program.py
+    scooprun.py --hosts 127.0.0.1 192.168.1.101 192.168.1.102 192.168.1.103 -vv -N 16 your_program.py
 
 This will run 4 workers on each 3 remotes hosts as well as the local machine that will execute ``you_program.py``.
 
@@ -65,7 +65,7 @@ This will run 4 workers on each 3 remotes hosts as well as the local machine tha
 
     Please keep in mind that connecting to remote hosts must be done without a shell, meaning that you possibly won't be able to write your password when ssh asks for it. Ensure that you have properly created ssh keys that allows for passwordless authentication over ssh on your remote hosts.
     
-    If your remote hosts need special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ~/.ssh/config). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
+    If your remote hosts needs special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ``~/.ssh/config``). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
     
 .. note::
     
