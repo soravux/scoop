@@ -27,7 +27,6 @@ except ImportError:
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
     context = zmq.Context()
-
     def __init__(self):
         # socket for the tasks, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
@@ -72,11 +71,11 @@ class ZMQCommunicator(object):
         self.socket.send(b"REQUEST")
         
     def shutdown(self):
-        if scoop.IS_ORIGIN == True:
-            self.socket.send(b"SHUTDOWN")
-            time.sleep(0.3)
-            
+        """Sends a shutdown message to other workers."""
+        self.socket.send(b"SHUTDOWN")
+        time.sleep(0.3)
+
+
 class Shutdown(Exception):
     def __init__(self, arg):
         self.args = arg
-    
