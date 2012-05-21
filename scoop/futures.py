@@ -21,7 +21,7 @@ from .types import Task
 import greenlet
 import scoop
 
-# Constants stated by PEP 4138 (http://www.python.org/dev/peps/pep-3148/#module-functions)
+# Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
 ALL_COMPLETED = 0
 FIRST_COMPLETED = 1
 FIRST_EXCEPTION = 2
@@ -207,8 +207,8 @@ DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
     
-    :param fs: 
-    fs: The sequence of Futures (possibly created by Executors) to wait upon.
+    :param fs: The sequence of Futures (possibly created by another instance) to
+        wait upon.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time.
     :param return_when: Indicates when this function should return. The options
@@ -233,9 +233,28 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         while f in fs:
             # TODO Add exception handling
             waitAny(*f)
-    done = set(f for f in fs if scoop.control.dict.get(f.id, {}).get('result', None) != None)
+    done = set(f for f in fs \
+        if scoop.control.dict.get(f.id, {}).get('result', None) != None)
     not_done = set(fs) - done
     return DoneAndNotDoneFutures(done, not_done)
+
+def as_completed(fs, timeout=None):
+    """An iterator over the given futures that yields each as it completes.
+
+    :param fs: The sequence of Futures (possibly created by another instance) to
+        wait upon.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time.
+
+    :return: An iterator that yields the given Futures as they complete
+        (finished or cancelled).
+
+    :raises:
+        TimeoutError: If the entire result iterator could not be generated
+            before the given timeout.
+    """
+    # TODO: Add timeout
+    return waitAny(*fs)
 
 def join(child):
     """This function is for joining the current task with one of its child 
