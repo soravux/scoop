@@ -6,7 +6,7 @@ Environment setup
 
 Here is a scratchpad allowing you to set a working SCOOP environment.
 
-Follow this section if you need to use another Python version (ie. 2.7.3) than the system's::
+Follow this **optional** section if you need to use another Python version (ie. 2.7.3 in this example) than the system's::
 
     [~]$ mkdir downloads && cd downloads/
     [downloads]$ wget http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
@@ -19,23 +19,36 @@ Follow this section if you need to use another Python version (ie. 2.7.3) than t
     [downloads]$ wget --no-check-certificate  https://raw.github.com/pypa/pip/master/contrib/get-pip.py
     [downloads]$ python get-pip.py
     
+.. note::
+    
+    If you are using the python offered by the system (the python which came installed by your operating system), you can still install the dependencies with the ``--prefix`` argument::
+    
+        python setup.py install --prefix=$HOME/wanted/path/
+    
+    You will then be able to include these libraries by modifying the example startup scripts like this::
+    
+        #export PATH=$HOME/python/bin:$PATH
+        export PYTHONPATH=$HOME/wanted/path/lib/python+version/site-packages/:$PYTHONPATH
+        
+    Keep in mind that this technique is tedious since you must keep your repository organised yourself and keep in mind to use the ``--previx`` argument.
+    
+    We strongly recommand that you use a `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongsite with a `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ to help you with this matter. Please check their documentation for more informations.
+    
 This section installs the requirements needed to run SCOOP::
     
-    [downloads]$ pip install -U greenlet==dev
     [downloads]$ wget http://download.zeromq.org/zeromq-2.2.0.tar.gz
     [downloads]$ tar xfvz zeromq-2.2.0.tar.gz && cd zeromq-2.2.0
     [zeromq-2.2.0]$ ./configure --prefix=$HOME/zmq/ && make && make install && cd ..
-    [downloads]$ wget --no-check-certificate https://github.com/downloads/zeromq/pyzmq/pyzmq-2.2.0.tar.gz
-    [downloads]$ tar xfvz pyzmq-2.2.0.tar.gz && cd pyzmq-2.2.0
-    [pyzmq-2.2.0]$ python setup.py configure --zmq=$HOME/zmq && python setup.py install && cd ..
+    [downloads]$ pip install pyzmq --install-option="--zmq=$HOME/zmq"
+    [downloads]$ pip install -U greenlet==dev
 
-If you don't already have mercurial or scoop, you can use this section as reference::    
+If you don't already have mercurial or SCOOP, you can use this section as reference::    
 
     [downloads]$ pip install mercurial
     [downloads]$ hg clone https://code.google.com/p/scoop/ ./scoop/
     [downloads]$ cd scoop/ && python setup.py install
     
-Ensure your ssh keys are up-to-date and allowed. You should log into every system that will be a foreign worker started by scooprun.py and ensure you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared /home/ over your systems, you can do as such::
+Ensure your ssh keys are up-to-date and authorized on your remote hosts. You should log into every system that will be a foreign worker started by ``scooprun.py`` and ensure you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared ``/home/`` over your systems, you can do as such::
     
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
@@ -50,18 +63,16 @@ On grids, you must provide startup scripts to the task scheduler. Here is provid
 
     **Please note that these are only examples**. Refer to the documentation of your own scheduler to get the list of every arguments you must and/or can pass to be able the run the task on your grid.
 
-Moab & Torque
-~~~~~~~~~~~~~
+Torque (Moab & Maui)
+~~~~~~~~~~~~~~~~~~~~
 
 Here is an example of submit file for Torque::
 
     #!/bin/bash
+    ## Please refer to your grid documentation for available flags. This is only an example.
     #PBS -l procs=4
-    #PBS -o out
-    #PBS -e err
     #PBS -V
-    #PBS -q debug
-    #PBS -N ScoopTesting
+    #PBS -N SCOOPJob
 
     # Path to your executable. For example, if you extracted SCOOP to $HOME/downloads/scoop
     cd $HOME/downloads/scoop/examples
@@ -71,12 +82,14 @@ Here is an example of submit file for Torque::
     
     # If, instead, you are using the python offered by the system, you can stipulate it's library path via PYTHONPATH
     #export PYTHONPATH=$HOME/wanted/path/lib/python+version/site-packages/:$PYTHONPATH
+    # Or use VirtualEnv via virtualenvwrapper here:
+    #workon yourenvironment
 
-    # Torque set the list of nodes allocated to our task in a file referenced by the environment variable PBS_NODEFILE.
+    # Torque sets the list of nodes allocated to our task in a file referenced by the environment variable PBS_NODEFILE.
     hosts=$(cat $PBS_NODEFILE | sed ':a;N;$!ba;s/\n/ /g')
     
     # Launch SCOOP using the hosts
-    time scooprun.py --hosts $hosts -vv -N 4 fullTree.py --python-executable `which python` -b
+    time scooprun.py --hosts $hosts -vv -N 4 fullTree.py --python-executable `which python`
 
 
 Sun Grid Engine (SGE)
@@ -98,20 +111,11 @@ Here is an example of submit file for SGE::
     
     # If, instead, you are using the python offered by the system, you can stipulate it's library path via PYTHONPATH
     #export PYTHONPATH=$HOME/wanted/path/lib/python+version/site-packages/:$PYTHONPATH
+    # Or use VirtualEnv via virtualenvwrapper here:
+    #workon yourenvironment
 
     # Get a list of the (routable name) hosts assigned to our task
     hosts=$(cat $PE_HOSTFILE | awk '{printf "%s ", $1}')
 
     # Launch the remotes workers
-    time scooprun.py --hosts $hosts -vv -N 16 test-scoop.py --python-executable `which python` -b
-    
-.. note::
-    
-    If you are using the python offered by the system, you can still install the dependencies with the ``--prefix`` argument::
-    
-        python setup.py install --prefix=$HOME/wanted/path/
-    
-    You will then be able to include these libraries by modifying the example startup scripts like this::
-    
-        #export PATH=$HOME/python/bin:$PATH
-        export PYTHONPATH=$HOME/wanted/path/lib/python+version/site-packages/:$PYTHONPATH
+    time scooprun.py --hosts $hosts -vv -N 16 test-scoop.py --python-executable `which python`
