@@ -1,10 +1,13 @@
-How to use SCOOP on a grid
-==========================
+How to setup a SCOOP environment
+================================
 
 Environment setup
 -----------------
 
 Here is a scratchpad allowing you to set a working SCOOP environment.
+
+Python environment
+~~~~~~~~~~~~~~~~~~
 
 Follow this **optional** section if you need to use another Python version (ie. 2.7.3 in this example) than the system's::
 
@@ -30,9 +33,12 @@ Follow this **optional** section if you need to use another Python version (ie. 
         #export PATH=$HOME/python/bin:$PATH
         export PYTHONPATH=$HOME/wanted/path/lib/python+version/site-packages/:$PYTHONPATH
         
-    Keep in mind that this technique is tedious since you must keep your repository organised yourself and keep in mind to use the ``--previx`` argument.
+    Keep in mind that this technique is tedious since you must keep your repository organised yourself and remember to use the ``--prefix`` argument.
     
-    We strongly recommand that you use a `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongsite with a `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ to help you with this matter. Please check their documentation for more informations.
+    We strongly recommend that you use a `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongsite with a `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ to help you with this matter. Please check their documentations for more informations.
+
+Requirements
+~~~~~~~~~~~~
     
 This section installs the requirements needed to run SCOOP::
     
@@ -47,6 +53,11 @@ If you don't already have mercurial or SCOOP, you can use this section as refere
     [downloads]$ pip install mercurial
     [downloads]$ hg clone https://code.google.com/p/scoop/ ./scoop/
     [downloads]$ cd scoop/ && python setup.py install
+    
+.. _ssh-keys-information:
+
+``ssh`` usage
+-------------
     
 Ensure your ssh keys are up-to-date and authorized on your remote hosts. You should log into every system that will be a foreign worker started by ``scooprun.py`` and ensure you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared ``/home/`` over your systems, you can do as such::
     
