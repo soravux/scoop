@@ -64,6 +64,10 @@ Ensure your ssh keys are up-to-date and authorized on your remote hosts. You sho
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
     [.ssh]$ cat id_dsa.pub >> authorized_keys2
+    
+.. note::
+
+    If your remote hosts needs special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ``~/.ssh/config``). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
 
 Startup scripts
 ---------------
