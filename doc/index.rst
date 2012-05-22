@@ -17,7 +17,7 @@ module see :pep:`3148`.
    :maxdepth: 2
    
    readme
-   gridusage
+   setup
    api
    
 Indices and tables

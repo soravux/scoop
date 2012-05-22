@@ -196,13 +196,14 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         is no limit on the wait time.
     :param return_when: Indicates when this function should return. The options
         are:
-        
-            FIRST_COMPLETED - Return when any future finishes or is
-                              cancelled.
-            FIRST_EXCEPTION - Return when any future finishes by raising an
-                              exception. If no future raises an exception
-                              then it is equivalent to ALL_COMPLETED.
-            ALL_COMPLETED -   Return when all futures finish or are cancelled.
+
+        ===============   ================================================
+        FIRST_COMPLETED   Return when any future finishes or is cancelled.
+        FIRST_EXCEPTION   Return when any future finishes by raising an
+                          exception. If no future raises an exception then
+                          it is equivalent to ALL_COMPLETED.
+        ALL_COMPLETED     Return when all futures finish or are cancelled.
+        ===============   ================================================
         
     :return: A named 2-tuple of sets. The first set, named 'done', contains the
         futures that completed (is finished or cancelled) before the wait
@@ -234,7 +235,7 @@ def as_completed(fs, timeout=None):
 
     :raises:
         TimeoutError: If the entire result iterator could not be generated
-            before the given timeout.
+        before the given timeout.
     """
     # TODO: Add timeout
     return waitAny(*fs)
