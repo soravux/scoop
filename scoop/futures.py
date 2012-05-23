@@ -93,9 +93,9 @@ def map(callable, *iterables, **kargs):
     
     :param callable: Any callable object (function or class object with __call__
         method); this object will be called to execute the tasks. 
-    :param iterables: A tuple of iterable objects; each will be zipped
-        to form an iterable of arguments tuples that will be passed to the
-        callable object as a separate task.
+    :param iterables: Iterable objects; each will be zipped to form an iterable
+        of arguments tuples that will be passed to the callable object as a
+        separate task.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
