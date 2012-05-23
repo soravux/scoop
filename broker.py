@@ -96,7 +96,7 @@ class Broker(object):
                     break
                     
                 if scoop.DEBUG:
-                    self.stats.append((time.time(), msg_type))
+                    self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), self.available_workers))
 
         self.infoSocket.send(SHUTDOWN)
         # out of infinite loop: do some housekeeping
