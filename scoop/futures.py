@@ -22,9 +22,10 @@ import greenlet
 import scoop
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
-ALL_COMPLETED = 0
-FIRST_COMPLETED = 1
-FIRST_EXCEPTION = 2
+FIRST_COMPLETED = 'FIRST_COMPLETED'
+FIRST_EXCEPTION = 'FIRST_EXCEPTION'
+ALL_COMPLETED = 'ALL_COMPLETED'
+_AS_COMPLETED = '_AS_COMPLETED'
 
 # This is the greenlet for running the controller logic.
 _controller = None
@@ -80,22 +81,6 @@ def _mapFuture(callable, *iterables, **kargs):
     for args in zip(*iterables):
         childrenList.append(submit(callable, *args, **kargs))
     return childrenList
-
-def mapJoin(callable, *iterables, **kargs):
-    """This function is a helper function that simply calls joinAll on the 
-    result of map. It returns with a list of the map results, one for
-    every iteration of the map.
-    
-    :param callable: Any callable object (function or class object with __call__
-        method); this object will be called to execute each task. 
-    :param iterables: A tuple of iterable objects; each will be zipped
-        to form an iterable of arguments tuples that will be passed to the
-        callable object as a separate task. 
-    :param kargs: A dictionary of additional keyword arguments that will be 
-        passed to the callable object. 
-        
-    :returns: A list of map results, each corresponding to one map iteration."""
-    return _joinAll(*_mapFuture(callable, *iterables, **kargs))
 
 def map(callable, *iterables, **kargs):
     """Equivalent to map(func, \*iterables) but func is executed asynchronously
@@ -228,8 +213,8 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         while f in fs:
             # TODO Add exception handling
             _waitAny(*f)
-    done = set(f for f in fs \
-        if scoop.control.dict.get(f.id, {}).get('result', None) != None)
+    done = set(f for f in fs if f.id in control.task_dict.keys() \
+                             and control.task_dict[f.id].result != None)
     not_done = set(fs) - done
     return DoneAndNotDoneFutures(done, not_done)
 
