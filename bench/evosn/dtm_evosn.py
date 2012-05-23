@@ -13,20 +13,17 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with DEAP. If not, see <http://www.gnu.org/licenses/>.
 
-import sys
 import random
-import logging
-
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
+from deap import dtm
 
 import sortingnetwork as sn
 
-INPUTS = 6 if len(sys.argv) < 2 else int(sys.argv[1])
+INPUTS = 14
 
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
@@ -58,7 +55,7 @@ creator.create("Individual", list, fitness=creator.FitnessMin)
 toolbox = base.Toolbox()
 
 # Gene initializer
-toolbox.register("network", genNetwork, dimension=INPUTS, min_size=9, max_size=12)
+toolbox.register("network", genNetwork, dimension=INPUTS, min_size=35, max_size=45)
 
 # Structure initializers
 toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.network)
@@ -69,21 +66,25 @@ toolbox.register("mate", tools.cxTwoPoints)
 toolbox.register("mutate", mutWire, dimension=INPUTS, indpb=0.05)
 toolbox.register("addwire", mutAddWire, dimension=INPUTS)
 toolbox.register("delwire", mutDelWire)
-toolbox.register("select", tools.selNSGA2)
+toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("map", dtm.map)
 
 def main():
     random.seed(64)
 
-    population = toolbox.population(n=300)
+    population = toolbox.population(n=4096)
     hof = tools.ParetoFront()
     
     stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("Avg", tools.mean)
-    stats.register("Std", tools.std)
-    stats.register("Min", min)
-    stats.register("Max", max)
+    stats.register("avg", tools.mean)
+    stats.register("std", tools.std)
+    stats.register("min", min)
+    stats.register("max", max)
+    
+    logger = tools.EvolutionLogger(["gen", "evals"] + stats.functions.keys())
+    logger.logHeader()
 
-    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 10
+    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 40
     
     # Evaluate every individuals
     fitnesses = toolbox.map(toolbox.evaluate, population)
@@ -93,13 +94,14 @@ def main():
     hof.update(population)
     stats.update(population)
     
+    logger.logGeneration(gen=0, evals=len(population), stats=stats)
+    
     # Begin the evolution
-    for g in xrange(NGEN):
-        print "-- Generation %i --" % g
-        offsprings = [toolbox.clone(ind) for ind in population]
+    for g in xrange(1, NGEN):
+        offspring = [toolbox.clone(ind) for ind in population]
     
         # Apply crossover and mutation
-        for ind1, ind2 in zip(offsprings[::2], offsprings[1::2]):
+        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
             if random.random() < CXPB:
                 toolbox.mate(ind1, ind2)
                 del ind1.fitness.values
@@ -107,7 +109,7 @@ def main():
         
         # Note here that we have a different sheme of mutation than in the
         # original algorithm, we use 3 different mutations subsequently.
-        for ind in offsprings:
+        for ind in offspring:
             if random.random() < MUTPB:
                 toolbox.mutate(ind)
                 del ind.fitness.values
@@ -119,24 +121,23 @@ def main():
                 del ind.fitness.values
                 
         # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
         
-        print "  Evaluated %i individuals" % len(invalid_ind)
-        
-        population = toolbox.select(population+offsprings, len(offsprings))
+        population = toolbox.select(population+offspring, len(offspring))
         hof.update(population)
         stats.update(population)
-        print stats
+        
+        logger.logGeneration(gen=g, evals=len(invalid_ind), stats=stats)
 
     best_network = sn.SortingNetwork(INPUTS, hof[0])
     print best_network
-    #print best_network.draw()
+    print best_network.draw()
     print "%i errors, length %i, depth %i" % hof[0].fitness.values
     
     return population, stats, hof
 
 if __name__ == "__main__":
-    main()
+    dtm.start(main)

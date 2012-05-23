@@ -92,7 +92,7 @@ else :
     # upon the hosts
     log('Dividing workers pseudo-equally over hosts', 1)
     for index, host in enumerate(args.hosts):
-        maximum_workers[host] = (args.n / (len(hosts)) \
+        maximum_workers[host] = (args.n // (len(hosts)) \
                                 + int((args.n % len(hosts)) > index))
 
 # Show worker distribution
