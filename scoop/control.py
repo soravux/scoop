@@ -17,7 +17,7 @@
 from __future__ import print_function
 import greenlet
 import os
-from .types import Task, TaskId, TaskQueue
+from .types import Future, FutureId, FutureQueue
 import scoop
 
 
@@ -27,19 +27,19 @@ rank = 0                                        # rank id for next task
 is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
 current = None                                  # task currently running in greenlet
 task_dict = {}                                  # dictionary of existing tasks
-execQueue = TaskQueue()                         # queue of tasks pending execution
+execQueue = FutureQueue()                         # queue of tasks pending execution
 if scoop.DEBUG:
     import time
     stats = {}
 
 # This is the callable greenlet for running tasks.
-def runTask(task):
+def runFuture(task):
     if scoop.DEBUG:
         stats.setdefault(task.id, {}).setdefault('start_time', []).append(time.time())
     task.waitTime = task.stopWatch.get()
     task.stopWatch.reset()
-    task.result = task.callable(*task.args, **task.kargs)    
-    assert task.result != None, "callable must return a value!"
+    task.result_value = task.callable(*task.args, **task.kargs)    
+    #assert task.result_value != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
     if scoop.DEBUG:
         stats[task.id].setdefault('end_time', []).append(time.time())
@@ -57,20 +57,20 @@ def runTask(task):
 # This is the callable greenlet that implements the controller logic.
 def runController(callable, *args, **kargs):
     # initialize and run root task
-    rootId = TaskId(-1,0)
+    rootId = FutureId(-1,0)
     
     # launch task if origin or try to pickup a task if slave worker
     if is_origin == True:
-        task = Task(rootId, callable, *args, **kargs)
+        task = Future(rootId, callable, *args, **kargs)
     else:
         task = execQueue.pop()
         
-    task.greenlet = greenlet.greenlet(runTask)
+    task.greenlet = greenlet.greenlet(runFuture)
     task = task.switch(task)
     
-    while (task.parentId != rootId or task.result == None) or is_origin == False:
+    while (task.parentId != rootId or task.result_value == None) or is_origin == False:
         # process task
-        if task.result != None:
+        if task.result_value != None:
             # task is finished
             if task.id.worker != worker:
                 # task is not local
@@ -80,9 +80,9 @@ def runController(callable, *args, **kargs):
                 # task is local, parent is waiting
                 if task.index != None:
                     parent = task_dict[task.parentId]
-                    assert parent.result == None
+                    assert parent.result_value == None
                     assert parent.greenlet != None
-                    task = parent.switch(task.result)
+                    task = parent.switch(task.result_value)
                 else:
                     execQueue.append(task)
                     task = execQueue.pop()
@@ -90,13 +90,10 @@ def runController(callable, *args, **kargs):
             # task is in progress; run next task from pending execution queue.
             task = execQueue.pop()
 
-        if task.result == None and task.greenlet == None:
+        if task.result_value == None and task.greenlet == None:
             # initialize if the task hasn't started
-            task.greenlet = greenlet.greenlet(runTask)
+            task.greenlet = greenlet.greenlet(runFuture)
             task = task.switch(task)
 
     execQueue.socket.shutdown()
-    if scoop.DEBUG:
-        with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'a') as f:
-            f.write(str(stats))
-    return task.result
+    return task.result_value
