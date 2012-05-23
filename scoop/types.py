@@ -16,12 +16,10 @@
 #
 from __future__ import print_function
 from collections import namedtuple, deque
-import scoop
-from .comm import ZMQCommunicator
-from .comm import Shutdown
-import control
 import time
 import greenlet
+import scoop
+from .comm import ZMQCommunicator, Shutdown
 
 
 # This class encapsulates a stopwatch that returns elapse time in seconds. 
@@ -58,7 +56,7 @@ class Future(object):
     
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new task."""
-        self.id = FutureId(control.worker, control.rank); control.rank += 1
+        self.id = FutureId(scoop.control.worker, scoop.control.rank); scoop.control.rank += 1
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -70,10 +68,10 @@ class Future(object):
         self.result_value = None          # task result
         self.callback = None              # set callback
         # insert task into global dictionary
-        control.task_dict[self.id] = self
+        scoop.control.task_dict[self.id] = self
         # add link to parent
         if scoop.DEBUG:
-           self.parent = str(scoop.control.current.id) if scoop.control.current != None else None
+           self.parent = str(scoop.scoop.control.current.id) if scoop.scoop.control.current != None else None
 
     def __lt__(self, other):
         """Order tasks by creation time."""
@@ -93,7 +91,7 @@ class Future(object):
     
     def switch(self, task):
         """Switch greenlet."""
-        control.current = self
+        scoop.control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(task)
     
@@ -244,11 +242,11 @@ class FutureQueue(object):
         for task in to_remove:
             self.inprogress.remove(task)        
         for task in self.socket.recvFuture():
-            if task.id in control.task_dict:
-                control.task_dict[task.id].result_value = task.result_value
+            if task.id in scoop.control.task_dict:
+                scoop.control.task_dict[task.id].result_value = task.result_value
             else:
-                control.task_dict[task.id] = task
-            task = control.task_dict[task.id]
+                scoop.control.task_dict[task.id] = task
+            task = scoop.control.task_dict[task.id]
             self.append(task)
     
     def select(self, duration):
