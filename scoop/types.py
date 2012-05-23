@@ -71,7 +71,7 @@ class Future(object):
         scoop.control.task_dict[self.id] = self
         # add link to parent
         if scoop.DEBUG:
-           self.parent = str(scoop.scoop.control.current.id) if scoop.scoop.control.current != None else None
+           self.parent = str(scoop.control.current.id) if scoop.control.current != None else None
 
     def __lt__(self, other):
         """Order tasks by creation time."""
@@ -195,17 +195,18 @@ class FutureQueue(object):
         return len(self.movable) + len(self.ready)
     
     def append(self, task):
-        """ append a task to the queue."""
+        """append a task to the queue."""
         if task.result_value != None and task.index == None:
             self.inprogress.append(task)
         elif task.result_value != None and task.index != None:
             self.ready.append(task)
         elif task.greenlet != None:
             self.inprogress.append(task)
-        elif len(self) > self.highwatermark:
-            self.socket.sendFuture(task)
         else:
             self.movable.append(task)
+        # Send oldest tasks to the broker
+        while len(self.movable) > self.highwatermark:
+            self.socket.sendFuture(self.movable.popleft())
         
     def pop(self):
         """pop the next task from the queue; 
