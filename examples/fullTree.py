@@ -30,17 +30,21 @@ def func0(n):
 
 def func1(n):
     # This call result in a generator function
-    result = futures.map(func2, [i+1 for i in range(0,n)])
+    result = futures.map(func2, [i+1 for i in range(n)])
     # The results gets evaluated here when they are accessed here
     return sum(result)
 
 def func2(n):
-    result = futures.map(func3, [i+1 for i in range(0,n)])
+    launches = []
+    for i in range(n):
+        launches.append(futures.submit(func3, i + 1))
+    # Spawn a generator for each completion, unordered
+    result = futures.as_completed(launches)
     return sum(result)
 
 def func3(n):
     # To force an immediate evaluation, you can wrap your map in a list such as:
-    result = list(futures.map(func4, [i+1 for i in range(0,n)]))
+    result = list(futures.map(func4, [i+1 for i in range(n)]))
     return sum(result)
 
 def func4(n):
