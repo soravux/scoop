@@ -20,14 +20,13 @@ import os
 from .types import Future, FutureId, FutureQueue
 import scoop
 
-
 # Set module-scope variables about this controller
 worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker task id
 rank = 0                                        # rank id for next task
 is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
 current = None                                  # task currently running in greenlet
 task_dict = {}                                  # dictionary of existing tasks
-execQueue = FutureQueue()                         # queue of tasks pending execution
+execQueue = None                                # queue of tasks pending execution
 if scoop.DEBUG:
     import time
     stats = {}
@@ -56,8 +55,13 @@ def runFuture(task):
 
 # This is the callable greenlet that implements the controller logic.
 def runController(callable, *args, **kargs):
+    global execQueue
     # initialize and run root task
     rootId = FutureId(-1,0)
+    
+    # initialise queue
+    if execQueue == None:
+        execQueue = FutureQueue()
     
     # launch task if origin or try to pickup a task if slave worker
     if is_origin == True:
