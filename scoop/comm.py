@@ -57,11 +57,11 @@ class ZMQCommunicator(object):
         task = pickle.loads(msg[1])
         return task
     
-    def recvTask(self):
+    def recvFuture(self):
         while self._poll(0):
             yield self._recv()
         
-    def sendTask(self, task):
+    def sendFuture(self, task):
         self.socket.send_multipart([b"TASK", pickle.dumps(task)])
         
     def sendResult(self, task):

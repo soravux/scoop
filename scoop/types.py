@@ -50,15 +50,15 @@ class StopWatch(object):
         self.__init__()
 
 
-TaskId = namedtuple('TaskId', ['worker', 'rank'])
-class Task(object):
+FutureId = namedtuple('FutureId', ['worker', 'rank'])
+class Future(object):
     """This class encapsulates and independent task that can be executed in parallel.
     A task can spawn other parallel tasks which themselves can recursively spawn
     other tasks."""
     
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new task."""
-        self.id = TaskId(control.worker, control.rank); control.rank += 1
+        self.id = FutureId(control.worker, control.rank); control.rank += 1
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -67,7 +67,7 @@ class Task(object):
         self.creationTime = time.ctime()  # task creation time
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
-        self.result = None                # task result
+        self.result_value = None          # task result
         self.callback = None              # set callback
         # insert task into global dictionary
         control.task_dict[self.id] = self
@@ -83,13 +83,13 @@ class Task(object):
         """Convert task to string."""
         return "{0}[{3}] = {1}{5}={2}, p={4}".format(self.id,
                                                      self.callable,
-                                                     self.result,
+                                                     self.result_value,
                                                      self.index,
                                                      self.parentId,
                                                      self.args)
    
     def __repr__(self):
-        return "{0}[{1}] = {2}, p = {3}".format(self.id,self.index, self.result, self.parentId)
+        return "{0}[{1}] = {2}, p = {3}".format(self.id,self.index, self.result_value, self.parentId)
     
     def switch(self, task):
         """Switch greenlet."""
@@ -97,7 +97,7 @@ class Task(object):
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(task)
     
-    # The following methods are added to be compliant with PEP3148
+    # The following methods are added to be compliant with PEP 3148
     def cancel(self):
         """Attempt to cancel the call. 
         
@@ -144,8 +144,7 @@ class Task(object):
         If the call raised then this method will raise the same exception.
         
         :returns: The value returned by the call."""
-        # TODO
-        return self.result
+        return scoop.futures._join(self, timeout)
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
@@ -179,7 +178,7 @@ class Task(object):
         pass
 
 
-class TaskQueue(object):
+class FutureQueue(object):
     """This class encapsulates a queue of tasks that are pending execution.
     Within this class lies the entry points for task communications."""
     def __init__(self):
@@ -193,20 +192,20 @@ class TaskQueue(object):
         self.highwatermark = 20
 
     def __len__(self):
-        """ returns the length of the queue, meaning the sum of it's
+        """returns the length of the queue, meaning the sum of it's
         elements lengths."""
         return len(self.movable) + len(self.ready)
     
     def append(self, task):
         """ append a task to the queue."""
-        if task.result != None and task.index == None:
+        if task.result_value != None and task.index == None:
             self.inprogress.append(task)
-        elif task.result != None and task.index != None:
+        elif task.result_value != None and task.index != None:
             self.ready.append(task)
         elif task.greenlet != None:
             self.inprogress.append(task)
         elif len(self) > self.highwatermark:
-            self.socket.sendTask(task)
+            self.socket.sendFuture(task)
         else:
             self.movable.append(task)
         
@@ -216,7 +215,7 @@ class TaskQueue(object):
         higher level tasks have priority over lower level ones; """
         self.updateQueue()
         if len(self) < self.lowwatermark:
-            self.requestTask()
+            self.requestFuture()
         if len(self.ready) != 0:
             return self.ready.pop()
         elif len(self.movable) != 0:
@@ -231,7 +230,7 @@ class TaskQueue(object):
             elif len(self.movable) != 0:
                 return self.movable.pop()
 
-    def requestTask(self):
+    def requestFuture(self):
         for a in range(len(self), self.lowwatermark + 1):
             self.socket.sendRequest()
     
@@ -244,9 +243,9 @@ class TaskQueue(object):
                 to_remove.append(task)
         for task in to_remove:
             self.inprogress.remove(task)        
-        for task in self.socket.recvTask():
+        for task in self.socket.recvFuture():
             if task.id in control.task_dict:
-                control.task_dict[task.id].result = task.result
+                control.task_dict[task.id].result_value = task.result_value
             else:
                 control.task_dict[task.id] = task
             task = control.task_dict[task.id]
@@ -259,8 +258,5 @@ class TaskQueue(object):
 
     def sendResult(self, task):
         task.greenlet = None  # greenlets cannot be pickled
-        assert task.result != None, "The results are not valid"
+        assert task.result_value != None, "The results are not valid"
         self.socket.sendResult(task)
-        
-
-class Future(object): pass

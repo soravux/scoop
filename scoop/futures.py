@@ -17,7 +17,7 @@
 from __future__ import print_function
 from collections import namedtuple
 import control
-from .types import Task
+from .types import Future
 import greenlet
 import scoop
 
@@ -29,10 +29,10 @@ FIRST_EXCEPTION = 2
 # This is the greenlet for running the controller logic.
 _controller = None
 
-def startup(rootTask, *args, **kargs):
+def startup(rootFuture, *args, **kargs):
     """This function initializes the SCOOP environment.
     
-    :param rootTask: Any callable object (function or class object with __call__
+    :param rootFuture: Any callable object (function or class object with __call__
         method); this object will be called once and allows the use of parallel
         calls inside this object.
     :param args: A tuple of positional arguments that will be passed to the 
@@ -47,12 +47,15 @@ def startup(rootTask, *args, **kargs):
     global _controller
     _controller = greenlet.greenlet(control.runController)
     try:
-        result = _controller.switch(rootTask, *args, **kargs)
+        result = _controller.switch(rootFuture, *args, **kargs)
     except scoop.comm.Shutdown:
-        return None
+        result = None
+    if scoop.DEBUG:
+        with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'a') as f:
+            f.write(str(control.stats))
     return result
 
-def mapSubmit(callable, *iterables, **kargs):
+def _mapFuture(callable, *iterables, **kargs):
     """This function is similar to the built-in map function, but each of its 
     iteration will spawn a separate independent parallel task that will run 
     either locally or remotely as `callable(*args, **kargs)`.
@@ -78,9 +81,9 @@ def mapSubmit(callable, *iterables, **kargs):
         childrenList.append(submit(callable, *args, **kargs))
     return childrenList
 
-def map(callable, *iterables, **kargs):
+def mapJoin(callable, *iterables, **kargs):
     """This function is a helper function that simply calls joinAll on the 
-    result of mapSubmit. It returns with a list of the map results, one for
+    result of map. It returns with a list of the map results, one for
     every iteration of the map.
     
     :param callable: Any callable object (function or class object with __call__
@@ -92,24 +95,33 @@ def map(callable, *iterables, **kargs):
         passed to the callable object. 
         
     :returns: A list of map results, each corresponding to one map iteration."""
-    return joinAll(*mapSubmit(callable, *iterables, **kargs))
+    return _joinAll(*_mapFuture(callable, *iterables, **kargs))
 
-def mapWait(callable, *iterables, **kargs):
-    """This function is a helper function that simply calls waitAll on the 
-    result of mapSubmit. It returns with a generator function for the map
-    results, one result for every iteration of the map.
+def map(callable, *iterables, **kargs):
+    """Equivalent to map(func, \*iterables) but func is executed asynchronously
+    and several calls to func may be made concurrently. The returned iterator
+    raises a TimeoutError if __next__() is called and the result isn't
+    available after timeout seconds from the original call to map(). If timeout
+    is not specified or None then there is no limit to the wait time. If a call
+    raises an exception then that exception will be raised when its value is
+    retrieved from the iterator.
     
     :param callable: Any callable object (function or class object with __call__
         method); this object will be called to execute the tasks. 
     :param iterables: A tuple of iterable objects; each will be zipped
         to form an iterable of arguments tuples that will be passed to the
-        callable object as a separate task. 
+        callable object as a separate task.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
         
     :returns: A generator of map results, each corresponding to one map 
         iteration."""
-    return waitAll(*mapSubmit(callable, *iterables, **kargs))
+    if 'timeout' in kargs.keys():
+        # TODO
+        pass
+    return _waitAll(*_mapFuture(callable, *iterables, **kargs))
 
 def submit(callable, *args, **kargs):
     """This function is for submitting an independent parallel task that will 
@@ -125,15 +137,14 @@ def submit(callable, *args, **kargs):
     :returns: A future object for retrieving the task result.
     
     On return, the task is pending execution locally, but may also be transfered
-    remotely depending on load. or on remote distributed workers. You may carry
-    on with any further computations while the task completes. To retrieve the
-    task result, you need to either wait for or join with the parallel task. See
-    functions waitAny or join."""
-    child = Task(control.current.id, callable, *args, **kargs)
+    remotely depending on load or on remote distributed workers. You may carry
+    on with any further computations while the task completes. Result retrieval
+    is made via the ``result()`` function on the task."""
+    child = Future(control.current.id, callable, *args, **kargs)
     control.execQueue.append(child)
     return child
 
-def waitAny(*children):
+def _waitAny(*children):
     """This function is for waiting on any child task created by the calling 
     task.
     
@@ -154,8 +165,8 @@ def waitAny(*children):
     n = len(children)
     # check for available results and index those unavailable
     for index, task in enumerate(children):
-        if task.result:
-            yield task.result
+        if task.result_value:
+            yield task.result_value
             n -= 1
         else:
             task.index = index
@@ -168,9 +179,9 @@ def waitAny(*children):
         yield result
         n -= 1
 
-def waitAll(*children):
+def _waitAll(*children):
     """This function is for waiting on all child tasks specified by a tuple of 
-    previously created task (using mapSubmit or submit).
+    previously created task (using map or submit).
     
     :param children: A tuple of children task objects spawned by the calling 
         task.
@@ -183,10 +194,9 @@ def waitAll(*children):
     available before it can produce an output. See waitAny for an alternative 
     option."""
     for index, task in enumerate(children):
-        for result in waitAny(task):
+        for result in _waitAny(task):
             yield result
 
-DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
     
@@ -209,14 +219,15 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures that completed (is finished or cancelled) before the wait
         completed. The second set, named 'not_done', contains uncompleted
         futures."""
+    DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if return_when == FIRST_COMPLETED:
-        waitAny(*fs)
+        _waitAny(*fs)
     elif return_when == ALL_COMPLETED:
-        waitAll(*fs)
+        _waitAll(*fs)
     elif return_when == FIRST_EXCEPTION:
         while f in fs:
             # TODO Add exception handling
-            waitAny(*f)
+            _waitAny(*f)
     done = set(f for f in fs \
         if scoop.control.dict.get(f.id, {}).get('result', None) != None)
     not_done = set(fs) - done
@@ -238,9 +249,9 @@ def as_completed(fs, timeout=None):
         before the given timeout.
     """
     # TODO: Add timeout
-    return waitAny(*fs)
+    return _waitAny(*fs)
 
-def join(child):
+def _join(child, timeout=None):
     """This function is for joining the current task with one of its child 
     task.
     
@@ -250,10 +261,11 @@ def join(child):
     
     Only one task can be specified. The function returns a single corresponding 
     result as soon as it becomes available."""
-    for result in waitAny(child):
+    # TODO: Add timeout
+    for result in _waitAny(child):
         return result
 
-def joinAll(*children):
+def _joinAll(*children):
     """This function is for joining the current task with all of the children 
     tasks specified in a tuple.
     
@@ -264,7 +276,7 @@ def joinAll(*children):
     
     This function will wait for the completion of all specified child tasks 
     before returning to the caller."""
-    return [result for result in waitAll(*children)]
+    return [result for result in _waitAll(*children)]
 
 def shutdown(wait=True):
     """Signal SCOOP that it should free any resources that it is using when the
@@ -281,7 +293,7 @@ def shutdown(wait=True):
         with the executor willbe freed when all pending futures are done
         executing."""
     if wait == True:
-        joinAll(*control.dict.values())
+        _joinAll(*control.dict.values())
         
         # Send shutdown to other workers
         control.execQueue.socket.shutdown()
