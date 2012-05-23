@@ -26,4 +26,8 @@ WORKER_NAME = os.environ.get('WORKER_NAME', "origin").encode()
 BROKER_NAME = os.environ.get('BROKER_NAME', "broker").encode()
 BROKER_ADDRESS = os.environ.get('BROKER_ADDRESS', "tcp://127.0.0.1:5555").encode()
 META_ADDRESS = os.environ.get('META_ADDRESS', "tcp://127.0.0.1:5556").encode()
-DEBUG = False
+DEBUG = os.environ.get('SCOOP_DEBUG', "0") == "1"
+
+import futures
+import control
+import types

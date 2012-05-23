@@ -16,9 +16,7 @@
 #
 from __future__ import print_function
 from collections import namedtuple
-import control
 from .types import Future
-import greenlet
 import scoop
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
@@ -45,15 +43,17 @@ def startup(rootFuture, *args, **kargs):
     :returns: The result of the root task.
     
     Be sure to launch your root task using this method."""
+    import greenlet
+    import scoop
     global _controller
-    _controller = greenlet.greenlet(control.runController)
+    _controller = greenlet.greenlet(scoop.control.runController)
     try:
         result = _controller.switch(rootFuture, *args, **kargs)
     except scoop.comm.Shutdown:
         result = None
     if scoop.DEBUG:
         with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'w') as f:
-            f.write(str(control.stats))
+            f.write(str(scoop.control.stats))
     return result
 
 def _mapFuture(callable, *iterables, **kargs):
@@ -125,8 +125,8 @@ def submit(callable, *args, **kargs):
     remotely depending on load or on remote distributed workers. You may carry
     on with any further computations while the task completes. Result retrieval
     is made via the ``result()`` function on the task."""
-    child = Future(control.current.id, callable, *args, **kargs)
-    control.execQueue.append(child)
+    child = Future(scoop.control.current.id, callable, *args, **kargs)
+    scoop.control.execQueue.append(child)
     return child
 
 def _waitAny(*children):
@@ -155,7 +155,7 @@ def _waitAny(*children):
             n -= 1
         else:
             task.index = index
-    task = control.current
+    task = scoop.control.current
     while n > 0:
         # wait for remaining results; switch to controller
         task.stopWatch.halt()
@@ -213,8 +213,8 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         while f in fs:
             # TODO Add exception handling
             _waitAny(*f)
-    done = set(f for f in fs if f.id in control.task_dict.keys() \
-                             and control.task_dict[f.id].result != None)
+    done = set(f for f in fs if f.id in scoop.control.task_dict.keys() \
+                             and scoop.control.task_dict[f.id].result != None)
     not_done = set(fs) - done
     return DoneAndNotDoneFutures(done, not_done)
 
@@ -278,9 +278,9 @@ def shutdown(wait=True):
         with the executor willbe freed when all pending futures are done
         executing."""
     if wait == True:
-        _joinAll(*control.dict.values())
+        _joinAll(*scoop.control.dict.values())
         
         # Send shutdown to other workers
-        control.execQueue.socket.shutdown()
-        control.execQueue = None
+        scoop.control.execQueue.socket.shutdown()
+        scoop.control.execQueue = None
     # TODO: else
