@@ -60,18 +60,18 @@ SCOOP works with Linux and Windows. If you launch tasks from the latter, be sure
 
 Please check the document :doc:`setup` for more technical informations about the setup of a working SCOOP system.
 
-scooprun.py script
-~~~~~~~~~~~~~~~~~~
+Automatic launch
+~~~~~~~~~~~~~~~~
 
-The script ``scooprun.py`` spawns the needed brokers and workers on a given list of computer, including remote ones via ``ssh``.
+The ``scoop`` module spawns the needed brokers and workers on a given list of computer, including remote ones via ``ssh``.
 
-You can pass the argument ``--help`` to scooprun.py to get the list of available arguments.
+You can execute ``python -m scoop --help``  to get the list of available arguments.
 
 An usage example may be as follow::
 
-    scooprun.py --hosts 127.0.0.1 192.168.1.101 192.168.1.102 192.168.1.103 -vv -n 16 your_program.py
+    python -m scoop --hosts 127.0.0.1 192.168.1.101 192.168.1.102 192.168.1.103 -vv -n 16 your_program.py [your arguments]
 
-This will run a local broker, 4 workers on each 3 remotes hosts as well as the local machine that will execute ``you_program.py``.
+This will run a local broker, 4 workers on each 3 remotes hosts as well as the local machine that will execute ``you_program.py`` with ``[your arguments]``.
 
 .. note::
 
