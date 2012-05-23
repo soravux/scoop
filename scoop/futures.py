@@ -35,11 +35,10 @@ def startup(rootFuture, *args, **kargs):
     :param rootFuture: Any callable object (function or class object with __call__
         method); this object will be called once and allows the use of parallel
         calls inside this object.
-    :param args: A tuple of positional arguments that will be passed to the 
+    :param args: A tuple of positional arguments that will be passed to the
         callable object. 
-    :param kargs: A tuple of iterable objects; each will be zipped to form an
-        iterable of arguments tuples that will be passed to the callable object
-        as a separate task. 
+    :param kargs: A dictionary of additional keyword arguments that will be
+        passed to the callable object. 
         
     :returns: The result of the root task.
     
