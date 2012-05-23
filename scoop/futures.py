@@ -52,7 +52,7 @@ def startup(rootFuture, *args, **kargs):
     except scoop.comm.Shutdown:
         result = None
     if scoop.DEBUG:
-        with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'a') as f:
+        with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'w') as f:
             f.write(str(control.stats))
     return result
 
