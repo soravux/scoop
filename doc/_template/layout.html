@@ -2,11 +2,6 @@
 
 {%- block extrahead %}
 {{ super() }}
-<script type="text/javascript">
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-15144370-3']);
-  _gaq.push(['_trackPageview']);
-</script>
 {% if not embedded %}<script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>{% endif %}
 {% endblock %}
 
@@ -25,13 +20,4 @@
     <br />
     Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> {{ sphinx_version|e }}.
 </div>
-<script type="text/javascript">
-  (function() {
-     var ga = document.createElement('script');
-         ga.src = ('https:' == document.location.protocol ?
-                'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    ga.setAttribute('async', 'true');
-    document.documentElement.firstChild.appendChild(ga);
-  })();
-</script>
 {% endblock %}
