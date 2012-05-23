@@ -22,12 +22,16 @@ from __future__ import print_function
 from scoop import futures
 
 def func0(n):
+    # Task submission is asynchronous; It will return immediately.
     task = futures.submit(func1, n)
-    result = futures.join(task)
+    # The call blocks here until it gets the result
+    result = task.result()
     return result
 
 def func1(n):
+    # This call result in a generator function
     result = futures.map(func2, [i+1 for i in range(0,n)])
+    # The results gets evaluated here when they are accessed here
     return sum(result)
 
 def func2(n):
@@ -35,7 +39,8 @@ def func2(n):
     return sum(result)
 
 def func3(n):
-    result = futures.map(func4, [i+1 for i in range(0,n)])
+    # To force an immediate evaluation, you can wrap your map in a list such as:
+    result = list(futures.map(func4, [i+1 for i in range(0,n)]))
     return sum(result)
 
 def func4(n):
@@ -44,7 +49,9 @@ def func4(n):
 
 def main():
     task = futures.submit(func0, 20)
-    result = futures.join(task)
+    # You can wait for a result before continuing computing
+    futures.wait([task], return_when=futures.ALL_COMPLETED)
+    result = task.result()
     print(result)
     return result
 
