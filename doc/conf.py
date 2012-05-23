@@ -30,7 +30,7 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['greenlet', 'pyzmq']
+MOCK_MODULES = ['greenlet', 'zmq']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
