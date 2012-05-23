@@ -18,6 +18,7 @@ from __future__ import print_function
 from collections import namedtuple
 from .types import Future
 import scoop
+from scoop import control
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
 FIRST_COMPLETED = 'FIRST_COMPLETED'
