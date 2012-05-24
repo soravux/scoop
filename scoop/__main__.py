@@ -23,6 +23,7 @@ import os
 import sys
 import socket
 import scoop
+import random
 
 def log(text, level=0):
     """Easily logs on screen the different events happening based on the
@@ -111,31 +112,62 @@ log('Using hostname/ip: "{0}" as external broker reference.'\
 log('The python executable to execute the program with is: {0}.'\
     .format(args.python_executable[0]), 2)
 
+# Backup the environment for future restore
 backup_environ = os.environ.copy()
-    
-try:
-    # Launching the local broker
-    log('Initialising local broker.', 1)
-    
+
+def port_ready(port):
+    """Checks if a given port is already binded"""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(('127.0.0.1', port))
+        s.shutdown(2)
+        return True
+    except:
+        return False
+
+def start_broker():
+    """Starts a broker on random unoccupied port(s)"""
     # Find the broker
     from broker import Broker
-    created_subprocesses.append(subprocess.Popen([args.python_executable[0],
-        os.path.abspath(sys.modules[Broker.__module__].__file__)]))
+    
+    # Check if port is not already in use
+    while True:
+        broker_port = random.randint(1025, 49151)
+        if port_ready(broker_port) == False:
+            break
+    
+    # Spawn the broker
+    broker_subproc = subprocess.Popen([args.python_executable[0],
+            os.path.abspath(sys.modules[Broker.__module__].__file__),
+            str(broker_port), str(broker_port + 1)],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
     # Let's wait until the local broker is up and running...
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     begin = time.time()
     while(time.time() - begin < 10.0):
         time.sleep(0.1)
+        if port_ready(broker_port):
+            break
+    else:
+        broker_subproc.kill()
+        raise Exception('Could not start server!')
+        
+    return (broker_subproc, broker_port, broker_port + 1)
+    
+try:
+    # Launching the local broker, repeat until it works
+    log('Initialising local broker.', 1)
+    while True:
         try:
-            s.connect(('127.0.0.1', 5555))
-            s.shutdown(2)
+            broker_subproc, broker_port, info_port = start_broker()
+            if broker_subproc.poll() != None:
+                continue
+            created_subprocesses.append(broker_subproc)
             break
         except:
-            pass
-    else:
-        raise Exception('Could not start server!')
-            
+            continue
+    log('Local broker launched on ports %i, %i' % (broker_port, info_port), 1)
+    
     port_redir_done = {}
     # Launch the workers
     for index, host in enumerate(args.hosts):
@@ -144,10 +176,12 @@ try:
             env_vars = {'IS_ORIGIN': '0' if workers_left > 1 else '1',
                         'WORKER_NAME': 'worker{0}'.format(n),
                         'BROKER_NAME': 'broker',
-                        'BROKER_ADDRESS': 'tcp://{0}:5555'.format(\
-                            '127.0.0.1' if args.e else args.broker_hostname[0]),
-                        'META_ADDRESS': 'tcp://{0}:5556'.format(\
-                            '127.0.0.1' if args.e else args.broker_hostname[0]),
+                        'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(\
+                            '127.0.0.1' if args.e else args.broker_hostname[0],
+                            broker_port),
+                        'META_ADDRESS': 'tcp://{0}:{1}'.format(\
+                            '127.0.0.1' if args.e else args.broker_hostname[0],
+                            info_port),
                         'SCOOP_DEBUG': '1' if scoop.DEBUG else '0',}
             log('Initialising {0} worker {1} ({2} left){3}.'.format(
                 "local" if host in ["127.0.0.1", "localhost"] else "remote",
@@ -161,7 +195,7 @@ try:
                     + args.executable + args.args))
             else:
                 # If the host is remote, connect with ssh
-                # PYTHONPATH?
+                # PYTHONPATH? Virtualenvs?
                 command = 'bash -c \'cd {0} && {1} {2} {3} {4} {5}\''.format(
                     args.path,
                     " ".join([key + "=" + value for key, value in env_vars.items()]),
@@ -169,11 +203,11 @@ try:
                     args.python_executable[0],
                     args.executable[0],
                     " ".join(args.args))
-                    #os.environ.get("PYTHONPATH", "$PYTHONPATH"),
                 # TODO: start every worker in one SSH channel.
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 if args.e and port_redir_done.setdefault(host, False) == False:
-                    ssh_command += ['-R 5555:127.0.0.1:5555', '-R 5556:127.0.0.1:5556']
+                    ssh_command += ['-R {0}:127.0.0.1:{0}'.format(broker_port),
+                                    '-R {0}:127.0.0.1:{0}'.format(info_port)]
                     port_redir_done[host] = True
                 shell = subprocess.Popen(ssh_command + [host, command])
                 created_subprocesses.append(shell)
