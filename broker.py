@@ -18,6 +18,7 @@
 from __future__ import print_function
 import time
 import zmq
+import sys
 from collections import deque
 import scoop
 
@@ -112,5 +113,7 @@ class Broker(object):
                 f.write(str(self.stats))
 
 if __name__=="__main__":
-    this_broker = Broker()
+    port = str(5555) if len(sys.argv) < 2 else sys.argv[1]
+    info_port = str(5556) if len(sys.argv) < 3 else sys.argv[2]
+    this_broker = Broker("tcp://*:" + port, "tcp://*:" + info_port)
     this_broker.run()
