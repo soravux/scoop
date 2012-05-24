@@ -16,29 +16,32 @@
 #
 from __future__ import print_function
 from scoop import futures
-from scoop.types import Task
+from scoop import control
 import unittest
 import subprocess
 import time
 import copy
 import os
 import sys
-
+    
 def func0(n):
     task = futures.submit(func1, n)
-    result = futures.join(task)
+    result = task.result()
     return result
 
 def func1(n):
-    result = futures.mapJoin(func2, [i+1 for i in range(0,n)])
+    result = futures.map(func2, [i+1 for i in range(n)])
     return sum(result)
 
 def func2(n):
-    result = futures.mapJoin(func3, [i+1 for i in range(0,n)])
+    launches = []
+    for i in range(n):
+        launches.append(futures.submit(func3, i + 1))
+    result = futures.as_completed(launches)
     return sum(result)
 
 def func3(n):
-    result = futures.mapJoin(func4, [i+1 for i in range(0,n)])
+    result = list(futures.map(func4, [i+1 for i in range(n)]))
     return sum(result)
 
 def func4(n):
@@ -47,17 +50,20 @@ def func4(n):
 
 def main(n):
     task = futures.submit(func0, n)
-    return futures.join(task)
-
+    futures.wait([task], return_when=futures.ALL_COMPLETED)
+    result = task.result()
+    return result
+    
 def main_simple(n):
     task = futures.submit(func3, n)
-    return futures.join(task)
+    futures.wait([task], return_when=futures.ALL_COMPLETED)
+    result = task.result()
+    return result
         
     
 class TestScoopCommon(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        self.default_highwatermark = Task.execQueue.highwatermark
-        self.default_Task = copy.deepcopy(Task)
+        #self.default_highwatermark = Task.execQueue.highwatermark
         # Parent initialization
         super(TestScoopCommon, self).__init__(*args, **kwargs)
         
@@ -86,7 +92,6 @@ class TestScoopCommon(unittest.TestCase):
         else:
             raise Exception('Could not start server!')
         # Reset any previously setted static variable
-        Task = copy.deepcopy(self.default_Task)
     
     def tearDown(self):
         try: self.w.kill()
@@ -107,51 +112,51 @@ class TestMultiFunction(TestScoopCommon):
         self.large_result = 76153
          
     def test_small_uniworker(self):
-        Task.execQueue.highwatermark = 10
-        Task.execQueue.lowwatermark = 5
+        control.FutureQueue.highwatermark = 10
+        control.FutureQueue.lowwatermark = 5
         result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_no_lowwatermark_uniworker(self):
-        Task.execQueue.highwatermark = 9999999999999
-        Task.execQueue.lowwatermark = 1
+        control.FutureQueue.highwatermark = 9999999999999
+        control.FutureQueue.lowwatermark = 1
         result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_small_foreign_uniworker(self):
-        Task.execQueue.highwatermark = 1
+        control.FutureQueue.highwatermark = 1
         result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_local_uniworker(self):
-        Task.execQueue.highwatermark = 9999999999999
+        control.FutureQueue.highwatermark = 9999999999999
         result = futures.startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_large_uniworker(self):
-        Task.execQueue.highwatermark = 9999999999999
+        control.FutureQueue.highwatermark = 9999999999999
         result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_no_lowwatermark_uniworker(self):
-        Task.execQueue.lowwatermark = 1
-        Task.execQueue.highwatermark = 9999999999999
+        control.FutureQueue.lowwatermark = 1
+        control.FutureQueue.highwatermark = 9999999999999
         result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
 
     def test_large_foreign_uniworker(self):
-        Task.execQueue.highwatermark = 1
+        control.FutureQueue.highwatermark = 1
         result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_local_uniworker(self):
-        Task.execQueue.highwatermark = 9999999999999
+        control.FutureQueue.highwatermark = 9999999999999
         result = futures.startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_small_local_multiworker(self):
         self.w = self.multiworker_set()
-        Task.execQueue.highwatermark = 9999999999
+        control.FutureQueue.highwatermark = 9999999999
         Backupenv = os.environ.copy()
         os.environ.update({'WORKER': 'master-node',
                            'IS_ORIGIN': '1'})
@@ -162,7 +167,7 @@ class TestMultiFunction(TestScoopCommon):
     
     def test_small_foreign_multiworker(self):
         self.w = self.multiworker_set()
-        Task.execQueue.highwatermark = 1
+        control.FutureQueue.highwatermark = 1
         Backupenv = os.environ.copy()
         os.environ.update({'WORKER': 'master-node',
                            'IS_ORIGIN': '1'})
