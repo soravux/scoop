@@ -22,6 +22,7 @@ from math import hypot
 from random import random
 
 from scoop import futures
+from scoop import control
 
 def test(tries):
     return sum(hypot(random(), random()) < 1 for i in xrange(tries))

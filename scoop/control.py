@@ -19,6 +19,7 @@ import greenlet
 import os
 from .types import Future, FutureId, FutureQueue
 import scoop
+import numpy
 
 # Set module-scope variables about this controller
 worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker task id
@@ -29,20 +30,28 @@ task_dict = {}                                  # dictionary of existing tasks
 execQueue = None                                # queue of tasks pending execution
 if scoop.DEBUG:
     import time
-    stats = {}
+    debug_stats = {}
 
+stats = {}
+
+def updateStats(functionName, executionTime):
+    stat = stats.setdefault(functionName, {"mean":1, "data":[]})
+    stat["data"].append(executionTime)
+    if len(stat["data"]) % 10 == 0:
+        stat["mean"] = numpy.average(stat["data"])
+    
 # This is the callable greenlet for running tasks.
 def runFuture(task):
     if scoop.DEBUG:
-        stats.setdefault(task.id, {}).setdefault('start_time', []).append(time.time())
+        debug_stats.setdefault(task.id, {}).setdefault('start_time', []).append(time.time())
     task.waitTime = task.stopWatch.get()
     task.stopWatch.reset()
     task.result_value = task.callable(*task.args, **task.kargs)    
     #assert task.result_value != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
     if scoop.DEBUG:
-        stats[task.id].setdefault('end_time', []).append(time.time())
-        stats[task.id].update({'executionTime': task.executionTime,
+        debug_stats[task.id].setdefault('end_time', []).append(time.time())
+        debug_stats[task.id].update({'executionTime': task.executionTime,
                                'worker': worker,
                                'creationTime': task.creationTime,
                                'callable': str(task.callable.__name__),
@@ -51,6 +60,7 @@ def runFuture(task):
     if task.callback != None:
         try: task.callback(task)
         except: pass # Ignored callback exception as stated in PEP 3148
+    updateStats(task.callable.__name__, task.executionTime)
     return task
 
 # This is the callable greenlet that implements the controller logic.
