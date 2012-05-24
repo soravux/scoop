@@ -206,13 +206,15 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures."""
     DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if return_when == FIRST_COMPLETED:
-        _waitAny(*fs)
+        for result in _waitAny(*fs):
+            break
     elif return_when == ALL_COMPLETED:
-        _waitAll(*fs)
+        for result in _waitAll(*fs):
+            pass
     elif return_when == FIRST_EXCEPTION:
-        while f in fs:
-            # TODO Add exception handling
-            _waitAny(*f)
+        # TODO Add exception handling
+        iWait = _waitAny(*fs)
+        iWait.next()
     done = set(f for f in fs if f.id in scoop.control.task_dict.keys() \
                              and scoop.control.task_dict[f.id].result != None)
     not_done = set(fs) - done
