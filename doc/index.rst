@@ -19,6 +19,7 @@ module see :pep:`3148`.
    readme
    setup
    api
+   configuration
    
 Indices and tables
 ==================
