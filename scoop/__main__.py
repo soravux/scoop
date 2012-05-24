@@ -115,9 +115,9 @@ log('The python executable to execute the program with is: {0}.'\
 # Backup the environment for future restore
 backup_environ = os.environ.copy()
 
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 def port_ready(port):
     """Checks if a given port is already binded"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect(('127.0.0.1', port))
         s.shutdown(2)
