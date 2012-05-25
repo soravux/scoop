@@ -21,8 +21,8 @@ import argparse
 import time
 import os
 import sys
-import socket
 import scoop
+import socket
 import random
 import logging
 
@@ -63,7 +63,7 @@ parser.add_argument('-e',
 parser.add_argument('--broker-hostname',
                     nargs=1,
                     help='The externally routable broker hostname / ip (defaults to the local hostname)',
-                    default=[socket.gethostname()])
+                    default=[socket.getfqdn()])
 parser.add_argument('--python-executable',
                     nargs=1,
                     help='The python executable with which to execute the script (with absolute path if necessary)',
