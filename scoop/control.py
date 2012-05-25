@@ -38,7 +38,7 @@ def runFuture(task):
     task.waitTime = task.stopWatch.get()
     task.stopWatch.reset()
     task.result_value = task.callable(*task.args, **task.kargs)    
-    #assert task.result_value != None, "callable must return a value!"
+    assert task.result_value != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
     if scoop.DEBUG:
         stats[task.id].setdefault('end_time', []).append(time.time())
