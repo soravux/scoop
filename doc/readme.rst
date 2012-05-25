@@ -37,7 +37,7 @@ The ``map()`` and ``submit()`` functions are lazy, meaning that it won't start c
     def add(x, y): return x+y
         
     def main():
-        results = list(futures.map(add, range(8)))
+        results = list(futures.map(add, range(8), range(8)))
     
     futures.startup(main)
 
