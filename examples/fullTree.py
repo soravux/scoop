@@ -60,4 +60,4 @@ def main():
     return result
 
 if __name__ == "__main__":
-    futures.startup(main)
+    main()
