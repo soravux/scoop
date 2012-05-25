@@ -104,9 +104,7 @@ def map(callable, *iterables, **kargs):
     :returns: A generator of map results, each corresponding to one map 
         iteration."""
     # Remove 'timeout' from kargs to be compliant with the futures API
-    if 'timeout' in kargs.keys():
-        # TODO
-        pass
+    kargs.pop('timeout', None)
     return _waitAll(*_mapFuture(callable, *iterables, **kargs))
 
 def submit(callable, *args, **kargs):
@@ -162,7 +160,6 @@ def _waitAny(*children):
         task.stopWatch.halt()
         result = _controller.switch(task)
         task.stopWatch.resume()
-        # Remove task entry from task_dict
         yield result
         n -= 1
 
@@ -182,6 +179,8 @@ def _waitAll(*children):
     option."""
     for index, task in enumerate(children):
         for result in _waitAny(task):
+            # Remove task entry from task_dict
+            scoop.control.task_dict.pop(task.id)
             yield result
 
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
@@ -246,6 +245,8 @@ def _join(child):
     Only one task can be specified. The function returns a single corresponding 
     result as soon as it becomes available."""
     for result in _waitAny(child):
+        # Remove task entry from task_dict
+        scoop.control.task_dict.pop(child.id)
         return result
 
 def _joinAll(*children):
