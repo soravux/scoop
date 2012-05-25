@@ -103,6 +103,7 @@ def map(callable, *iterables, **kargs):
         
     :returns: A generator of map results, each corresponding to one map 
         iteration."""
+    # Remove 'timeout' from kargs to be compliant with the futures API
     if 'timeout' in kargs.keys():
         # TODO
         pass
@@ -161,6 +162,7 @@ def _waitAny(*children):
         task.stopWatch.halt()
         result = _controller.switch(task)
         task.stopWatch.resume()
+        # Remove task entry from task_dict
         yield result
         n -= 1
 
@@ -230,15 +232,10 @@ def as_completed(fs, timeout=None):
 
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
-
-    :raises:
-        TimeoutError: If the entire result iterator could not be generated
-        before the given timeout.
     """
-    # TODO: Add timeout
     return _waitAny(*fs)
 
-def _join(child, timeout=None):
+def _join(child):
     """This function is for joining the current task with one of its child 
     task.
     
@@ -248,7 +245,6 @@ def _join(child, timeout=None):
     
     Only one task can be specified. The function returns a single corresponding 
     result as soon as it becomes available."""
-    # TODO: Add timeout
     for result in _waitAny(child):
         return result
 
@@ -266,12 +262,8 @@ def _joinAll(*children):
     return [result for result in _waitAll(*children)]
 
 def shutdown(wait=True):
-    """Signal SCOOP that it should free any resources that it is using when the
-    currently pending futures are done executing. Calls to ``submit``, ``map`` 
-    or any other futures method made after shutdown will raise RuntimeError.
-
-    Regardless of the value of wait, the entire Python program will not exit
-    until all pending futures are done executing.
+    """This function is here for backward compatibility with `futures` (PEP 
+    3148).
     
     :param wait: If True, this method will be blocking, meaning that it will not
         return until all the pending futures are done executing and the
@@ -279,10 +271,4 @@ def shutdown(wait=True):
         False, this method will return immediately and the resources associated
         with the executor willbe freed when all pending futures are done
         executing."""
-    if wait == True:
-        _joinAll(*scoop.control.dict.values())
-        
-        # Send shutdown to other workers
-        scoop.control.execQueue.socket.shutdown()
-        scoop.control.execQueue = None
-    # TODO: else
+    pass

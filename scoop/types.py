@@ -79,15 +79,10 @@ class Future(object):
     
     def __str__(self):
         """Convert task to string."""
-        return "{0}[{3}] = {1}{5}={2}, p={4}".format(self.id,
-                                                     self.callable,
-                                                     self.result_value,
-                                                     self.index,
-                                                     self.parentId,
-                                                     self.args)
-   
-    def __repr__(self):
-        return "{0}[{1}] = {2}, p = {3}".format(self.id,self.index, self.result_value, self.parentId)
+        return "{0}:{1}{2}={3}".format(self.id,
+                                       self.callable.__name__,
+                                       self.args,
+                                       self.result_value)
     
     def switch(self, task):
         """Switch greenlet."""
@@ -97,7 +92,7 @@ class Future(object):
     
     # The following methods are added to be compliant with PEP 3148
     def cancel(self):
-        """Attempt to cancel the call. 
+        """Attempt to cancel the call.
         
         :returns: If the call is currently being executed then it cannot
             be cancelled and the method will return False, otherwise
@@ -142,7 +137,7 @@ class Future(object):
         If the call raised then this method will raise the same exception.
         
         :returns: The value returned by the call."""
-        return scoop.futures._join(self, timeout)
+        return scoop.futures._join(self)
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
