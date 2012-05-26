@@ -79,7 +79,7 @@ class Broker(object):
                     returnAddress = msg[0]
                     task = msg[2]
                     try:
-                        address = self.available_workers.pop()
+                        address = self.available_workers.popleft()
                         self.busy_workers[address] = task
                         self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
@@ -87,9 +87,10 @@ class Broker(object):
                         
                 # Broker received a request for task
                 elif msg_type == REQUEST:
-                    try: del self.busy_workers[address]
-                    except KeyError: pass
                     address = msg[0]
+                    if address in self.busy_workers:
+                        del self.busy_workers[address]
+                    
                     try:
                         task = self.unassigned_tasks.pop()
                         self.taskSocket.send_multipart([address, TASK, task])
@@ -108,6 +109,7 @@ class Broker(object):
                 if scoop.DEBUG:
                     self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), len(self.available_workers)))
 
+    def shutdown(self):
         self.infoSocket.send(SHUTDOWN)
         # out of infinite loop: do some housekeeping
         time.sleep (0.3)
@@ -125,4 +127,7 @@ if __name__=="__main__":
     port = str(5555) if len(sys.argv) < 2 else sys.argv[1]
     info_port = str(5556) if len(sys.argv) < 3 else sys.argv[2]
     this_broker = Broker("tcp://*:" + port, "tcp://*:" + info_port)
-    this_broker.run()
+    try:
+        this_broker.run()
+    finally:
+        this_broker.shutdown()
