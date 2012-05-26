@@ -205,7 +205,7 @@ try:
             else:
                 # If the host is remote, connect with ssh
                 # PYTHONPATH? Virtualenvs?
-                command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures; import runpy; from {7} import *; futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main_\\")){6}{5})" """.format(
+                command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures; import runpy; from {7} import *; futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}{5})" """.format(
                     args.path,
                     " ".join([key + "=" + value for key, value in env_vars.items()]),
                     ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
@@ -222,9 +222,6 @@ try:
                 ssh_command += ['-R {0}:127.0.0.1:{0}'.format(broker_port),
                                 '-R {0}:127.0.0.1:{0}'.format(info_port)]
             shell = subprocess.Popen(ssh_command + [
-                host,
-                "bash -c '{0}; wait'".format(" & ".join(command))])
-            print("sent: ", ssh_command + [
                 host,
                 "bash -c '{0}; wait'".format(" & ".join(command))])
             created_subprocesses.append(shell)
