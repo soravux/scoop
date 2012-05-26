@@ -66,7 +66,7 @@ class Future(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result_value = None          # task result
-        self.callback = None              # set callback
+        self.callback = []                # set callback
         # insert task into global dictionary
         scoop.control.task_dict[self.id] = self
         # add link to parent
@@ -169,8 +169,7 @@ class Future(object):
 
         If the future has already completed or been cancelled then callable will
         be called immediately."""
-        # TODO
-        pass
+        self.callback.append(callable)
 
 
 class FutureQueue(object):

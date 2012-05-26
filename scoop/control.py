@@ -39,8 +39,8 @@ def runFuture(task):
     task.waitTime = task.stopWatch.get()
     task.stopWatch.reset()
     task.result_value = task.callable(*task.args, **task.kargs)    
-    assert task.result_value != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
+    assert task.result_value != None, "callable must return a value!"
     if scoop.DEBUG:
         stats[task.id].setdefault('end_time', []).append(time.time())
         stats[task.id].update({'executionTime': task.executionTime,
@@ -49,8 +49,8 @@ def runFuture(task):
                                'callable': str(task.callable.__name__),
                                'parent': task.parent})
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    if task.callback != None:
-        try: task.callback(task)
+    for callback in task.callback:
+        try: callback(task)
         except: pass # Ignored callback exception as stated in PEP 3148
     return task
 
@@ -87,7 +87,7 @@ def runController(callable, *args, **kargs):
                     parent = task_dict[task.parentId]
                     assert parent.result_value == None
                     assert parent.greenlet != None
-                    task = parent.switch(task.result_value)
+                    task = parent.switch((task.result_value, task.id))
                 else:
                     execQueue.append(task)
                     task = execQueue.pop()
