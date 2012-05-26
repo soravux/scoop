@@ -51,7 +51,8 @@ parser.add_argument('--verbose', '-v',
                     action = 'count',
                     help = "Verbosity level of this launch script (-vv for more)",
                     default = 0)
-parser.add_argument('--log', help = "The file to log the output", 
+parser.add_argument('--log',
+                    help = "The file to log the output (default is stdout)",
                     default = None)
 parser.add_argument('-n',
                     help="Number of process to launch the executable with",
@@ -77,18 +78,23 @@ parser.add_argument('args',
                     default=[])
 args = parser.parse_args()
 
-assert type(args.hosts) == list and args.hosts != [], "You should at least specify one host."
+# Hosts handling
+assert type(args.hosts) == list and args.hosts != [], "You must at least specify one host."
 args.hosts.reverse()
 hosts = set(args.hosts)
 workers_left = args.n
 created_subprocesses = []
 
-if args.verbose > 2:
-    args.verbose = 2
-verbose_levels = {0:logging.WARNING, 1:logging.INFO, 2:logging.DEBUG}
-
-logging.basicConfig(filename=args.log,level=verbose_levels[args.verbose])
-logging.info('Deploying {0} workers over {1} host(s).'.format(args.n, len(hosts)))
+# Logging configuration
+args.verbose = min(args.verbose, 2)
+verbose_levels = {0: logging.WARNING,
+                  1: logging.INFO,
+                  2: logging.DEBUG}
+logging.basicConfig(filename=args.log,
+                    level=verbose_levels[args.verbose],
+                    format='[%(asctime)-15s] %(levelname)-7s: %(message)s')
+logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
+                                                              len(hosts)))
 
 maximum_workers = {}
 # If multiple times the same host in argument, it means that the maximum number
