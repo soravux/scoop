@@ -147,8 +147,7 @@ def start_broker():
     # Spawn the broker
     broker_subproc = subprocess.Popen([args.python_executable[0],
             os.path.abspath(sys.modules[Broker.__module__].__file__),
-            str(broker_port), str(broker_port + 1)],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            str(broker_port), str(broker_port + 1)])
         
     # Let's wait until the local broker is up and running...
     begin = time.time()
