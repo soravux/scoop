@@ -25,14 +25,6 @@ import scoop
 import socket
 import random
 import logging
-
-#def log(text, level=0):
-#    """Easily logs on screen the different events happening based on the
-#    verbosity level"""
-#    if args.verbose > level-1:
-#        print("[{0}]\t{2} -> {1}".format(time.time(), text, __file__))
-
-cwd = os.getcwd()
     
 parser = argparse.ArgumentParser(description='Starts the executable on the nodes.',
                                  fromfile_prefix_chars='@',
@@ -43,7 +35,7 @@ parser.add_argument('--hosts', '--host',
                     default=["127.0.0.1"])
 parser.add_argument('--path', '-p',
                     help="The path to the executable on remote hosts",
-                    default=cwd)
+                    default=os.getcwd())
 parser.add_argument('--nice',
                     type=int,
                     help="UNIX niceness level (-20 to 19) to run the executable")
@@ -92,7 +84,7 @@ verbose_levels = {0: logging.WARNING,
                   2: logging.DEBUG}
 logging.basicConfig(filename=args.log,
                     level=verbose_levels[args.verbose],
-                    format='[%(asctime)-15s] %(levelname)-7s: %(message)s')
+                    format='[%(asctime)-15s] %(levelname)-7s %(message)s')
 logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
                                                               len(hosts)))
 
@@ -121,8 +113,10 @@ if args.verbose > 1:
             number - 1 if worker == args.hosts[-1] else str(number),
             "+ origin" if worker == args.hosts[-1] else ""))
 
+# Handling Broker Hostname
+args.broker_hostname = '127.0.0.1' if args.e else args.broker_hostname[0]
 logging.debug('Using hostname/ip: "{0}" as external broker reference.'\
-    .format(args.broker_hostname[0]))
+    .format(args.broker_hostname))
 logging.info('The python executable to execute the program with is: {0}.'\
     .format(args.python_executable[0]))
 
@@ -182,21 +176,21 @@ try:
             continue
     logging.debug('Local broker launched on ports %i, %i' % (broker_port, info_port))
     
-    port_redir_done = {}
     # Launch the workers
-    for index, host in enumerate(args.hosts):
+    for host in args.hosts:
+        command = []
         for n in range(min(maximum_workers[host], workers_left)):
             # Setting up environment variables
             env_vars = {'IS_ORIGIN': '0' if workers_left > 1 else '1',
                         'WORKER_NAME': 'worker{0}'.format(n),
                         'BROKER_NAME': 'broker',
-                        'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(\
-                            '127.0.0.1' if args.e else args.broker_hostname[0],
+                        'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(
+                            args.broker_hostname,
                             broker_port),
-                        'META_ADDRESS': 'tcp://{0}:{1}'.format(\
-                            '127.0.0.1' if args.e else args.broker_hostname[0],
+                        'META_ADDRESS': 'tcp://{0}:{1}'.format(
+                            args.broker_hostname,
                             info_port),
-                        'SCOOP_DEBUG': '1' if scoop.DEBUG else '0',}
+                        'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
             logging.debug('Initialising {0} worker {1} ({2} left){3}.'.format(
                 "local" if host in ["127.0.0.1", "localhost"] else "remote",
                 n,
@@ -212,8 +206,7 @@ try:
             else:
                 # If the host is remote, connect with ssh
                 # PYTHONPATH? Virtualenvs?
-                ##
-                command = """bash -c 'cd {0} && {1} {2} {3} -c "from scoop import futures; import runpy; from {7} import *; futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main_\\")){6}{5})"'""".format(
+                command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures; import runpy; from {7} import *; futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main_\\")){6}{5})" """.format(
                     args.path,
                     " ".join([key + "=" + value for key, value in env_vars.items()]),
                     ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
@@ -221,17 +214,22 @@ try:
                     args.executable[0],
                     ",".join(args.args),
                     "," if len(args.args) > 1 else "",
-                    args.executable[0][:-3])
-                #print(command)
-                # TODO: start every worker in one SSH channel.
-                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                if args.e and port_redir_done.setdefault(host, False) == False:
-                    ssh_command += ['-R {0}:127.0.0.1:{0}'.format(broker_port),
-                                    '-R {0}:127.0.0.1:{0}'.format(info_port)]
-                    port_redir_done[host] = True
-                shell = subprocess.Popen(ssh_command + [host, command])
-                created_subprocesses.append(shell)
+                    args.executable[0][:-3]))
             workers_left -= 1
+        # Launch every remote hosts in the same time 
+        if len(command) != 0 :
+            ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+            if args.e:
+                ssh_command += ['-R {0}:127.0.0.1:{0}'.format(broker_port),
+                                '-R {0}:127.0.0.1:{0}'.format(info_port)]
+            shell = subprocess.Popen(ssh_command + [
+                host,
+                "bash -c '{0}; wait'".format(" & ".join(command))])
+            print("sent: ", ssh_command + [
+                host,
+                "bash -c '{0}; wait'".format(" & ".join(command))])
+            created_subprocesses.append(shell)
+            command = []
         if workers_left <= 0:
             # We've launched every worker we needed, so let's exit the loop!
             break
