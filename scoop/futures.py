@@ -29,7 +29,7 @@ _AS_COMPLETED = '_AS_COMPLETED'
 # This is the greenlet for running the controller logic.
 _controller = None
 
-def startup(rootFuture, *args, **kargs):
+def _startup(rootFuture, *args, **kargs):
     """This function initializes the SCOOP environment.
     
     :param rootFuture: Any callable object (function or class object with __call__

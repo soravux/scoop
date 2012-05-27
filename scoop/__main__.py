@@ -198,7 +198,6 @@ try:
             if host in ["127.0.0.1", "localhost"]:
                 # Launching the workers
                 os.environ.update(env_vars)
-                #created_subprocesses.append(subprocess.Popen([args.python_executable[0], "-c", "from scoop import futures; from functools import partial; import runpy; futures.startup((lambda x: runpy.run_path('{0}', run_name='__main__')),{1})".format(args.executable[0], args.args)]))
                 created_subprocesses.append(subprocess.Popen([args.python_executable[0],
                     "-c",
                     """from scoop import futures;
@@ -206,7 +205,7 @@ import runpy;
 import sys;
 sys.path.append(\"{4}\");
 from {3} import *;
-futures.startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')){1}{2})
+futures._startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')){1}{2})
                     """.format(args.executable[0],
                         "," if len(args.args) > 1 else "",
                         ",".join(args.args),
@@ -220,7 +219,7 @@ import runpy;
 import sys;
 sys.path.append(\\"{8}\\");
 from {7} import *;
-futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}{5})" """.format(
+futures._startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}{5})" """.format(
                     args.path,
                     " ".join([key + "=" + value for key, value in env_vars.items()]),
                     ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
