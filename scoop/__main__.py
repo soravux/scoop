@@ -201,11 +201,26 @@ try:
                 #created_subprocesses.append(subprocess.Popen([args.python_executable[0], "-c", "from scoop import futures; from functools import partial; import runpy; futures.startup((lambda x: runpy.run_path('{0}', run_name='__main__')),{1})".format(args.executable[0], args.args)]))
                 created_subprocesses.append(subprocess.Popen([args.python_executable[0],
                     "-c",
-                    "from scoop import futures; import runpy; from {3} import *; futures.startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')){1}{2})".format(args.executable[0], "," if len(args.args) > 1 else "", ",".join(args.args), args.executable[0][:-3])]))
+                    """from scoop import futures;
+import runpy;
+import sys;
+sys.path.append(\"{4}\");
+from {3} import *;
+futures.startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')){1}{2})
+                    """.format(args.executable[0],
+                        "," if len(args.args) > 1 else "",
+                        ",".join(args.args),
+                        os.path.basename(args.executable[0])[:-3],
+                        os.path.abspath(os.path.dirname(args.executable[0])))]))
             else:
                 # If the host is remote, connect with ssh
                 # PYTHONPATH? Virtualenvs?
-                command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures; import runpy; from {7} import *; futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}{5})" """.format(
+                command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures;
+import runpy;
+import sys;
+sys.path.append(\\"{8}\\");
+from {7} import *;
+futures.startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}{5})" """.format(
                     args.path,
                     " ".join([key + "=" + value for key, value in env_vars.items()]),
                     ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
@@ -213,7 +228,8 @@ try:
                     args.executable[0],
                     ",".join(args.args),
                     "," if len(args.args) > 1 else "",
-                    args.executable[0][:-3]))
+                    os.path.basename(args.executable[0])[:-3],
+                    os.path.join(args.path, os.path.dirname(args.executable[0]))))
             workers_left -= 1
         # Launch every remote hosts in the same time 
         if len(command) != 0 :
