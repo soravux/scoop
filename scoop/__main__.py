@@ -181,7 +181,7 @@ try:
         for n in range(min(maximum_workers[host], workers_left)):
             # Setting up environment variables
             env_vars = {'IS_ORIGIN': '0' if workers_left > 1 else '1',
-                        'WORKER_NAME': 'worker{0}'.format(n),
+                        'WORKER_NAME': 'worker{0}'.format(workers_left),
                         'BROKER_NAME': 'broker',
                         'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(
                             args.broker_hostname,
