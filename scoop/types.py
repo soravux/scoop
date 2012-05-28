@@ -66,6 +66,7 @@ class Future(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result_value = None          # task result
+        self.exception = None
         self.callback = None              # set callback
         # insert task into global dictionary
         scoop.control.task_dict[self.id] = self
