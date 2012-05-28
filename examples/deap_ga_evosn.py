@@ -196,12 +196,12 @@ toolbox.register("mate", tools.cxTwoPoints)
 toolbox.register("mutate", mutWire, dimension=INPUTS, indpb=0.05)
 toolbox.register("addwire", mutAddWire, dimension=INPUTS)
 toolbox.register("delwire", mutDelWire)
-toolbox.register("select", tools.selNSGA2)
+toolbox.register("select", tools.selTournament, tournsize=3)
 
 def main():
     random.seed(64)
 
-    population = toolbox.population(n=300)
+    population = toolbox.population(n=4096)
     hof = tools.ParetoFront()
     
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -212,7 +212,7 @@ def main():
     
     toolbox.register("map", futures.map)
 
-    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 20
+    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 40
     
     # Evaluate every individuals
     fitnesses = toolbox.map(toolbox.evaluate, population)
@@ -267,4 +267,4 @@ def main():
     return population, stats, hof
 
 if __name__ == "__main__":
-    futures.startup(main)
+    main()

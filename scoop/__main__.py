@@ -212,10 +212,11 @@ import runpy;
 import sys;
 sys.path.append(\"{4}\");
 from {3} import *;
-futures._startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')){1}{2})
+sys.argv += {2}{1};
+futures._startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')))
                     """.format(args.executable[0],
-                        "," if len(args.args) > 1 else "",
-                        ",".join(args.args),
+                        "",
+                        str(args.args),
                         os.path.basename(args.executable[0])[:-3],
                         os.path.abspath(os.path.dirname(args.executable[0])))]))
                 else:
@@ -226,14 +227,15 @@ import runpy;
 import sys;
 sys.path.append(\\"{8}\\");
 from {7} import *;
-futures._startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}{5})" """.format(
+sys.argv += {5}{6};
+futures._startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")))" """.format(
                         args.path,
                         " ".join([key + "=" + value for key, value in env_vars.items()]),
                         ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
                         args.python_executable[0],
                         args.executable[0],
-                    ",".join(args.args),
-                    "," if len(args.args) > 1 else "",
+                    str(args.args),
+                    "",
                     os.path.basename(args.executable[0])[:-3],
                     os.path.join(args.path, os.path.dirname(args.executable[0]))))
                 self.workers_left -= 1
