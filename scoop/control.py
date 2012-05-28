@@ -39,7 +39,7 @@ def runFuture(task):
     task.stopWatch.reset()
     try:
         task.result_value = task.callable(*task.args, **task.kargs)    
-    except Exception, err:
+    except Exception as err:
         task.exception = err
     assert task.result_value != None or task.exception != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
