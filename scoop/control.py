@@ -73,7 +73,7 @@ def runController(callable, *args, **kargs):
         task = execQueue.pop()
         
     task.greenlet = greenlet.greenlet(runFuture)
-    task = task.switch(task)
+    task = task._switch(task)
     
     while (task.parentId != rootId or (task.result_value == None and task.exception == None)) or is_origin == False:
         # process task
@@ -90,7 +90,7 @@ def runController(callable, *args, **kargs):
                     #assert parent.result_value == None
                     #assert parent.greenlet != None
                     if parent.exception == None:
-                        task = parent.switch(task)
+                        task = parent._switch(task)
                     else:
                         task = execQueue.pop()
                 else:
@@ -103,7 +103,7 @@ def runController(callable, *args, **kargs):
         if task.result_value == None and task.greenlet == None:
             # initialize if the task hasn't started
             task.greenlet = greenlet.greenlet(runFuture)
-            task = task.switch(task)
+            task = task._switch(task)
 
     execQueue.socket.shutdown()
     if task.exception:
