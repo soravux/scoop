@@ -108,7 +108,7 @@ def map(func, *iterables, **kargs):
     if 'timeout' in kargs.keys():
         # TODO
         pass
-    return _waitAll(*_mapFuture(callable, *iterables, **kargs))
+    return _waitAll(*_mapFuture(func, *iterables, **kargs))
 
 def submit(func, *args, **kargs):
     """This function submits an independent parallel Future that will either run
@@ -127,7 +127,7 @@ def submit(func, *args, **kargs):
     transfered remotely depending on load or on remote distributed workers. You
     may carry on with any further computations while the Future completes. Result
     retrieval is made via the ``result()`` function on the Future."""
-    child = Future(scoop.control.current.id, callable, *args, **kargs)
+    child = Future(scoop.control.current.id, func, *args, **kargs)
     scoop.control.execQueue.append(child)
     return child
 
