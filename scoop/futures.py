@@ -147,7 +147,7 @@ def _waitAny(*children):
         if task.exception:
             raise task.exception
         if task.result_value:
-            yield task.result_value, task.id
+            yield task.result_value
             n -= 1
         else:
             task.index = index
@@ -157,7 +157,6 @@ def _waitAny(*children):
         task.stopWatch.halt()
         childTask = _controller.switch(task)
         task.stopWatch.resume()
-        yield result, taskid
         if childTask.exception:
             raise childTask.exception
         yield childTask.result_value
@@ -178,7 +177,7 @@ def _waitAll(*children):
     available before it can produce an output. See waitAny for an alternative
     option."""
     for index, task in enumerate(children):
-        for result, taskid in _waitAny(task):
+        for result in _waitAny(task):
             yield result
 
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
@@ -230,8 +229,9 @@ def as_completed(fs, timeout=None):
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
     """
-    for result, taskid in _waitAny(*fs):
-        yield scoop.control.task_dict[taskid]
+    for task in _waitAny(*fs):
+        # TODO: Return task
+        yield task
 
 def _join(child):
     """This private function is for joining the current Future with one of its
@@ -243,7 +243,7 @@ def _join(child):
     
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
-    for result, taskid in _waitAny(child):
+    for result in _waitAny(child):
         # Remove task entry from task_dict
         scoop.control.task_dict.pop(child.id)
         return result

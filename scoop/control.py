@@ -42,8 +42,9 @@ def runFuture(task):
         task.result_value = task.callable(*task.args, **task.kargs)    
     except Exception as err:
         task.exception = err
-    assert task.result_value != None or task.exception != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
+    assert task.result_value != None or task.exception != None, "callable must return a value!"
+    
     # Set debugging informations if needed
     if scoop.DEBUG:
         stats[task.id].setdefault('end_time', []).append(time.time())
@@ -89,8 +90,6 @@ def runController(callable, *args, **kargs):
                 # task is local, parent is waiting
                 if task.index != None:
                     parent = task_dict[task.parentId]
-                    #assert parent.result_value == None
-                    #assert parent.greenlet != None
                     if parent.exception == None:
                         task = parent._switch(task)
                     else:

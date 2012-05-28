@@ -94,14 +94,14 @@ class launchScoop(object):
         # Logging configuration
         if args.verbose > 2:
             args.verbose = 2
-        verbose_levels = {0:logging.WARNING, 1:logging.INFO, 2:logging.DEBUG}
-                  2: logging.DEBUG}
-        logging.basicConfig(filename=args.log,level=verbose_levels[args.verbose])
-        logging.info('Deploying {0} workers over {1} host(s).'.format(args.n, len(self.hosts)))
-                    level=verbose_levels[args.verbose],
-                    format='[%(asctime)-15s] %(levelname)-7s %(message)s')
-logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
-                                                              len(hosts)))
+        verbose_levels = {0: logging.WARNING,
+                          1: logging.INFO,
+                          2: logging.DEBUG}
+        logging.basicConfig(filename=args.log,
+                            level=verbose_levels[args.verbose],
+                            format='[%(asctime)-15s] %(levelname)-7s %(message)s')
+        logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
+                                                                      len(self.hosts)))
 
         self.maximum_workers = {}
         # If multiple times the same host in argument, it means that the maximum number
@@ -113,11 +113,11 @@ logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
         else :
             # No duplicate entries in self.hosts found, division of workers pseudo-equally
             # upon the self.hosts
-            logging.debug('Dividing workers pseudo-equally over self.hosts')
+            logging.debug('Dividing workers pseudo-equally over hosts')
             
             for index, host in enumerate(reversed(args.hosts)):
                 self.maximum_workers[host] = (args.n // (len(self.hosts)) \
-                                        + int((args.n % len(self.hosts)) > index))
+                    + int((args.n % len(self.hosts)) > index))
 
         # Show worker distribution
         if args.verbose > 1:
@@ -128,24 +128,24 @@ logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
                     number - 1 if worker == args.hosts[-1] else str(number),
                     "+ origin" if worker == args.hosts[-1] else ""))
 
-# Handling Broker Hostname
-args.broker_hostname = '127.0.0.1' if args.e else args.broker_hostname[0]
+        # Handling Broker Hostname
+        args.broker_hostname = '127.0.0.1' if args.e else args.broker_hostname[0]
         logging.debug('Using hostname/ip: "{0}" as external broker reference.'\
-    .format(args.broker_hostname))
+            .format(args.broker_hostname))
         logging.info('The python executable to execute the program with is: {0}.'\
             .format(args.python_executable[0]))
 
         # Backup the environment for future restore
         self.backup_environ = os.environ.copy()
 
-
-
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
         # Find the broker
+        # TODO: _broker.py
         from broker import Broker
         
         # Check if port is not already in use
+        # TODO: Check for infoPort
         while True:
             broker_port = random.randint(1025, 49151)
             if port_ready(broker_port) == False:
@@ -154,7 +154,7 @@ args.broker_hostname = '127.0.0.1' if args.e else args.broker_hostname[0]
         # Spawn the broker
         broker_subproc = subprocess.Popen([args.python_executable[0],
                 os.path.abspath(sys.modules[Broker.__module__].__file__),
-            str(broker_port), str(broker_port + 1)])
+                str(broker_port), str(broker_port + 1)])
             
         # Let's wait until the local broker is up and running...
         begin = time.time()
@@ -183,31 +183,29 @@ args.broker_hostname = '127.0.0.1' if args.e else args.broker_hostname[0]
         logging.debug('Local broker launched on ports %i, %i' % (broker_port, info_port))
         
         # Launch the workers
-    for host in args.hosts:
-        command = []
+        for host in args.hosts:
+            command = []
+            for n in range(min(self.maximum_workers[host], self.workers_left)):
                 # Setting up environment variables
                 env_vars = {'IS_ORIGIN': '0' if self.workers_left > 1 else '1',
-        for n in range(min(maximum_workers[host], workers_left)):
-            # Setting up environment variables
-            env_vars = {'IS_ORIGIN': '0' if workers_left > 1 else '1',
                             'WORKER_NAME': 'worker{0}'.format(self.workers_left),
                             'BROKER_NAME': 'broker',
-                        'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(
-                            args.broker_hostname,
+                            'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(
+                                args.broker_hostname,
                                 broker_port),
-                        'META_ADDRESS': 'tcp://{0}:{1}'.format(
-                            args.broker_hostname,
+                            'META_ADDRESS': 'tcp://{0}:{1}'.format(
+                                args.broker_hostname,
                                 info_port),
-                        'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
+                            'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
                 logging.debug('Initialising {0} worker {1} ({2} left){3}.'.format(
                     "local" if host in ["127.0.0.1", "localhost"] else "remote",
                     n,
-                workers_left - 1,
+                    self.workers_left - 1,
                     " -> Origin" if env_vars['IS_ORIGIN'] == '1' else ""))
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     os.environ.update(env_vars)
-                created_subprocesses.append(subprocess.Popen([args.python_executable[0],
+                    self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
                     "-c",
                     """from scoop import futures;
 import runpy;
@@ -223,7 +221,7 @@ futures._startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name
                 else:
                     # If the host is remote, connect with ssh
                     # PYTHONPATH? Virtualenvs?
-                command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures;
+                    command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures;
 import runpy;
 import sys;
 sys.path.append(\\"{8}\\");
@@ -238,21 +236,22 @@ futures._startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}
                     "," if len(args.args) > 1 else "",
                     os.path.basename(args.executable[0])[:-3],
                     os.path.join(args.path, os.path.dirname(args.executable[0]))))
-            workers_left -= 1
-        # Launch every remote hosts in the same time 
-        if len(command) != 0 :
-            ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-            if args.e:
-                        ssh_command += ['-R {0}:127.0.0.1:{0}'.format(broker_port),
-                                        '-R {0}:127.0.0.1:{0}'.format(info_port)]
-            shell = subprocess.Popen(ssh_command + [
-                host,
-                "bash -c '{0}; wait'".format(" & ".join(command))])
-            created_subprocesses.append(shell)
-            command = []
+                self.workers_left -= 1
+            # Launch every remote hosts in the same time 
+            if len(command) != 0 :
+                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+                if args.e:
+                            ssh_command += ['-R {0}:127.0.0.1:{0}'.format(broker_port),
+                                            '-R {0}:127.0.0.1:{0}'.format(info_port)]
+                shell = subprocess.Popen(ssh_command + [
+                    host,
+                    "bash -c '{0}; wait'".format(" & ".join(command))])
+                created_subprocesses.append(shell)
+                command = []
+            if self.workers_left <= 0:
                 # We've launched every worker we needed, so let's exit the loop!
                 break
-            
+                
         # Ensure everything is started normaly
         for this_subprocess in self.created_subprocesses:
             if this_subprocess.poll() is not None:
