@@ -87,8 +87,8 @@ def runController(callable, *args, **kargs):
                 # task is local, parent is waiting
                 if task.index != None:
                     parent = task_dict[task.parentId]
-                    assert parent.result_value == None
-                    assert parent.greenlet != None
+                    #assert parent.result_value == None
+                    #assert parent.greenlet != None
                     if parent.exception == None:
                         task = parent.switch(task)
                     else:

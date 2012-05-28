@@ -253,5 +253,5 @@ class FutureQueue(object):
 
     def sendResult(self, task):
         task.greenlet = None  # greenlets cannot be pickled
-        assert task.result_value != None, "The results are not valid"
+        assert task.result_value != None or task.exception != None, "The results are not valid"
         self.socket.sendResult(task)
