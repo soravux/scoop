@@ -46,7 +46,7 @@ def runFuture(task):
                                'worker': worker,
                                'creationTime': task.creationTime,
                                'callable': str(task.callable.__name__),
-                               'parent': task.parent})
+                               'parent': task.parentId})
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if task.callback != None:
         try: task.callback(task)
