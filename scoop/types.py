@@ -66,12 +66,10 @@ class Future(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result_value = None          # task result
+        self.exception = None
         self.callback = None              # set callback
         # insert task into global dictionary
         scoop.control.task_dict[self.id] = self
-        # add link to parent
-        if scoop.DEBUG:
-           self.parent = str(scoop.control.current.id) if scoop.control.current != None else None
 
     def __lt__(self, other):
         """Order tasks by creation time."""
@@ -79,17 +77,12 @@ class Future(object):
     
     def __str__(self):
         """Convert task to string."""
-        return "{0}[{3}] = {1}{5}={2}, p={4}".format(self.id,
-                                                     self.callable,
-                                                     self.result_value,
-                                                     self.index,
-                                                     self.parentId,
-                                                     self.args)
-   
-    def __repr__(self):
-        return "{0}[{1}] = {2}, p = {3}".format(self.id,self.index, self.result_value, self.parentId)
+        return "{0}:{1}{2}={3}".format(self.id,
+                                       self.callable.__name__,
+                                       self.args,
+                                       self.result_value)
     
-    def switch(self, task):
+    def _switch(self, task):
         """Switch greenlet."""
         scoop.control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
@@ -97,7 +90,7 @@ class Future(object):
     
     # The following methods are added to be compliant with PEP 3148
     def cancel(self):
-        """Attempt to cancel the call. 
+        """Attempt to cancel the call.
         
         :returns: If the call is currently being executed then it cannot
             be cancelled and the method will return False, otherwise
@@ -142,7 +135,7 @@ class Future(object):
         If the call raised then this method will raise the same exception.
         
         :returns: The value returned by the call."""
-        return scoop.futures._join(self, timeout)
+        return scoop.futures._join(self)
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
@@ -257,5 +250,5 @@ class FutureQueue(object):
 
     def sendResult(self, task):
         task.greenlet = None  # greenlets cannot be pickled
-        assert task.result_value != None, "The results are not valid"
+        assert task.result_value != None or task.exception != None, "The results are not valid"
         self.socket.sendResult(task)
