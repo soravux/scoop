@@ -36,15 +36,14 @@ class Broker(object):
         information.
     :param mSock: Meta Socket Address. Must contain protocol, address and port
         information."""
-        global context
-        context = zmq.Context(1)
+        self.context = zmq.Context(1)
         
         # zmq Socket for the tasks, replies and request.
-        self.taskSocket = context.socket(zmq.ROUTER)
+        self.taskSocket = self.context.socket(zmq.ROUTER)
         self.taskSocket.bind(tSock)
         
         # zmq Socket for the shutdown TODO this is temporary
-        self.infoSocket = context.socket(zmq.PUB)
+        self.infoSocket = self.context.socket(zmq.PUB)
         self.infoSocket.bind(mSock)
 
         # init self.poller
@@ -116,7 +115,7 @@ class Broker(object):
         
         self.taskSocket.close()
         self.infoSocket.close()
-        context.term()
+        self.context.term()
         
         # write down statistics about this run if asked
         if scoop.DEBUG:
