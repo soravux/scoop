@@ -151,6 +151,8 @@ def _waitAny(*children):
     n = len(children)
     # check for available results and index those unavailable
     for index, task in enumerate(children):
+        if task.exception:
+            raise task.exception
         if task.result_value:
             yield task.result_value
             n -= 1
@@ -160,10 +162,12 @@ def _waitAny(*children):
     while n > 0:
         # wait for remaining results; switch to controller
         task.stopWatch.halt()
-        result = _controller.switch(task)
+        childTask = _controller.switch(task)
         task.stopWatch.resume()
         # Remove task entry from task_dict
-        yield result
+        if childTask.exception:
+            raise childTask.exception
+        yield childTask.result_value
         n -= 1
 
 def _waitAll(*children):
