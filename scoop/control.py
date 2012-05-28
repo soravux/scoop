@@ -43,6 +43,7 @@ def runFuture(task):
         task.exception = err
     assert task.result_value != None or task.exception != None, "callable must return a value!"
     task.executionTime = task.stopWatch.get()
+    # Set debugging informations if needed
     if scoop.DEBUG:
         stats[task.id].setdefault('end_time', []).append(time.time())
         stats[task.id].update({'executionTime': task.executionTime,
