@@ -40,9 +40,9 @@ def startup(rootFuture, *args, **kargs):
     :param kargs: A dictionary of additional keyword arguments that will be
         passed to the callable object. 
         
-    :returns: The result of the root task.
+    :returns: The result of the root Future.
     
-    Be sure to launch your root task using this method."""
+    Be sure to launch your root Future using this method."""
     import greenlet
     import scoop
     global _controller
@@ -58,23 +58,24 @@ def startup(rootFuture, *args, **kargs):
 
 def _mapFuture(callable, *iterables, **kargs):
     """This function is similar to the built-in map function, but each of its 
-    iteration will spawn a separate independent parallel task that will run 
+    iteration will spawn a separate independent parallel Future that will run 
     either locally or remotely as `callable(*args, **kargs)`.
     
     :param callable: Any callable object (function or class object with __call__
-        method); this object will be called to execute each task. 
+        method); this object will be called to execute each Future. 
     :param iterables: A tuple of iterable objects; each will be zipped
         to form an iterable of arguments tuples that will be passed to the
-        callable object as a separate task. 
+        callable object as a separate Future. 
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
         
-    :returns: A list of task objects, each corresponding to an iteration of map.
+    :returns: A list of Future objects, each corresponding to an iteration of
+        map.
     
-    On return, the tasks are pending execution locally, but may also be
+    On return, the Futures are pending execution locally, but may also be
     transfered remotely depending on global load. Execution may be carried on
     with any further computations. To retrieve the map results, you need to
-    either wait for or join with the spawned tasks. See functions waitAny,
+    either wait for or join with the spawned Futures. See functions waitAny,
     waitAll, or joinAll. Alternatively, You may also use functions mapWait or
     mapJoin that will wait or join before returning."""
     childrenList = []
@@ -82,20 +83,20 @@ def _mapFuture(callable, *iterables, **kargs):
         childrenList.append(submit(callable, *args, **kargs))
     return childrenList
 
-def map(callable, *iterables, **kargs):
+def map(func, *iterables, **kargs):
     """Equivalent to map(func, \*iterables) but func is executed asynchronously
     and several calls to func may be made concurrently. The returned iterator
-    raises a TimeoutError if __next__() is called and the result isn't
-    available after timeout seconds from the original call to map(). If timeout
-    is not specified or None then there is no limit to the wait time. If a call
-    raises an exception then that exception will be raised when its value is
-    retrieved from the iterator.
+    raises a TimeoutError if __next__() is called and the result isn't available
+    after timeout seconds from the original call to map(). If timeout is not
+    specified or None then there is no limit to the wait time. If a call raises
+    an exception then that exception will be raised when its value is retrieved
+    from the iterator.
     
-    :param callable: Any callable object (function or class object with __call__
-        method); this object will be called to execute the tasks. 
+    :param func: Any callable object (function or class object with __call__
+        method); this object will be called to execute the Futures. 
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
-        separate task.
+        separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
@@ -107,47 +108,41 @@ def map(callable, *iterables, **kargs):
     if 'timeout' in kargs.keys():
         # TODO
         pass
-    return _waitAll(*_mapFuture(callable, *iterables, **kargs))
+    return _waitAll(*_mapFuture(func, *iterables, **kargs))
 
-def submit(callable, *args, **kargs):
-    """This function is for submitting an independent parallel task that will 
-    either run locally or remotely as `callable(*args, **kargs)`.
+def submit(func, *args, **kargs):
+    """This function submits an independent parallel Future that will either run
+    locally or remotely as `func(*args, **kargs)`.
     
-    :param callable: Any callable object (function or class object with __call__
-        method); this object will be called to execute the task. 
-    :param args: A tuple of positional arguments that will be passed to the 
-        callable object. 
-    :param kargs: A dictionary of additional keyword arguments that will be 
-        passed to the callable abject. 
+    :param func: Any callable object (function or class object with __call__
+        method); this object will be called to execute the Future.
+    :param args: A tuple of positional arguments that will be passed to the
+        callable object.
+    :param kargs: A dictionary of additional keyword arguments that will be
+        passed to the callable object.
         
-    :returns: A future object for retrieving the task result.
+    :returns: A future object for retrieving the Future result.
     
-    On return, the task is pending execution locally, but may also be transfered
-    remotely depending on load or on remote distributed workers. You may carry
-    on with any further computations while the task completes. Result retrieval
-    is made via the ``result()`` function on the task."""
-    child = Future(scoop.control.current.id, callable, *args, **kargs)
+    On return, the Future is pending execution locally, but may also be
+    transfered remotely depending on load or on remote distributed workers. You
+    may carry on with any further computations while the Future completes. Result
+    retrieval is made via the ``result()`` function on the Future."""
+    child = Future(scoop.control.current.id, func, *args, **kargs)
     scoop.control.execQueue.append(child)
     return child
 
 def _waitAny(*children):
-    """This function is for waiting on any child task created by the calling 
-    task.
+    """This private function is for waiting on any child Future created by the
+    calling Fureu.
     
-    :param children: A tuple of children task objects spawned by the calling 
-        task.
+    :param children: A tuple of children Future objects spawned by the calling 
+        Future.
         
     :return: A generator function that iterates on (index, result) tuples.
     
-    The generator produces two-element tuples. The first element is the index of
-    a result, and the second is the result itself. The index corresponds to the
-    index of the task in the children argument. Tuples are generated in a non
-    deterministic order that depends on the particular parallel execution of the
-    tasks. The generator returns a tuple as soon as one becomes available. Any
-    number of children tasks can be specified, for example just one, all of
-    them, or any subset of created tasks, but they must have been spawned by the 
-    calling task (using map or submit). See also waitAll for an alternative 
-    option."""
+    The generator produces results of the children in a non deterministic order
+    that depends on the particular parallel execution of the Futures. The
+    generator returns a tuple as soon as one becomes available."""
     n = len(children)
     # check for available results and index those unavailable
     for index, task in enumerate(children):
@@ -171,18 +166,18 @@ def _waitAny(*children):
         n -= 1
 
 def _waitAll(*children):
-    """This function is for waiting on all child tasks specified by a tuple of 
-    previously created task (using map or submit).
+    """This private function waits on all child tasks specified by a tuple of
+    previously created Future.
     
-    :param children: A tuple of children task objects spawned by the calling 
-        task.
+    :param children: A tuple of children Future objects spawned by the calling 
+        Future.
         
-    :return: A generator function that iterates on task results.
+    :return: A generator function that iterates on Future results.
     
     The generator produces results in the order that they are specified by
-    the children argument. Because task are executed in a non deterministic 
-    order, the generator may have to wait for the last result to become 
-    available before it can produce an output. See waitAny for an alternative 
+    the children argument. Because Futures are executed in a non deterministic
+    order, the generator may have to wait for the last result to become
+    available before it can produce an output. See waitAny for an alternative
     option."""
     for index, task in enumerate(children):
         for result in _waitAny(task):
@@ -240,28 +235,28 @@ def as_completed(fs, timeout=None):
     return _waitAny(*fs)
 
 def _join(child):
-    """This function is for joining the current task with one of its child 
-    task.
+    """This private function is for joining the current Future with one of its
+    child Future.
     
-    :param child: A child task object spawned by the calling task.
+    :param child: A child Future object spawned by the calling Future.
     
-    :return: The result of the child task.
+    :return: The result of the child Future.
     
-    Only one task can be specified. The function returns a single corresponding 
-    result as soon as it becomes available."""
+    Only one Future can be specified. The function returns a single
+    corresponding result as soon as it becomes available."""
     for result in _waitAny(child):
         return result
 
 def _joinAll(*children):
-    """This function is for joining the current task with all of the children 
-    tasks specified in a tuple.
+    """This private function is for joining the current Future with all of the
+    children Futures specified in a tuple.
     
-    :param children: A tuple of children task objects spawned by the calling 
-        task.
+    :param children: A tuple of children Future objects spawned by the calling
+        Future.
         
-    :return: A list of corresponding results for the children tasks.
+    :return: A list of corresponding results for the children Futures.
     
-    This function will wait for the completion of all specified child tasks 
+    This function will wait for the completion of all specified child Futures
     before returning to the caller."""
     return [result for result in _waitAll(*children)]
 
@@ -269,10 +264,5 @@ def shutdown(wait=True):
     """This function is here for backward compatibility with `futures` (PEP 
     3148).
     
-    :param wait: If True, this method will be blocking, meaning that it will not
-        return until all the pending futures are done executing and the
-        resources associated with the executor have been freed. If wait is
-        False, this method will return immediately and the resources associated
-        with the executor willbe freed when all pending futures are done
-        executing."""
+    :param wait: Unapplied parameter."""
     pass
