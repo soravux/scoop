@@ -66,8 +66,8 @@ class Future(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result_value = None          # task result
-        self.exception = None
-        self.callback = None              # set callback
+        self.exception = None             # exception raised by callable
+        self.callback = []                # set callback
         # insert task into global dictionary
         scoop.control.task_dict[self.id] = self
 
@@ -152,8 +152,7 @@ class Future(object):
         If the call completed without raising then None is returned.
         
         :returns: The exception raised by the call."""
-        # TODO
-        pass
+        return self.exception
 
     def add_done_callback(self, callable):
         """Attaches a callable to the future that will be called when the future
