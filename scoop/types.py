@@ -66,12 +66,10 @@ class Future(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result_value = None          # task result
-        self.callback = []                # set callback
+        self.exception = None
+        self.callback = None              # set callback
         # insert task into global dictionary
         scoop.control.task_dict[self.id] = self
-        # add link to parent
-        if scoop.DEBUG:
-           self.parent = str(scoop.control.current.id) if scoop.control.current != None else None
 
     def __lt__(self, other):
         """Order tasks by creation time."""
@@ -84,7 +82,7 @@ class Future(object):
                                        self.args,
                                        self.result_value)
     
-    def switch(self, task):
+    def _switch(self, task):
         """Switch greenlet."""
         scoop.control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
@@ -253,5 +251,5 @@ class FutureQueue(object):
 
     def sendResult(self, task):
         task.greenlet = None  # greenlets cannot be pickled
-        assert task.result_value != None, "The results are not valid"
+        assert task.result_value != None or task.exception != None, "The results are not valid"
         self.socket.sendResult(task)
