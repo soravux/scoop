@@ -82,7 +82,7 @@ class Future(object):
                                        self.args,
                                        self.result_value)
     
-    def switch(self, task):
+    def _switch(self, task):
         """Switch greenlet."""
         scoop.control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
