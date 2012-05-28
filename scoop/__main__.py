@@ -246,7 +246,7 @@ futures._startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")){6}
                 shell = subprocess.Popen(ssh_command + [
                     host,
                     "bash -c '{0}; wait'".format(" & ".join(command))])
-                created_subprocesses.append(shell)
+                self.created_subprocesses.append(shell)
                 command = []
             if self.workers_left <= 0:
                 # We've launched every worker we needed, so let's exit the loop!
