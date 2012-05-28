@@ -21,15 +21,16 @@ import argparse
 import time
 import os
 import sys
-import socket
 import scoop
+import socket
 import random
+import logging
 
-def log(text, level=0):
-    """Easily logs on screen the different events happening based on the
-    verbosity level"""
-    if args.verbose > level-1:
-        print("[{0}]\t{2} -> {1}".format(time.time(), text, __file__))
+#def log(text, level=0):
+#    """Easily logs on screen the different events happening based on the
+#    verbosity level"""
+#    if args.verbose > level-1:
+#        print("[{0}]\t{2} -> {1}".format(time.time(), text, __file__))
 
 cwd = os.getcwd()
     
@@ -47,9 +48,11 @@ parser.add_argument('--nice',
                     type=int,
                     help="UNIX niceness level (-20 to 19) to run the executable")
 parser.add_argument('--verbose', '-v',
-                    action='count',
-                    help="Verbosity level of this launch script (-vv for more)",
-                    default=0)
+                    action = 'count',
+                    help = "Verbosity level of this launch script (-vv for more)",
+                    default = 0)
+parser.add_argument('--log', help = "The file to log the output", 
+                    default = None)
 parser.add_argument('-n',
                     help="Number of process to launch the executable with",
                     type=int,
@@ -60,7 +63,7 @@ parser.add_argument('-e',
 parser.add_argument('--broker-hostname',
                     nargs=1,
                     help='The externally routable broker hostname / ip (defaults to the local hostname)',
-                    default=[socket.gethostname()])
+                    default=[socket.getfqdn()])
 parser.add_argument('--python-executable',
                     nargs=1,
                     help='The python executable with which to execute the script (with absolute path if necessary)',
@@ -80,37 +83,42 @@ hosts = set(args.hosts)
 workers_left = args.n
 created_subprocesses = []
 
-log('Deploying {0} workers over {1} host(s).'.format(args.n, len(hosts)), 2)
+if args.verbose > 2:
+    args.verbose = 2
+verbose_levels = {0:logging.WARNING, 1:logging.INFO, 2:logging.DEBUG}
+
+logging.basicConfig(filename=args.log,level=verbose_levels[args.verbose])
+logging.info('Deploying {0} workers over {1} host(s).'.format(args.n, len(hosts)))
 
 maximum_workers = {}
 # If multiple times the same host in argument, it means that the maximum number
 # of workers has been setted by the number of times it is in the array
 if len(args.hosts) != len(hosts):
-    log('Using amount of duplicates in hosts entry to set the number of workers.',
-        1)
+    logging.debug('Using amount of duplicates in hosts entry to set the number of workers.')
     for host in args.hosts:
         maximum_workers[host] = args.hosts.count(host)
 else :
     # No duplicate entries in hosts found, division of workers pseudo-equally
     # upon the hosts
-    log('Dividing workers pseudo-equally over hosts', 1)
+    logging.debug('Dividing workers pseudo-equally over hosts')
+    
     for index, host in enumerate(reversed(args.hosts)):
         maximum_workers[host] = (args.n // (len(hosts)) \
                                 + int((args.n % len(hosts)) > index))
 
 # Show worker distribution
 if args.verbose > 1:
-    log('Worker distribution: ', 2)
+    logging.info('Worker distribution: ')
     for worker, number in maximum_workers.items():
-        log('   {0}:\t{1} {2}'.format(
+        logging.info('   {0}:\t{1} {2}'.format(
             worker,
             number - 1 if worker == args.hosts[-1] else str(number),
-            "+ origin" if worker == args.hosts[-1] else ""), 2)
+            "+ origin" if worker == args.hosts[-1] else ""))
 
-log('Using hostname/ip: "{0}" as external broker reference.'\
-    .format(args.broker_hostname[0]), 1)
-log('The python executable to execute the program with is: {0}.'\
-    .format(args.python_executable[0]), 2)
+logging.debug('Using hostname/ip: "{0}" as external broker reference.'\
+    .format(args.broker_hostname[0]))
+logging.info('The python executable to execute the program with is: {0}.'\
+    .format(args.python_executable[0]))
 
 # Backup the environment for future restore
 backup_environ = os.environ.copy()
@@ -156,7 +164,7 @@ def start_broker():
     
 try:
     # Launching the local broker, repeat until it works
-    log('Initialising local broker.', 1)
+    logging.debug('Initialising local broker.')
     while True:
         try:
             broker_subproc, broker_port, info_port = start_broker()
@@ -166,7 +174,7 @@ try:
             break
         except:
             continue
-    log('Local broker launched on ports %i, %i' % (broker_port, info_port), 1)
+    logging.debug('Local broker launched on ports %i, %i' % (broker_port, info_port))
     
     port_redir_done = {}
     # Launch the workers
@@ -174,7 +182,7 @@ try:
         for n in range(min(maximum_workers[host], workers_left)):
             # Setting up environment variables
             env_vars = {'IS_ORIGIN': '0' if workers_left > 1 else '1',
-                        'WORKER_NAME': 'worker{0}'.format(n),
+                        'WORKER_NAME': 'worker{0}'.format(workers_left),
                         'BROKER_NAME': 'broker',
                         'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(\
                             '127.0.0.1' if args.e else args.broker_hostname[0],
@@ -183,11 +191,11 @@ try:
                             '127.0.0.1' if args.e else args.broker_hostname[0],
                             info_port),
                         'SCOOP_DEBUG': '1' if scoop.DEBUG else '0',}
-            log('Initialising {0} worker {1} ({2} left){3}.'.format(
+            logging.debug('Initialising {0} worker {1} ({2} left){3}.'.format(
                 "local" if host in ["127.0.0.1", "localhost"] else "remote",
                 n,
                 workers_left,
-                " -> Origin" if env_vars['IS_ORIGIN'] == '1' else ""), 1)
+                " -> Origin" if env_vars['IS_ORIGIN'] == '1' else ""))
             if host in ["127.0.0.1", "localhost"]:
                 # Launching the workers
                 os.environ.update(env_vars)
@@ -227,11 +235,11 @@ try:
     
 finally:
     # Ensure everything is cleaned up on exit
-    log('Destroying local elements of the federation...', 1)
+    logging.debug('Destroying local elements of the federation...')
     created_subprocesses.reverse() # Kill the broker last
     for process in created_subprocesses:
         try: process.terminate()
         except: pass
-    log('Finished destroying spawned subprocesses.', 2)
+    logging.info('Finished destroying spawned subprocesses.')
     os.environ = backup_environ
-    log('Restored environment variables.', 2)
+    logging.info('Restored environment variables.')
