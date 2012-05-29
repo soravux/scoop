@@ -23,8 +23,10 @@ from random import random
 
 from scoop import futures
 
+# A range is used in this function for python3. If you are using python2, a
+# xrange migth be more obtimal. 
 def test(tries):
-    return sum(hypot(random(), random()) < 1 for i in xrange(tries))
+    return sum(hypot(random(), random()) < 1 for i in range(tries))
 
 def calcPi(n, t):
     expr = futures.map(test, [t] * n)
@@ -32,4 +34,6 @@ def calcPi(n, t):
     print("pi = " + str(pi_value))
     return pi_value
 
-dataPi = futures.startup(calcPi, 3000, 5000)
+if __name__ == "__main__":
+    dataPi = calcPi(3000, 5000)
+

@@ -25,7 +25,7 @@ from scoop import futures
 RECURSIVITY_LEVEL = 12
 
 def recursiveFunc(level):
-    if level == 1:
+    if level == 0:
         return 1
     else:
         args = [level-1] * 2
@@ -34,4 +34,5 @@ def recursiveFunc(level):
             print("2^"+str(level)+" = " + str(s))
         return s
 
-futures.startup(recursiveFunc, RECURSIVITY_LEVEL)
+if __name__ == "__main__":
+    recursiveFunc(RECURSIVITY_LEVEL)

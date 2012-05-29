@@ -15,8 +15,9 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-A simple example showing how to resolve a full balanced tree with multiples
-techniques using SCOOP.
+A simple example to show some case of exception handling using Scoop. The exception
+handling are done in the same way as they are in python. However, exception dealt
+by Scoop using python3 are a lot more clear than if python2 was used.
 """
 from __future__ import print_function
 from scoop import futures
@@ -29,13 +30,15 @@ def func0(n):
     return result
 
 def func1(n):
-    # This call result in a generator function
+    
     try:
-        result = futures.map(func2, [i+1 for i in range(n)])
+        # The map alone doesn't throw the exception. The exception is raised
+        # in the sum which calls the map generator.
+        result = sum(futures.map(func2, [i+1 for i in range(n)]))
     except Exception as err:
         # We could do some stuff here
-        raise err
-    return sum(result)
+        raise Exception("This exception is normal")
+    return result
 
 def func2(n):
     if n > 10:
@@ -44,12 +47,10 @@ def func2(n):
     launches = []
     for i in range(n):
         launches.append(futures.submit(func3, i + 1))
-    # Spawn a generator for each completion, unordered
     result = futures.as_completed(launches)
     return sum(result)
 
 def func3(n):
-    # To force an immediate evaluation, you can wrap your map in a list such as:
     result = []
     try:
         result = list(futures.map(func4, [i+1 for i in range(n)]))
@@ -75,4 +76,4 @@ def main():
     return result
 
 if __name__ == "__main__":
-    futures.startup(main)
+    main()
