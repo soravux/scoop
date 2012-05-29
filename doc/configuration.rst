@@ -28,6 +28,6 @@ Environment Variable  Description                                               
 IS_ORIGIN             Set it to 1 if the worker is the origin of the task.                                                   1
 WORKER_NAME           The name of the current worker.                                                                        origin
 BROKER_NAME           The name of the broker the current worker will connect to.                                             broker
-BROKER_ADDRESS        The address of the broker task socket with protocol and port that the current worker will connect to.  ``tcp://127.0.0.1:5555``
-META_ADDRESS          The address of the broker meta socket with protocol and port that the current worker will connect to.  ``tcp://127.0.0.1:5556``
+BROKER_ADDRESS        The address of the broker task socket with protocol and port that the current worker will connect to.  
+META_ADDRESS          The address of the broker meta socket with protocol and port that the current worker will connect to.  
 ====================  =====================================================================================================  ========================
