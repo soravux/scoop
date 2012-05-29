@@ -21,11 +21,9 @@ Origin      Special status of a worker stating that he spawns the root task and 
 Meta socket Extraneous Publisher-Subscriber socket created between the brokers to propagate load informations.
 =========== =================================================================================================================
 
-How to launch a task
---------------------
 
 Requirements
-~~~~~~~~~~~~
+------------
 
 You may want to run your distributed and parallel tasks over a tightly integrated grid such as a supercomputer or you may want to test a bunch of computers laying there in the laboratory or put to good use some heterogeneous systems at home. SCOOP allows you to scale your parallel tasks to all these situations with minor modifications to your source code.
 
@@ -40,8 +38,9 @@ SCOOP works with Linux and Windows. If you launch tasks from the latter, be sure
 
 Please check the document :doc:`setup` for more technical informations about the setup of a working SCOOP system.
 
+
 Launching a task
-~~~~~~~~~~~~~~~~
+----------------
 
 The ``scoop`` module spawns the needed brokers and workers on a given list of computer, including remote ones via ``ssh``.
 
