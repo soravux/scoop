@@ -47,6 +47,13 @@ class StopWatch(object):
     def reset(self):
         self.__init__()
 
+class CancelledError(Exception):
+    """The Future was cancelled."""
+    pass
+    
+class TimeoutError(Exception):
+    """The operation exceeded the given deadline."""
+    pass
 
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
@@ -88,39 +95,37 @@ class Future(object):
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(task)
     
-    # The following methods are added to be compliant with PEP 3148
     def cancel(self):
         """Attempt to cancel the call.
         
         :returns: If the call is currently being executed then it cannot
             be cancelled and the method will return False, otherwise
             the call will be cancelled and the method will return True."""
-        # TODO
-        pass
+        if self in scoop.control.execQueue:
+            self.exception = CancelledError()
+            return True
+        return False
 
     def cancelled(self):
         """Returns a status flag of the process.
         
         :returns: True if the call was successfully cancelled, else
             otherwise."""
-        # TODO
-        pass
+        return isinstance(self.exception, CancelledError)
 
     def running(self):
         """Returns a status flag of the process.
         
         :returns: True if the call is currently being executed and cannot be
             cancelled."""
-        # TODO
-        pass
+        return not self.done() and self not in scoop.control.execQueue
         
     def done(self):
         """Returns a status flag of the process.
         
         :returns: True if the call was successfully cancelled or finished
             running."""
-        # TODO
-        pass
+        return self.result_value != None or self.exception != None
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
@@ -181,10 +186,16 @@ class FutureQueue(object):
         self.socket = ZMQCommunicator()
         self.lowwatermark  = 5
         self.highwatermark = 20
+        
+    def __iter__(self):
+        """iterates over the selectable (cancellable) elements of the queue."""
+        for it in (self.movable, self.ready):
+            for element in it:
+                yield element
 
     def __len__(self):
-        """returns the length of the queue, meaning the sum of it's
-        elements lengths."""
+        """returns the length of the queue, meaning the sum of it's elements
+        lengths."""
         return len(self.movable) + len(self.ready)
     
     def append(self, task):
@@ -197,7 +208,8 @@ class FutureQueue(object):
             self.inprogress.append(task)
         else:
             self.movable.append(task)
-        # Send oldest tasks to the broker
+        # Send oldest tasks to the broker [Put that elsewhere?]
+        # TODO: Don't send cancelled tasks
         while len(self.movable) > self.highwatermark:
             self.socket.sendFuture(self.movable.popleft())
         
