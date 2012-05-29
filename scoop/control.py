@@ -78,7 +78,7 @@ def runController(callable, *args, **kargs):
     task.greenlet = greenlet.greenlet(runFuture)
     task = task._switch(task)
     
-    while (task.parentId != rootId or (task.result_value == None and task.exception == None)) or is_origin == False:
+    while task.parentId != rootId or not task.done() or is_origin == False:
         # process task
         if task.result_value != None or task.exception != None:
             # task is finished

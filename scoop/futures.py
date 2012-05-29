@@ -34,8 +34,8 @@ _controller = None
 if 'IS_ORIGIN' not in os.environ:
     import logging
     logging.basicConfig(format='[%(asctime)-15s] %(levelname)-7s %(message)s')
-    logging.error("\n\n\nScoop is being used without '-m scoop'. This script will"
-                  "likely crash unexpectedly upon SCOOP api calls.\n\n")
+    logging.error("\n\n\nScoop is being used without '-m scoop'. This script "
+                  "will likely crash unexpectedly upon SCOOP api calls.\n\n")
 
 
 def _startup(rootFuture, *args, **kargs):
@@ -270,8 +270,7 @@ def _joinAll(*children):
     return [result for result in _waitAll(*children)]
 
 def shutdown(wait=True):
-    """This function is here for backward compatibility with `futures` (PEP 
-    3148).
+    """This function is here for compatibility with `futures` (PEP 3148).
     
     :param wait: Unapplied parameter."""
     pass
