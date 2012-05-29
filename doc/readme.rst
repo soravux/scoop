@@ -1,10 +1,13 @@
-README
+Readme
 ======
 
-Nomenclature
+Please refer to :doc:`setup` and :doc:`usage` for installation and usage instructions.
+
+
+Terminology
 ------------
 
-The terminology used to describe our architecture to execute parallel tasks is described in the following table:
+The nomenclature used to describe our architecture to execute parallel tasks is described in the following table:
 
 .. _Nomenclature-table:
 
@@ -17,29 +20,6 @@ Worker      Process executing tasks it received from its broker, potentially gen
 Origin      Special status of a worker stating that he spawns the root task and that it will receive the task answer.
 Meta socket Extraneous Publisher-Subscriber socket created between the brokers to propagate load informations.
 =========== =================================================================================================================
-
-
-How to use SCOOP in your code
------------------------------
-
-The philosophy of SCOOP is loosely built around the *futures* module proposed by :pep:`3148`. It primarily defines a ``map()`` and a ``submit()`` function allowing asynchroneous computation which SCOOP will propagate to a distributed grid of workers. The usage of these functions are compatible with their official counterparts, for instance you could replace a standard python ``map()`` call by the same function in SCOOP to obtain a parallel version of this task.
-Please check our :doc:`api` for any implentation detail of the proposed functions.
-
-You should also be aware that your main function, meaning your parent function that will contain calls to the functions listed in :doc:`api` such as  `map()``, must be launched using the ``futures.startup()``. This ensures the proper initialization of SCOOP.
-
-Evaluation laziness
-~~~~~~~~~~~~~~~~~~~
-
-The ``map()`` and ``submit()`` functions are lazy, meaning that it won't start computing until you access the generator it returned. Events that will trigger evaluation are element access such as iteration. To force immediate evaluation, you can wrap your call with a list, such as::
-
-    from scoop import futures
-    
-    def add(x, y): return x+y
-        
-    def main():
-        results = list(futures.map(add, range(8), range(8)))
-    
-    futures.startup(main)
 
 How to launch a task
 --------------------
