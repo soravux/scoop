@@ -1,5 +1,5 @@
-How to setup a SCOOP environment
-================================
+Setup
+=====
 
 Environment setup
 -----------------
@@ -56,8 +56,8 @@ If you don't already have mercurial or SCOOP, you can use this section as refere
     
 .. _ssh-keys-information:
 
-``ssh`` usage
--------------
+remote usage
+~~~~~~~~~~~~
     
 Ensure your ssh keys are up-to-date and authorized on your remote hosts. You should log into every system that will be a foreign worker started by ``scooprun.py`` and ensure you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared ``/home/`` over your systems, you can do as such::
     
@@ -69,8 +69,8 @@ Ensure your ssh keys are up-to-date and authorized on your remote hosts. You sho
 
     If your remote hosts needs special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ``~/.ssh/config``). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
 
-Startup scripts
----------------
+Startup scripts (supercomputer or grid)
+---------------------------------------
 
 On grids, you must provide startup scripts to the task scheduler. Here is provided some example startup scripts using different grid task managers.
 

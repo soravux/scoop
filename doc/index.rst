@@ -18,6 +18,7 @@ module see :pep:`3148`.
    
    readme
    setup
+   usage
    api
    configuration
    

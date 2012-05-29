@@ -73,7 +73,7 @@ class Future(object):
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
         self.result_value = None          # task result
-        self.exception = None             # exception raised by callable
+        self.exceptionValue = None             # exception raised by callable
         self.callback = []                # set callback
         # insert task into global dictionary
         scoop.control.task_dict[self.id] = self
@@ -102,7 +102,7 @@ class Future(object):
             be cancelled and the method will return False, otherwise
             the call will be cancelled and the method will return True."""
         if self in scoop.control.execQueue:
-            self.exception = CancelledError()
+            self.exceptionValue = CancelledError()
             return True
         return False
 
@@ -111,7 +111,7 @@ class Future(object):
         
         :returns: True if the call was successfully cancelled, else
             otherwise."""
-        return isinstance(self.exception, CancelledError)
+        return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
         """Returns a status flag of the process.
@@ -125,7 +125,7 @@ class Future(object):
         
         :returns: True if the call was successfully cancelled or finished
             running."""
-        return self.result_value != None or self.exception != None
+        return self.result_value != None or self.exceptionValue != None
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
@@ -158,7 +158,7 @@ class Future(object):
         If the call completed without raising then None is returned.
         
         :returns: The exception raised by the call."""
-        return self.exception
+        return self.exceptionValue
 
     def add_done_callback(self, callable):
         """Attaches a callable to the future that will be called when the future
@@ -263,5 +263,5 @@ class FutureQueue(object):
 
     def sendResult(self, task):
         task.greenlet = None  # greenlets cannot be pickled
-        assert task.result_value != None or task.exception != None, "The results are not valid"
+        assert task.done(), "The results are not valid"
         self.socket.sendResult(task)
