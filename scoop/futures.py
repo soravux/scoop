@@ -152,10 +152,10 @@ def _waitAny(*children):
     n = len(children)
     # check for available results and index those unavailable
     for index, task in enumerate(children):
-        if task.exception:
-            raise task.exception
+        if task.exceptionValue:
+            raise task.exceptionValue
         if task.result_value:
-            yield task.result_value
+            yield task.result_value, task.id
             n -= 1
         else:
             task.index = index
@@ -165,9 +165,9 @@ def _waitAny(*children):
         task.stopWatch.halt()
         childTask = _controller.switch(task)
         task.stopWatch.resume()
-        if childTask.exception:
-            raise childTask.exception
-        yield childTask.result_value
+        if childTask.exceptionValue:
+            raise childTask.exceptionValue
+        yield childTask.result_value, childTask.id
         n -= 1
 
 def _waitAll(*children):
@@ -185,7 +185,7 @@ def _waitAll(*children):
     available before it can produce an output. See waitAny for an alternative
     option."""
     for index, task in enumerate(children):
-        for result in _waitAny(task):
+        for result, taskid in _waitAny(task):
             yield result
 
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
@@ -218,11 +218,10 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         for result in _waitAll(*fs):
             pass
     elif return_when == FIRST_EXCEPTION:
-        # TODO Add exception handling
         for result, taskid in _waitAny(*fs):
-            pass
-    done = set(f for f in fs if f.id in scoop.control.task_dict.keys() \
-                             and scoop.control.task_dict[f.id].result != None)
+            if task.exceptionValue != None:
+                break
+    done = set(f for f in fs if f.done())
     not_done = set(fs) - done
     return DoneAndNotDoneFutures(done, not_done)
 
@@ -237,9 +236,9 @@ def as_completed(fs, timeout=None):
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
     """
-    for task in _waitAny(*fs):
-        # TODO: Return task
-        yield task
+    from operator import attrgetter
+    for result, taskid in _waitAny(*fs):
+        yield [f for f in fs if f.id == taskid][0]
 
 def _join(child):
     """This private function is for joining the current Future with one of its
@@ -251,7 +250,7 @@ def _join(child):
     
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
-    for result in _waitAny(child):
+    for result, taskid in _waitAny(child):
         # Remove task entry from task_dict
         scoop.control.task_dict.pop(child.id)
         return result
