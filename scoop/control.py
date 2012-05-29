@@ -41,9 +41,9 @@ def runFuture(task):
     try:
         task.result_value = task.callable(*task.args, **task.kargs)    
     except Exception as err:
-        task.exception = err
+        task.exceptionValue = err
     task.executionTime = task.stopWatch.get()
-    assert task.result_value != None or task.exception != None, "callable must return a value!"
+    assert task.done(), "callable must return a value!"
     
     # Set debugging informations if needed
     if scoop.DEBUG:
@@ -80,7 +80,7 @@ def runController(callable, *args, **kargs):
     
     while task.parentId != rootId or not task.done() or is_origin == False:
         # process task
-        if task.result_value != None or task.exception != None:
+        if task.done():
             # task is finished
             if task.id.worker != worker:
                 # task is not local
@@ -90,7 +90,7 @@ def runController(callable, *args, **kargs):
                 # task is local, parent is waiting
                 if task.index != None:
                     parent = task_dict[task.parentId]
-                    if parent.exception == None:
+                    if parent.exceptionValue == None:
                         task = parent._switch(task)
                     else:
                         task = execQueue.pop()
@@ -107,6 +107,6 @@ def runController(callable, *args, **kargs):
             task = task._switch(task)
 
     execQueue.socket.shutdown()
-    if task.exception:
-        raise task.exception
+    if task.exceptionValue:
+        raise task.exceptionValue
     return task.result_value
