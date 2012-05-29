@@ -145,10 +145,9 @@ class launchScoop(object):
         from broker import Broker
         
         # Check if port is not already in use
-        # TODO: Check for infoPort
         while True:
             broker_port = random.randint(1025, 49151)
-            if port_ready(broker_port) == False:
+            if not any(map(port_ready, [broker_port, broker_port + 1])):
                 break
         
         # Spawn the broker
@@ -180,7 +179,7 @@ class launchScoop(object):
                 break
             except IOError:
                 continue
-        logging.debug('Local broker launched on ports %i, %i' % (broker_port, info_port))
+        logging.debug('Local broker launched on ports %i, %i.' % (broker_port, info_port))
         
         # Launch the workers
         for host in args.hosts:
@@ -207,37 +206,33 @@ class launchScoop(object):
                     os.environ.update(env_vars)
                     self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
                     "-c",
-                    """from scoop import futures;
-import runpy;
-import sys;
-sys.path.append(\"{4}\");
-from {3} import *;
-sys.argv += {2}{1};
-futures._startup((lambda: runpy.run_path('{0}', init_globals=globals(), run_name='__main__')))
+                    """from scoop import futures
+import runpy, sys, functools
+sys.path.append(r\"{3}\")
+from {2} import *
+sys.argv += {1}
+futures._startup(functools.partial(runpy.run_path, '{0}', init_globals=globals(), run_name='__main__'))
                     """.format(args.executable[0],
-                        "",
                         str(args.args),
                         os.path.basename(args.executable[0])[:-3],
                         os.path.abspath(os.path.dirname(args.executable[0])))]))
                 else:
                     # If the host is remote, connect with ssh
-                    # PYTHONPATH? Virtualenvs?
-                    command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures;
-import runpy;
-import sys;
-sys.path.append(\\"{8}\\");
-from {7} import *;
-sys.argv += {5}{6};
-futures._startup((lambda: runpy.run_path(\\"{4}\\", run_name=\\"__main__\\")))" """.format(
+                    # PYTHONPATH? Virtualenvs? Put sys.argv[0] correctly?
+                    command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures
+import runpy, sys, functools
+sys.path.append(r\\"{7}\\")
+from {6} import *
+sys.argv += {5}
+futures._startup(functools.partial(runpy.run_path, \\"{4}\\", init_globals=globals(), run_name=\\"__main__\\"))" """.format(
                         args.path,
                         " ".join([key + "=" + value for key, value in env_vars.items()]),
                         ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
                         args.python_executable[0],
                         args.executable[0],
-                    str(args.args),
-                    "",
-                    os.path.basename(args.executable[0])[:-3],
-                    os.path.join(args.path, os.path.dirname(args.executable[0]))))
+                        str(args.args),
+                        os.path.basename(args.executable[0])[:-3],
+                        os.path.join(args.path, os.path.dirname(args.executable[0]))))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 
             if len(command) != 0 :
