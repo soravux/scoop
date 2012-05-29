@@ -206,12 +206,12 @@ class launchScoop(object):
                     os.environ.update(env_vars)
                     self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
                     "-c",
-                    """from scoop import futures
+                    """from scoop.futures import _startup
 import runpy, sys, functools
 sys.path.append(r\"{3}\")
 from {2} import *
 sys.argv += {1}
-futures._startup(functools.partial(runpy.run_path, '{0}', init_globals=globals(), run_name='__main__'))
+_startup(functools.partial(runpy.run_path, '{0}', init_globals=globals(), run_name='__main__'))
                     """.format(args.executable[0],
                         str(args.args),
                         os.path.basename(args.executable[0])[:-3],
@@ -219,12 +219,12 @@ futures._startup(functools.partial(runpy.run_path, '{0}', init_globals=globals()
                 else:
                     # If the host is remote, connect with ssh
                     # PYTHONPATH? Virtualenvs? Put sys.argv[0] correctly?
-                    command.append("""cd {0} && {1} {2} {3} -c "from scoop import futures
+                    command.append("""cd {0} && {1} {2} {3} -c "from scoop.futures import _startup
 import runpy, sys, functools
 sys.path.append(r\\"{7}\\")
 from {6} import *
 sys.argv += {5}
-futures._startup(functools.partial(runpy.run_path, \\"{4}\\", init_globals=globals(), run_name=\\"__main__\\"))" """.format(
+_startup(functools.partial(runpy.run_path, \\"{4}\\", init_globals=globals(), run_name=\\"__main__\\"))" """.format(
                         args.path,
                         " ".join([key + "=" + value for key, value in env_vars.items()]),
                         ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
