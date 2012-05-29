@@ -137,7 +137,8 @@ class Future(object):
         If the future is cancelled before completing then CancelledError will
         be raised.
 
-        If the call raised then this method will raise the same exception.
+        If the call raised an exception then this method will raise the same
+        exception.
         
         :returns: The value returned by the call."""
         if self.result_value is None:

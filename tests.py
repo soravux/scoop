@@ -17,6 +17,7 @@
 from __future__ import print_function
 from scoop import futures
 from scoop import control
+import scoop
 import unittest
 import subprocess
 import time
@@ -48,6 +49,28 @@ def func4(n):
     result = n*n
     return result
 
+def funcCompleted(n):
+    launches = []
+    for i in range(n):
+        launches.append(futures.submit(func4, i + 1))
+    result = futures.as_completed(launches)
+    return sum(result)
+
+def funcSub(n):
+    f = futures.submit(func4, n)
+    return f.result()
+
+def funcExcept(n):
+    f = futures.submit(funcRaise, n)
+    try:
+        f.result()
+    except:
+        return True
+    return False
+
+def funcRaise(n):
+    raise Exception("Test exception")
+
 def main(n):
     task = futures.submit(func0, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
@@ -59,6 +82,16 @@ def main_simple(n):
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()
     return result
+
+def port_ready(port, socket):
+    """Checks if a given port is already binded"""
+    try:
+        socket.connect(('127.0.0.1', port))
+    except IOError:
+        return False
+    else:
+        socket.shutdown(2)
+        return True
         
     
 class TestScoopCommon(unittest.TestCase):
@@ -69,7 +102,11 @@ class TestScoopCommon(unittest.TestCase):
         
     def multiworker_set(self):
         Backupenv = os.environ.copy()
-        os.environ.update({'WORKER': '1-2', 'IS_ORIGIN': '0'})    
+        os.environ.update({'WORKER_NAME': 'worker',
+                       'BROKER_NAME':'broker',
+                       'IS_ORIGIN': '0',
+                       'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
+                       'META_ADDRESS': 'tcp://127.0.0.1:5556'})   
         worker = subprocess.Popen([sys.executable, "tests.py"])
         os.environ = Backupenv
         return worker
@@ -81,17 +118,32 @@ class TestScoopCommon(unittest.TestCase):
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
-        while(datetime.datetime.now() - begin < datetime.timedelta(seconds=10)):
-            time.sleep(0.1)
-            try:
-                s.connect(('127.0.0.1', 5555))
-                s.shutdown(2)
-                break
-            except:
-                pass
-        else:
-            raise Exception('Could not start server!')
+        while not port_ready(5555, s):
+            if (datetime.datetime.now() - begin > datetime.timedelta(seconds=3)):
+                raise Exception('Could not start server!')
+            pass
+#        while(datetime.datetime.now() - begin < datetime.timedelta(seconds=3)):
+#            time.sleep(0.1)
+#            try:
+#                s.connect(('tcp://127.0.0.1', 5555))
+#                s.shutdown(2)
+#                break
+#            except:
+#                pass
+#        else:
+#            raise Exception('Could not start server!')
         # Reset any previously setted static variable
+        os.environ.update({'WORKER_NAME': 'master',
+                       'BROKER_NAME':'broker',
+                       'IS_ORIGIN': '1',
+                       'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
+                       'META_ADDRESS': 'tcp://127.0.0.1:5556'})
+        try:
+            reload(scoop)
+        except:
+            import imp
+            imp.reload(scoop)
+        
     
     def tearDown(self):
         try: self.w.kill()
@@ -110,57 +162,55 @@ class TestMultiFunction(TestScoopCommon):
         self.main_func = main
         self.small_result = 77
         self.large_result = 76153
-         
+
     def test_small_uniworker(self):
         control.FutureQueue.highwatermark = 10
         control.FutureQueue.lowwatermark = 5
-        result = futures.startup(self.main_func, 4)
+        result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_no_lowwatermark_uniworker(self):
         control.FutureQueue.highwatermark = 9999999999999
         control.FutureQueue.lowwatermark = 1
-        result = futures.startup(self.main_func, 4)
+        result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_small_foreign_uniworker(self):
         control.FutureQueue.highwatermark = 1
-        result = futures.startup(self.main_func, 4)
+        result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_local_uniworker(self):
         control.FutureQueue.highwatermark = 9999999999999
-        result = futures.startup(self.main_func, 4)
+        result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_large_uniworker(self):
         control.FutureQueue.highwatermark = 9999999999999
-        result = futures.startup(self.main_func, 20)
+        result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_no_lowwatermark_uniworker(self):
         control.FutureQueue.lowwatermark = 1
         control.FutureQueue.highwatermark = 9999999999999
-        result = futures.startup(self.main_func, 20)
+        result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
 
     def test_large_foreign_uniworker(self):
         control.FutureQueue.highwatermark = 1
-        result = futures.startup(self.main_func, 20)
+        result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_local_uniworker(self):
         control.FutureQueue.highwatermark = 9999999999999
-        result = futures.startup(self.main_func, 20)
+        result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_small_local_multiworker(self):
         self.w = self.multiworker_set()
         control.FutureQueue.highwatermark = 9999999999
         Backupenv = os.environ.copy()
-        os.environ.update({'WORKER': 'master-node',
-                           'IS_ORIGIN': '1'})
-        result = futures.startup(self.main_func, 4)
+        result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         time.sleep(0.5)
         os.environ = Backupenv
@@ -169,9 +219,7 @@ class TestMultiFunction(TestScoopCommon):
         self.w = self.multiworker_set()
         control.FutureQueue.highwatermark = 1
         Backupenv = os.environ.copy()
-        os.environ.update({'WORKER': 'master-node',
-                           'IS_ORIGIN': '1'})
-        result = futures.startup(self.main_func, 4)
+        result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         time.sleep(0.5)
         os.environ = Backupenv
@@ -184,15 +232,58 @@ class TestSingleFunction(TestMultiFunction):
         self.small_result = 30
         self.large_result = 2870 
 
+class TestApi(TestScoopCommon):
+    def __init(self, *args, **kwargs):
+        super(TestApi, self).__init(*args, **kwargs)
+
+    def test_as_Completed_single(self):
+        result = futures._startup(funcCompleted, 30)
+        self.assertEqual(result, 9455)
+
+    def test_as_Completed_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcCompleted, 30)
+        self.assertEqual(result, 9455)
+
+    def test_map_single(self):
+        result = futures._startup(func3, 30)
+        self.assertEqual(result, 9455)
+
+    def test_map_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(func3, 30)
+        self.assertEqual(result, 9455)
+
+    def test_submit_single(self):
+        result = futures._startup(funcSub, 10)
+        self.assertEqual(result, 100)
+
+    def test_submit_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcSub, 10)
+        self.assertEqual(result, 100)
+
+    def test_exception_single(self):
+        result = futures._startup(funcExcept, 19)
+        self.assertTrue(result)
+
+    def test_exception_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcExcept, 19)
+        self.assertTrue(result)
+
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
     complex = unittest.TestLoader().loadTestsFromTestCase(TestMultiFunction)
+    api = unittest.TestLoader().loadTestsFromTestCase(TestApi)
     if len(sys.argv) > 1:
         if sys.argv[1] == "simple":
             unittest.TextTestRunner(verbosity=2).run(simple)
         elif sys.argv[1] == "complex":
             unittest.TextTestRunner(verbosity=2).run(complex)
+        elif sys.argv[1] == "api":
+            unittest.TextTestRunner(verbosity=2).run(api)
     else:
         unittest.main()
 elif __name__ == '__main__':
-    futures.startup(main_simple)
+    futures._startup(main_simple)
