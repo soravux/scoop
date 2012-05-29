@@ -77,5 +77,4 @@ class ZMQCommunicator(object):
 
 
 class Shutdown(Exception):
-    def __init__(self, arg):
-        self.args = arg
+    pass
