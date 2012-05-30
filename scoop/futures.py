@@ -153,8 +153,10 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, task in enumerate(children):
         if task.exceptionValue:
+            scoop.control.task_dict.pop(task.id)
             raise task.exceptionValue
         if task.result_value:
+            scoop.control.task_dict.pop(task.id)
             yield task.result_value, task.id
             n -= 1
         else:
@@ -165,8 +167,10 @@ def _waitAny(*children):
         task.stopWatch.halt()
         childTask = _controller.switch(task)
         task.stopWatch.resume()
+        scoop.control.task_dict.pop(childTask.id)
         if childTask.exceptionValue:
             raise childTask.exceptionValue
+
         yield childTask.result_value, childTask.id
         n -= 1
 
@@ -252,7 +256,7 @@ def _join(child):
     corresponding result as soon as it becomes available."""
     for result, taskid in _waitAny(child):
         # Remove task entry from task_dict
-        scoop.control.task_dict.pop(child.id)
+        #scoop.control.task_dict.pop(child.id)
         return result
 
 def _joinAll(*children):
