@@ -94,7 +94,7 @@ class Future(object):
         scoop.control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(task)
-    
+
     def cancel(self):
         """Attempt to cancel the call.
         
