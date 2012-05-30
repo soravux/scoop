@@ -122,18 +122,7 @@ class TestScoopCommon(unittest.TestCase):
             if (datetime.datetime.now() - begin > datetime.timedelta(seconds=3)):
                 raise Exception('Could not start server!')
             pass
-#        while(datetime.datetime.now() - begin < datetime.timedelta(seconds=3)):
-#            time.sleep(0.1)
-#            try:
-#                s.connect(('tcp://127.0.0.1', 5555))
-#                s.shutdown(2)
-#                break
-#            except:
-#                pass
-#        else:
-#            raise Exception('Could not start server!')
-        # Reset any previously setted static variable
-        os.environ.update({'WORKER_NAME': 'master',
+        os.environ.update({'WORKER_NAME': 'origin', # this is the default name
                        'BROKER_NAME':'broker',
                        'IS_ORIGIN': '1',
                        'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
