@@ -39,7 +39,7 @@ def func2(n):
     for i in range(n):
         launches.append(futures.submit(func3, i + 1))
     result = futures.as_completed(launches)
-    return sum(result)
+    return sum(r.result() for r in result)
 
 def func3(n):
     result = list(futures.map(func4, [i+1 for i in range(n)]))
@@ -54,7 +54,7 @@ def funcCompleted(n):
     for i in range(n):
         launches.append(futures.submit(func4, i + 1))
     result = futures.as_completed(launches)
-    return sum(result)
+    return sum(r.result() for r in result)
 
 def funcSub(n):
     f = futures.submit(func4, n)
