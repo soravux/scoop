@@ -101,8 +101,10 @@ class Future(object):
         :returns: If the call is currently being executed then it cannot
             be cancelled and the method will return False, otherwise
             the call will be cancelled and the method will return True."""
-        if self in scoop.control.execQueue:
+        if self in scoop.control.execQueue.movable:
             self.exceptionValue = CancelledError()
+            scoop.control.task_dict.pop(self.id)
+            scoop.control.execQueue.remove(self)
             return True
         return False
 
@@ -141,8 +143,10 @@ class Future(object):
         exception.
         
         :returns: The value returned by the call."""
-        if self.result_value is None:
+        if not self.done():
             return scoop.futures._join(self) 
+        if self.exceptionValue != None:
+            raise self.exceptionValue
         return self.result_value
 
     def exception(self, timeout=None):
@@ -255,6 +259,11 @@ class FutureQueue(object):
                 scoop.control.task_dict[task.id] = task
             task = scoop.control.task_dict[task.id]
             self.append(task)
+
+    def remove(self, future):
+        """Remove a future from the queue. The future must be cancellable or
+        this method will raised a ValueError."""
+        self.movable.remove(future)
     
     def select(self, duration):
         """return a list of movable tasks that have an estimated total runtime

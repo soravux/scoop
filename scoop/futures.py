@@ -114,7 +114,8 @@ def map(func, *iterables, **kargs):
         iteration."""
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
-    return _waitAll(*_mapFuture(func, *iterables, **kargs))
+    for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
+        yield _join(future)
 
 def submit(func, *args, **kargs):
     """This function submits an independent parallel Future that will either run
@@ -153,11 +154,9 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, task in enumerate(children):
         if task.exceptionValue:
-            scoop.control.task_dict.pop(task.id)
             raise task.exceptionValue
         if task.result_value:
-            scoop.control.task_dict.pop(task.id)
-            yield task.result_value, task.id
+            yield task
             n -= 1
         else:
             task.index = index
@@ -167,11 +166,10 @@ def _waitAny(*children):
         task.stopWatch.halt()
         childTask = _controller.switch(task)
         task.stopWatch.resume()
-        scoop.control.task_dict.pop(childTask.id)
         if childTask.exceptionValue:
             raise childTask.exceptionValue
-
-        yield childTask.result_value, childTask.id
+            
+        yield childTask
         n -= 1
 
 def _waitAll(*children):
@@ -189,8 +187,8 @@ def _waitAll(*children):
     available before it can produce an output. See waitAny for an alternative
     option."""
     for index, task in enumerate(children):
-        for result, taskid in _waitAny(task):
-            yield result
+        for task in _waitAny(task):
+            yield task
 
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
@@ -240,9 +238,7 @@ def as_completed(fs, timeout=None):
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
     """
-    from operator import attrgetter
-    for result, taskid in _waitAny(*fs):
-        yield [f for f in fs if f.id == taskid][0]
+    return _waitAny(*fs)
 
 def _join(child):
     """This private function is for joining the current Future with one of its
@@ -254,10 +250,8 @@ def _join(child):
     
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
-    for result, taskid in _waitAny(child):
-        # Remove task entry from task_dict
-        #scoop.control.task_dict.pop(child.id)
-        return result
+    for task in _waitAny(child):
+        return task.result_value
 
 def _joinAll(*children):
     """This private function is for joining the current Future with all of the
