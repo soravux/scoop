@@ -39,7 +39,7 @@ def runFuture(task):
     task.waitTime = task.stopWatch.get()
     task.stopWatch.reset()
     try:
-        task.result_value = task.callable(*task.args, **task.kargs)    
+        task.resultValue = task.callable(*task.args, **task.kargs)    
     except Exception as err:
         task.exceptionValue = err
     task.executionTime = task.stopWatch.get()
@@ -101,7 +101,7 @@ def runController(callable, *args, **kargs):
             # task is in progress; run next task from pending execution queue.
             task = execQueue.pop()
 
-        if task.result_value == None and task.greenlet == None:
+        if task.resultValue == None and task.greenlet == None:
             # initialize if the task hasn't started
             task.greenlet = greenlet.greenlet(runFuture)
             task = task._switch(task)
@@ -109,4 +109,4 @@ def runController(callable, *args, **kargs):
     execQueue.socket.shutdown()
     if task.exceptionValue:
         raise task.exceptionValue
-    return task.result_value
+    return task.resultValue

@@ -72,7 +72,7 @@ class Future(object):
         self.creationTime = time.ctime()  # task creation time
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running task 
-        self.result_value = None          # task result
+        self.resultValue = None          # task result
         self.exceptionValue = None             # exception raised by callable
         self.callback = []                # set callback
         # insert task into global dictionary
@@ -87,7 +87,7 @@ class Future(object):
         return "{0}:{1}{2}={3}".format(self.id,
                                        self.callable.__name__,
                                        self.args,
-                                       self.result_value)
+                                       self.resultValue)
     
     def _switch(self, task):
         """Switch greenlet."""
@@ -127,7 +127,7 @@ class Future(object):
         
         :returns: True if the call was successfully cancelled or finished
             running."""
-        return self.result_value != None or self.exceptionValue != None
+        return self.resultValue != None or self.exceptionValue != None
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
@@ -144,10 +144,10 @@ class Future(object):
         
         :returns: The value returned by the call."""
         if not self.done():
-            return scoop.futures._join(self) 
+            return scoop.futures._join(self)
         if self.exceptionValue != None:
             raise self.exceptionValue
-        return self.result_value
+        return self.resultValue
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
@@ -205,9 +205,9 @@ class FutureQueue(object):
     
     def append(self, task):
         """append a task to the queue."""
-        if task.result_value != None and task.index == None:
+        if task.resultValue != None and task.index == None:
             self.inprogress.append(task)
-        elif task.result_value != None and task.index != None:
+        elif task.resultValue != None and task.index != None:
             self.ready.append(task)
         elif task.greenlet != None:
             self.inprogress.append(task)
@@ -254,7 +254,7 @@ class FutureQueue(object):
             self.inprogress.remove(task)        
         for task in self.socket.recvFuture():
             if task.id in scoop.control.task_dict:
-                scoop.control.task_dict[task.id].result_value = task.result_value
+                scoop.control.task_dict[task.id].resultValue = task.resultValue
             else:
                 scoop.control.task_dict[task.id] = task
             task = scoop.control.task_dict[task.id]

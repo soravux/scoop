@@ -115,7 +115,7 @@ def map(func, *iterables, **kargs):
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
-        yield _join(future)
+        yield future.resultValue
 
 def submit(func, *args, **kargs):
     """This function submits an independent parallel Future that will either run
@@ -155,7 +155,7 @@ def _waitAny(*children):
     for index, task in enumerate(children):
         if task.exceptionValue:
             raise task.exceptionValue
-        if task.result_value:
+        if task.resultValue:
             yield task
             n -= 1
         else:
@@ -251,7 +251,7 @@ def _join(child):
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
     for task in _waitAny(child):
-        return task.result_value
+        return task.resultValue
 
 def _joinAll(*children):
     """This private function is for joining the current Future with all of the
@@ -264,7 +264,7 @@ def _joinAll(*children):
     
     This function will wait for the completion of all specified child Futures
     before returning to the caller."""
-    return [result for result in _waitAll(*children)]
+    return [task.resultValue for task in _waitAll(*children)]
 
 def shutdown(wait=True):
     """This function is here for compatibility with `futures` (PEP 3148).
