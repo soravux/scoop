@@ -179,7 +179,7 @@ class launchScoop(object):
                 break
             except IOError:
                 continue
-        logging.debug('Local broker launched on ports %i, %i.' % (broker_port, info_port))
+        logging.debug('Local broker launched on ports {0}, {1}.'.format(broker_port, info_port))
         
         # Launch the workers
         for host in args.hosts:
@@ -196,6 +196,18 @@ class launchScoop(object):
                                 args.broker_hostname,
                                 info_port),
                             'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
+
+                arguments = {'executable':args.executable[0],
+                             'arguments':str(args.args),
+                             'basename':os.path.basename(args.executable[0])[:-3],
+                             'path':os.path.abspath(os.path.dirname(args.executable[0])),
+                             'remotePath':args.path,
+                             'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
+                             'pythonExecutable':args.python_executable[0],
+                             'envVars':" ".join([key + "=" + value for key, value in env_vars.items()])
+                             }
+
+
                 logging.debug('Initialising {0} worker {1} ({2} left){3}.'.format(
                     "local" if host in ["127.0.0.1", "localhost"] else "remote",
                     n,
@@ -208,31 +220,21 @@ class launchScoop(object):
                     "-c",
                     """from scoop.futures import _startup
 import runpy, sys, functools
-sys.path.append(r\"{3}\")
-from {2} import *
-sys.argv += {1}
-_startup(functools.partial(runpy.run_path, '{0}', init_globals=globals(), run_name='__main__'))
-                    """.format(args.executable[0],
-                        str(args.args),
-                        os.path.basename(args.executable[0])[:-3],
-                        os.path.abspath(os.path.dirname(args.executable[0])))]))
+sys.path.append(r\"{path}\")
+from {basename} import *
+sys.argv += {arguments}
+_startup(functools.partial(runpy.run_path, '{executable}', init_globals=globals(), run_name='__main__'))
+                    """.format(**arguments)]))
                 else:
                     # If the host is remote, connect with ssh
                     # PYTHONPATH? Virtualenvs? Put sys.argv[0] correctly?
-                    command.append("""cd {0} && {1} {2} {3} -c "from scoop.futures import _startup
+                    command.append("""cd {remotePath} && {envVars} {nice} {pythonExecutable} -c "from scoop.futures import _startup
 import runpy, sys, functools
-sys.path.append(r\\"{7}\\")
-from {6} import *
-sys.argv += {5}
-_startup(functools.partial(runpy.run_path, \\"{4}\\", init_globals=globals(), run_name=\\"__main__\\"))" """.format(
-                        args.path,
-                        " ".join([key + "=" + value for key, value in env_vars.items()]),
-                        ('', 'nice -n {0}'.format(args.nice))[args.nice != None],
-                        args.python_executable[0],
-                        args.executable[0],
-                        str(args.args),
-                        os.path.basename(args.executable[0])[:-3],
-                        os.path.join(args.path, os.path.dirname(args.executable[0]))))
+sys.path.append(r\\"{path}\\")
+from {basename} import *
+sys.argv += {arguments}
+_startup(functools.partial(runpy.run_path, \\"{executable}\\",
+init_globals=globals(), run_name=\\"__main__\\"))" """.format(**arguments))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 
             if len(command) != 0 :
