@@ -198,9 +198,9 @@ class launchScoop(object):
                             'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
 
                 arguments = {'executable':args.executable[0],
-                             'arguments':str(args.args),
+                             'arguments':str(args.args).replace("'", '\\"'),
                              'basename':os.path.basename(args.executable[0])[:-3],
-                             'path':os.path.abspath(os.path.dirname(args.executable[0])),
+                             'path':os.path.join(args.path, os.path.dirname(args.executable[0])),
                              'remotePath':args.path,
                              'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
                              'pythonExecutable':args.python_executable[0],
@@ -220,7 +220,7 @@ class launchScoop(object):
                     "-c",
                     """from scoop.futures import _startup
 import runpy, sys, functools
-sys.path.append(r\"{path}\")
+sys.path.append(r"{path}")
 from {basename} import *
 sys.argv += {arguments}
 _startup(functools.partial(runpy.run_path, '{executable}', init_globals=globals(), run_name='__main__'))
