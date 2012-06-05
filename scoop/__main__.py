@@ -198,10 +198,11 @@ class launchScoop(object):
                             'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
 
                 arguments = {'executable':args.executable[0],
-                             'arguments':str(args.args).replace("'", '\\"'),
+                             'arguments':str(args.args),
+                             'remoteArguments':str(args.args).replace("'", '\\"'),
                              'basename':os.path.basename(args.executable[0])[:-3],
-                             'path':os.path.join(args.path, os.path.dirname(args.executable[0])),
-                             'remotePath':args.path,
+                             'path':os.path.abspath(os.path.dirname(args.executable[0])),
+                             'remotePath':os.path.join(args.path, os.path.dirname(args.executable[0])),
                              'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
                              'pythonExecutable':args.python_executable[0],
                              'envVars':" ".join([key + "=" + value for key, value in env_vars.items()])
@@ -232,7 +233,7 @@ _startup(functools.partial(runpy.run_path, '{executable}', init_globals=globals(
 import runpy, sys, functools
 sys.path.append(r\\"{path}\\")
 from {basename} import *
-sys.argv += {arguments}
+sys.argv += {remoteArguments}
 _startup(functools.partial(runpy.run_path, \\"{executable}\\",
 init_globals=globals(), run_name=\\"__main__\\"))" """.format(**arguments))
                 self.workers_left -= 1
