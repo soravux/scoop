@@ -24,7 +24,7 @@ from random import random
 from scoop import futures
 
 # A range is used in this function for python3. If you are using python2, a
-# xrange migth be more obtimal. 
+# xrange might be more efficient.
 def test(tries):
     return sum(hypot(random(), random()) < 1 for i in range(tries))
 
