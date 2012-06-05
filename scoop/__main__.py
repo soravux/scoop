@@ -71,6 +71,40 @@ parser.add_argument('args',
 args = parser.parse_args()
 
 
+
+# String passed to the python interpreter to bootstrap the process and launch
+# the interpreter with the user's module.
+
+localBootstrap = """from scoop.futures import _startup
+import runpy, sys, functools
+sys.path.append(r"{path}")
+from {basename} import *
+sys.argv += {arguments}
+_startup(functools.partial(runpy.run_path, '{executable}', init_globals=globals(), run_name='__main__'))
+"""
+
+# String passed to bash throught ssh to the foreign members of the working group.
+
+foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -c "from scoop.futures import _startup
+import runpy, sys, functools
+sys.path.append(r\\"{path}\\")
+from {basename} import *
+sys.argv += {arguments}
+_startup(functools.partial(runpy.run_path, \\"{executable}\\",
+init_globals=globals(), run_name=\\"__main__\\"))" """
+
+# Dictionnary to format the localBootstrap and foreignBootstrap strings.
+
+arguments = {'executable':args.executable[0],
+             'arguments':str(args.args).replace("'", '\\"'),
+             'basename':os.path.basename(args.executable[0])[:-3],
+             'path':os.path.join(args.path, os.path.dirname(args.executable[0])),
+             'remotePath':args.path,
+             'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
+             'pythonExecutable':args.python_executable[0]}
+
+
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 def port_ready(port):
     """Checks if a given port is already binded"""
@@ -197,15 +231,7 @@ class launchScoop(object):
                                 info_port),
                             'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
 
-                arguments = {'executable':args.executable[0],
-                             'arguments':str(args.args).replace("'", '\\"'),
-                             'basename':os.path.basename(args.executable[0])[:-3],
-                             'path':os.path.join(args.path, os.path.dirname(args.executable[0])),
-                             'remotePath':args.path,
-                             'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
-                             'pythonExecutable':args.python_executable[0],
-                             'envVars':" ".join([key + "=" + value for key, value in env_vars.items()])
-                             }
+                arguments['envVars'] = " ".join([key + "=" + value for key, value in env_vars.items()])
 
 
                 logging.debug('Initialising {0} worker {1} ({2} left){3}.'.format(
@@ -218,23 +244,11 @@ class launchScoop(object):
                     os.environ.update(env_vars)
                     self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
                     "-c",
-                    """from scoop.futures import _startup
-import runpy, sys, functools
-sys.path.append(r"{path}")
-from {basename} import *
-sys.argv += {arguments}
-_startup(functools.partial(runpy.run_path, '{executable}', init_globals=globals(), run_name='__main__'))
-                    """.format(**arguments)]))
+                    localBootstrap.format(**arguments)]))
                 else:
                     # If the host is remote, connect with ssh
                     # PYTHONPATH? Virtualenvs? Put sys.argv[0] correctly?
-                    command.append("""cd {remotePath} && {envVars} {nice} {pythonExecutable} -c "from scoop.futures import _startup
-import runpy, sys, functools
-sys.path.append(r\\"{path}\\")
-from {basename} import *
-sys.argv += {arguments}
-_startup(functools.partial(runpy.run_path, \\"{executable}\\",
-init_globals=globals(), run_name=\\"__main__\\"))" """.format(**arguments))
+                    command.append(foreignBootstrap.format(**arguments))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 
             if len(command) != 0 :
