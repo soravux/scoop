@@ -80,7 +80,8 @@ import runpy, sys, functools
 sys.path.append(r"{path}")
 from {basename} import *
 sys.argv += {arguments}
-_startup(functools.partial(runpy.run_path, '{executable}', init_globals=globals(), run_name='__main__'))
+_startup(functools.partial(runpy.run_path, '{executable}',
+                           init_globals=globals(), run_name='__main__'))
 """
 
 # String passed to bash throught ssh to the foreign members of the working group.
@@ -98,7 +99,7 @@ init_globals=globals(), run_name=\\"__main__\\"))" """
 arguments = {'executable':args.executable[0],
              'arguments':str(args.args).replace("'", '\\"'),
              'basename':os.path.basename(args.executable[0])[:-3],
-             'path':os.path.join(args.path, os.path.dirname(args.executable[0])),
+             'path':os.path.join(args.path,os.path.dirname(args.executable[0])),
              'remotePath':args.path,
              'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
              'pythonExecutable':args.python_executable[0]}
@@ -134,8 +135,7 @@ class launchScoop(object):
         logging.basicConfig(filename=args.log,
                             level=verbose_levels[args.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s %(message)s')
-        logging.info('Deploying {0} workers over {1} host(s).'.format(args.n,
-                                                                      len(self.hosts)))
+        logging.info('Deploying {0} workers over {1} host(s).'.format(args.n, len(self.hosts)))
 
         self.maximum_workers = {}
         # If multiple times the same host in argument, it means that the maximum number
