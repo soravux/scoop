@@ -1,162 +1,46 @@
+#    This file is part of DEAP.
 #
-#    This file is part of Scalable COncurrent Operations in Python (SCOOP).
-#
-#    SCOOP is free software: you can redistribute it and/or modify
+#    DEAP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as
 #    published by the Free Software Foundation, either version 3 of
 #    the License, or (at your option) any later version.
 #
-#    SCOOP is distributed in the hope that it will be useful,
+#    DEAP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 #    GNU Lesser General Public License for more details.
 #
 #    You should have received a copy of the GNU Lesser General Public
-#    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
-#
-from __future__ import print_function
-import sys
+#    License along with DEAP. If not, see <http://www.gnu.org/licenses/>.
+
 import random
-import logging
+
+from deap import algorithms
+from deap import base
+from deap import creator
+from deap import tools
 from scoop import futures
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+import sortingnetwork as sn
+import logging
+import time
+import argparse
+import sys
 
-try:
-    from deap import algorithms
-    from deap import base
-    from deap import creator
-    from deap import tools
-except Exception as e:
-    raise Exception("This test needs DEAP to be installed.")
+parser = argparse.ArgumentParser(description="Deap's evosn example.")
+parser.add_argument('--inputs', type=int, default=6)
+parser.add_argument('--cores', type=int, default=1)
+parser.add_argument('--filename')
+parser.add_argument('--population', type=int, default=300)
 
-#####################################
-####### SortingNetwork Class ########
-#####################################
-# v SCOOP-dependant code is below v #
-#####################################
+args = parser.parse_args()
+INPUTS = args.inputs
 
-try:
-    from itertools import product
-except ImportError:
-    def product(*args, **kwds):
-        pools = map(tuple, args) * kwds.get('repeat', 1)
-        result = [[]]
-        for pool in pools:
-            result = [x+[y] for x in result for y in pool]
-        for prod in result:
-            yield tuple(prod)
-            
-class SortingNetwork(list):
-    """Sorting network class.
-    
-    From Wikipedia : A sorting network is an abstract mathematical model
-    of a network of wires and comparator modules that is used to sort a
-    sequence of numbers. Each comparator connects two wires and sort the
-    values by outputting the smaller value to one wire, and a larger
-    value to the other.
-    """
-    def __init__(self, dimension, connectors = []):
-        self.dimension = dimension
-        for wire1, wire2 in connectors:
-            self.addConnector(wire1, wire2)
-    
-    def addConnector(self, wire1, wire2):
-        """Add a connector between wire1 and wire2 in the network."""
-        if wire1 == wire2:
-            return
-        
-        if wire1 > wire2:
-            wire1, wire2 = wire2, wire1
-        
-        try:
-            last_level = self[-1]
-        except IndexError:
-            # Empty network, create new level and connector
-            self.append([(wire1, wire2)])
-            return
-        
-        for wires in last_level:
-            if wires[1] >= wire1 and wires[0] <= wire2:
-                self.append([(wire1, wire2)])
-                return
-        
-        last_level.append((wire1, wire2))
-    
-    def sort(self, values):
-        """Sort the values in-place based on the connectors in the network."""
-        for level in self:
-            for wire1, wire2 in level:
-                if values[wire1] > values[wire2]:
-                    values[wire1], values[wire2] = values[wire2], values[wire1]
-    
-    def assess(self, cases=None):
-        """Try to sort the **cases** using the network, return the number of
-        misses. If **cases** is None, test all possible cases according to
-        the network dimensionality.
-        """
-        if cases is None:
-            cases = product(range(2), repeat=self.dimension)
-        
-        misses = 0
-        ordered = [[0]*(self.dimension-i) + [1]*i for i in range(self.dimension+1)]
-        for sequence in cases:
-            sequence = list(sequence)
-            self.sort(sequence)
-            misses += (sequence != ordered[sum(sequence)])
-        return misses
-    
-    def draw(self):
-        """Return an ASCII representation of the network."""
-        str_wires = [["-"]*7 * self.depth]
-        str_wires[0][0] = "0"
-        str_wires[0][1] = " o"
-        str_spaces = []
 
-        for i in xrange(1, self.dimension):
-            str_wires.append(["-"]*7 * self.depth)
-            str_spaces.append([" "]*7 * self.depth)
-            str_wires[i][0] = str(i)
-            str_wires[i][1] = " o"
-        
-        for index, level in enumerate(self):
-            for wire1, wire2 in level:
-                str_wires[wire1][(index+1)*6] = "x"
-                str_wires[wire2][(index+1)*6] = "x"
-                for i in xrange(wire1, wire2):
-                    str_spaces[i][(index+1)*6+1] = "|"
-                for i in xrange(wire1+1, wire2):
-                    str_wires[i][(index+1)*6] = "|"
-        
-        network_draw = "".join(str_wires[0])
-        for line, space in zip(str_wires[1:], str_spaces):
-            network_draw += "\n"
-            network_draw += "".join(space)
-            network_draw += "\n"
-            network_draw += "".join(line)
-        return network_draw
-    
-    @property
-    def depth(self):
-        """Return the number of parallel steps that it takes to sort any input.
-        """
-        return len(self)
-    
-    @property
-    def length(self):
-        """Return the number of comparison-swap used."""
-        return sum(len(level) for level in self)
-
-        
-#####################################
-####### DEAP initialisation #########
-#####################################
-        
-
-INPUTS = 6 if len(sys.argv) < 2 else int(sys.argv[1])
+print("apres parse")
 
 def evalEvoSN(individual, dimension):
-    network = SortingNetwork(dimension, individual)
+    network = sn.SortingNetwork(dimension, individual)
     return network.assess(), network.length, network.depth
 
 def genWire(dimension):
@@ -185,7 +69,7 @@ creator.create("Individual", list, fitness=creator.FitnessMin)
 toolbox = base.Toolbox()
 
 # Gene initializer
-toolbox.register("network", genNetwork, dimension=INPUTS, min_size=9, max_size=12)
+toolbox.register("network", genNetwork, dimension=INPUTS, min_size=35, max_size=45)
 
 # Structure initializers
 toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.network)
@@ -198,11 +82,18 @@ toolbox.register("addwire", mutAddWire, dimension=INPUTS)
 toolbox.register("delwire", mutDelWire)
 toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("map", futures.map)
-
+#logging.warning("avant main")
 def main():
+    print("debut main")
+    # test if file is ok before starting the test
+    if args.filename:
+        open(args.filename).close()
     random.seed(64)
+    
+    beginTime = time.time()
+    evaluationTime = 0
 
-    population = toolbox.population(n=300)
+    population = toolbox.population(n=args.population)
     hof = tools.ParetoFront()
     
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -211,20 +102,25 @@ def main():
     stats.register("min", min)
     stats.register("max", max)
     
-    logger = tools.EvolutionLogger(["gen", "evals"] + stats.functions.keys())
+    logger = tools.EvolutionLogger(["gen", "evals", "time"] + stats.functions.keys())
     logger.logHeader()
 
     CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 40
     
+    evalBegin = time.time()
     # Evaluate every individuals
     fitnesses = toolbox.map(toolbox.evaluate, population)
+
+    
     for ind, fit in zip(population, fitnesses):
         ind.fitness.values = fit
+
+    evaluationTime += (time.time() - evalBegin)
     
     hof.update(population)
     stats.update(population)
     
-    logger.logGeneration(gen=0, evals=len(population), stats=stats)
+    logger.logGeneration(gen=0, evals=len(population), stats=stats, time=evaluationTime)
     
     # Begin the evolution
     for g in xrange(1, NGEN):
@@ -252,21 +148,29 @@ def main():
                 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        evalBegin = time.time()
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
+        evaluationTime += (time.time() - evalBegin)
         
         population = toolbox.select(population+offspring, len(offspring))
         hof.update(population)
         stats.update(population)
-        
-        logger.logGeneration(gen=g, evals=len(invalid_ind), stats=stats)
+        logger.logGeneration(gen=g, evals=len(invalid_ind), stats=stats, time=evaluationTime)
 
-    best_network = SortingNetwork(INPUTS, hof[0])
+    best_network = sn.SortingNetwork(INPUTS, hof[0])
     print(best_network)
     print(best_network.draw())
     print("%i errors, length %i, depth %i" % hof[0].fitness.values)
+    totalTime = time.time() - beginTime
     
+    print("Total time: {0}\nEvaluation time: {1}".format(totalTime, evaluationTime))
+    if args.filename:
+        f = open(args.filename, "a")
+        f.write("{0};{1};{2};{3}\n".format(args.cores, INPUTS, totalTime, evaluationTime))
+        f.close()
+        
     return population, stats, hof
 
 if __name__ == "__main__":
