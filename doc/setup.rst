@@ -9,14 +9,14 @@ Here is a scratchpad allowing you to set a working SCOOP environment.
 Python environment
 ~~~~~~~~~~~~~~~~~~
 
-Follow this **optional** section if you need to use another Python version (ie. 2.7.3 in this example) than the system's::
+Follow this **optional** section if you need to use another Python version (ie. 3.2.3 in this example) than the system's::
 
     [~]$ mkdir downloads && cd downloads/
-    [downloads]$ wget http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
-    [downloads]$ tar xfvj Python-2.7.3.tar.bz2 && cd Python-2.7.3
-    [Python-2.7.3]$ ./configure --prefix=$HOME/python && make && make install
-    [Python-2.7.3]$ export PATH=$HOME/python/bin:$PATH && echo "You should put this line in your .bashrc for persistency."
-    [Python-2.7.3]$ cd ..
+    [downloads]$ wget http://www.python.org/ftp/python/3.2.3/Python-3.2.3.tar.bz2
+    [downloads]$ tar xfvj Python-3.2.3.tar.bz2 && cd Python-3.2.3
+    [Python-3.2.3]$ ./configure --prefix=$HOME/python && make && make install
+    [Python-3.2.3]$ export PATH=$HOME/python/bin:$PATH && echo "You should put this line in your .bashrc for persistency."
+    [Python-3.2.3]$ cd ..
     [downloads]$ wget --no-check-certificate http://python-distribute.org/distribute_setup.py
     [downloads]$ python distribute_setup.py
     [downloads]$ wget --no-check-certificate  https://raw.github.com/pypa/pip/master/contrib/get-pip.py
