@@ -62,6 +62,8 @@ for fichier, vals in dataTask.items():
                 int(step*100.)):
             workerdata.append(sum([a['start_time'][0] <= float(graphtime) / 100. <= a['end_time'][0] for a in vals.values()]))
         graphdata.append(workerdata)
+        
+# Worker density graph
 fig = plt.figure()
 ax = fig.add_subplot(111)
 box = ax.get_position()
@@ -88,7 +90,7 @@ ax.legend(loc='center left', bbox_to_anchor=(1.00, 0.5))
 plt.setp(plt.gca().get_legend().get_texts(), fontsize='small')
 fig.savefig('BrokerQueueLength.png')
 
-# Broker Queue length Graph
+# Broker Awaiting Workers Graph
 fig = plt.figure()
 ax = fig.add_subplot(111)
 for fichier, vals in dataTask.items():
