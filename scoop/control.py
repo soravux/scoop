@@ -51,7 +51,9 @@ def runFuture(task):
         stats[task.id].update({'executionTime': task.executionTime,
                                'worker': worker,
                                'creationTime': task.creationTime,
-                               'callable': str(task.callable.__name__),
+                               'callable': str(task.callable.__name__)
+                                    if hasattr(task.callable, '__name__')
+                                    else 'No name',
                                'parent': task.parentId})
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     for callback in task.callback:
