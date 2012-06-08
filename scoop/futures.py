@@ -60,8 +60,15 @@ def _startup(rootFuture, *args, **kargs):
     except scoop.comm.Shutdown:
         result = None
     if scoop.DEBUG:
-        with open(scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'w') as f:
+        import os
+        try:
+            os.mkdir("debug")
+        except:
+            pass
+        with open("debug/" + scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'w') as f:
             f.write(str(scoop.control.stats))
+        with open("debug/" + scoop.WORKER_NAME + "-QUEUE", 'w') as f:
+            f.write(str(scoop.control.QueueLength))
     return result
 
 def _mapFuture(callable, *iterables, **kargs):

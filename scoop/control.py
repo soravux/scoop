@@ -31,6 +31,7 @@ execQueue = None                                # queue of tasks pending executi
 if scoop.DEBUG:
     import time
     stats = {}
+    QueueLength = []
 
 # This is the callable greenlet for running tasks.
 def runFuture(task):
@@ -47,7 +48,8 @@ def runFuture(task):
     
     # Set debugging informations if needed
     if scoop.DEBUG:
-        stats[task.id].setdefault('end_time', []).append(time.time())
+        t = time.time()
+        stats[task.id].setdefault('end_time', []).append(t)
         stats[task.id].update({'executionTime': task.executionTime,
                                'worker': worker,
                                'creationTime': task.creationTime,
@@ -55,6 +57,7 @@ def runFuture(task):
                                     if hasattr(task.callable, '__name__')
                                     else 'No name',
                                'parent': task.parentId})
+        QueueLength.append((t, len(execQueue)))
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     for callback in task.callback:
         try: callback(task)

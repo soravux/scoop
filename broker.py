@@ -119,7 +119,12 @@ class Broker(object):
         
         # write down statistics about this run if asked
         if scoop.DEBUG:
-            with open("broker-" + scoop.BROKER_NAME, 'w') as f:
+            import os
+            try:
+                os.mkdir('debug')
+            except:
+                pass
+            with open("debug/broker-" + scoop.BROKER_NAME, 'w') as f:
                 f.write(str(self.stats))
 
 if __name__=="__main__":
