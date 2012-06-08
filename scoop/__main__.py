@@ -77,7 +77,7 @@ args = parser.parse_args()
 
 localBootstrap = """from scoop.futures import _startup
 import runpy, sys, functools
-sys.path.append(r"{path}")
+sys.path.append(r"{programPath}")
 from {basename} import *
 sys.argv += {arguments}
 _startup(functools.partial(runpy.run_path, '{executable}',
@@ -88,23 +88,23 @@ _startup(functools.partial(runpy.run_path, '{executable}',
 
 foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -c "from scoop.futures import _startup
 import runpy, sys, functools
-sys.path.append(r\\"{path}\\")
+sys.path.append(r\\"{programPath}\\")
 from {basename} import *
 sys.argv += {remoteArguments}
 _startup(functools.partial(runpy.run_path, \\"{executable}\\",
 init_globals=globals(), run_name=\\"__main__\\"))" """
 
-# Dictionnary to format the localBootstrap and foreignBootstrap strings.
+# Dictionary to format the localBootstrap and foreignBootstrap strings.
 
-arguments = {'executable':args.executable[0],
-             'arguments':str(args.args),
-             'remoteArguments':str(args.args).replace("'", '\\"'),
-             'basename':os.path.basename(args.executable[0])[:-3],
-             'path':os.path.join(args.path,os.path.dirname(args.executable[0])),
-             'remotePath':args.path,
-             'nice':('','nice -n {}'.format(args.nice))[args.nice != None],
-             'pythonExecutable':args.python_executable[0],
-             'envVars':[]}
+arguments = {'executable': args.executable[0],
+             'arguments': str(args.args),
+             'remoteArguments': str(args.args).replace("'", '\\"'),
+             'basename': os.path.basename(args.executable[0])[:-3],
+             'programPath': os.path.join(args.path, os.path.dirname(args.executable[0])),
+             'remotePath': args.path,
+             'nice': ('','nice -n {}'.format(args.nice))[args.nice != None],
+             'pythonExecutable': args.python_executable[0],
+             'envVars': []}
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
