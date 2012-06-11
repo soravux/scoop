@@ -255,6 +255,11 @@ class FutureQueue(object):
         for future in self.socket.recvFuture():
             if future.id in scoop.control.futureDict:
                 scoop.control.futureDict[future.id].resultValue = future.resultValue
+                for callback in scoop.control.futureDict[future.id].callback:
+                    try:
+                        callback.future(scoop.control.futureDict[future.id])
+                    except:
+                        pass
             else:
                 scoop.control.futureDict[future.id] = future
             future = scoop.control.futureDict[future.id]

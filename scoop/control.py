@@ -59,9 +59,10 @@ def runFuture(future):
                                'parent': future.parentId})
         QueueLength.append((t, len(execQueue)))
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    for callback in future.callback:
-        try: callback(future)
-        except: pass # Ignored callback exception as stated in PEP 3148
+    if future.parentId.worker == worker:
+        for callback in future.callback:
+            try: callback(future)
+            except: pass # Ignored callback exception as stated in PEP 3148
     return future
 
 # This is the callable greenlet that implements the controller logic.
