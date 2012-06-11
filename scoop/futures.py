@@ -122,6 +122,7 @@ def map(func, *iterables, **kargs):
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
+        control.task_dict.pop(future.id)
         yield future.resultValue
 
 def submit(func, *args, **kargs):
@@ -258,6 +259,7 @@ def _join(child):
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
     for task in _waitAny(child):
+        control.task_dict.pop(task.id)
         return task.resultValue
 
 def _joinAll(*children):
@@ -271,7 +273,7 @@ def _joinAll(*children):
     
     This function will wait for the completion of all specified child Futures
     before returning to the caller."""
-    return [task.resultValue for task in _waitAll(*children)]
+    return [_join(task) for task in _waitAll(*children)]
 
 def shutdown(wait=True):
     """This function is here for compatibility with `futures` (PEP 3148).

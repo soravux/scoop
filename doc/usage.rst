@@ -26,7 +26,7 @@ Please check our :doc:`api` for any implentation detail of the proposed function
 Evaluation laziness
 ~~~~~~~~~~~~~~~~~~~
 
-The ``map()`` and ``submit()`` functions are lazy, meaning that it won't start computing until you access the generator it returned. Events that will trigger evaluation are element access such as iteration. To force immediate evaluation, you can wrap your call with a list, such as::
+The ``map()`` and ``submit()`` functions are lazy, meaning that it won't start computing locally until you access the generator it returned. However, these function can start executing on remote worker the moment they are submited. Events that will trigger evaluation are element access such as iteration. To force immediate evaluation, you can wrap your call with a list, such as::
 
     from scoop import futures
     
