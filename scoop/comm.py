@@ -28,7 +28,7 @@ class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
     context = zmq.Context()
     def __init__(self):
-        # socket for the tasks, replies and request
+        # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
         self.socket.connect(scoop.BROKER_ADDRESS)
@@ -54,18 +54,18 @@ class ZMQCommunicator(object):
 
     def _recv(self):
         msg = self.socket.recv_multipart()
-        task = pickle.loads(msg[1])
-        return task
+        future = pickle.loads(msg[1])
+        return future
     
     def recvFuture(self):
         while self._poll(0):
             yield self._recv()
         
-    def sendFuture(self, task):
-        self.socket.send_multipart([b"TASK", pickle.dumps(task)])
+    def sendFuture(self, future):
+        self.socket.send_multipart([b"TASK", pickle.dumps(future)])
         
-    def sendResult(self, task):
-        self.socket.send_multipart([b"REPLY", pickle.dumps(task), task.id.worker[0]])
+    def sendResult(self, future):
+        self.socket.send_multipart([b"REPLY", pickle.dumps(future), future.id.worker[0]])
 
     def sendRequest(self):
         self.socket.send(b"REQUEST")
