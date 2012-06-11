@@ -21,7 +21,7 @@ from deap import creator
 from deap import tools
 from scoop import futures
 
-import sortingnetwork as sn
+from dependency import sortingnetwork as sn
 import logging
 import time
 import argparse
@@ -37,7 +37,7 @@ args = parser.parse_args()
 INPUTS = args.inputs
 
 
-print("apres parse")
+
 
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
@@ -48,7 +48,7 @@ def genWire(dimension):
     
 def genNetwork(dimension, min_size, max_size):
     size = random.randint(min_size, max_size)
-    return [genWire(dimension) for i in xrange(size)]
+    return [genWire(dimension) for i in range(size)]
     
 def mutWire(individual, dimension, indpb):
     for index, elem in enumerate(individual):
@@ -84,7 +84,6 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("map", futures.map)
 #logging.warning("avant main")
 def main():
-    print("debut main")
     # test if file is ok before starting the test
     if args.filename:
         open(args.filename).close()
@@ -102,7 +101,8 @@ def main():
     stats.register("min", min)
     stats.register("max", max)
     
-    logger = tools.EvolutionLogger(["gen", "evals", "time"] + stats.functions.keys())
+    logger = tools.EvolutionLogger(["gen", "evals", "time"] + [str(k) for k in
+        stats.functions.keys()])
     logger.logHeader()
 
     CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 40
@@ -123,7 +123,7 @@ def main():
     logger.logGeneration(gen=0, evals=len(population), stats=stats, time=evaluationTime)
     
     # Begin the evolution
-    for g in xrange(1, NGEN):
+    for g in range(1, NGEN):
         offspring = [toolbox.clone(ind) for ind in population]
     
         # Apply crossover and mutation
