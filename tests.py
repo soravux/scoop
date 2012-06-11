@@ -71,6 +71,36 @@ def funcExcept(n):
 def funcRaise(n):
     raise Exception("Test exception")
 
+def funcDone():
+    f = futures.submit(func4, 100)
+    futures.wait((f,))
+    done = f.done()
+    if done != True:
+        return done
+    res = f.result()
+    done = f.done()
+    return done
+
+def funcCancel():
+    f = futures.submit(func4, 100)
+    f.cancel()
+    return f.cancelled()
+
+def funcCallback():
+    f = futures.submit(func4, 100)
+    f.add_done_callback(callBack)
+    if len(f.callback) == 0:
+        return False
+    futures.wait((f,))
+    try:
+        return f.was_callabacked
+    except:
+        return False
+
+
+def callBack(future):
+    future.was_callabacked = True
+
 def main(n):
     task = futures.submit(func0, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
@@ -260,6 +290,16 @@ class TestApi(TestScoopCommon):
         self.w = self.multiworker_set()
         result = futures._startup(funcExcept, 19)
         self.assertTrue(result)
+
+    def test_done(self):
+        result = futures._startup(funcDone)
+        self.assertTrue(result)
+
+    def test_cancel(self):
+        self.assertTrue(futures._startup(funcCancel))
+
+    def test_callback(self):
+        self.assertTrue(futures._startup(funcCallback))
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
