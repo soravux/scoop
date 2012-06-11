@@ -122,7 +122,7 @@ def map(func, *iterables, **kargs):
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
-        control.task_dict.pop(future.id)
+        control.futureDict.pop(future.id)
         yield future.resultValue
 
 def submit(func, *args, **kargs):
@@ -160,24 +160,24 @@ def _waitAny(*children):
     generator returns a tuple as soon as one becomes available."""
     n = len(children)
     # check for available results and index those unavailable
-    for index, task in enumerate(children):
-        if task.exceptionValue:
-            raise task.exceptionValue
-        if task.resultValue:
-            yield task
+    for index, future in enumerate(children):
+        if future.exceptionValue:
+            raise future.exceptionValue
+        if future.resultValue:
+            yield future
             n -= 1
         else:
-            task.index = index
-    task = scoop.control.current
+            future.index = index
+    future = scoop.control.current
     while n > 0:
         # wait for remaining results; switch to controller
-        task.stopWatch.halt()
-        childTask = _controller.switch(task)
-        task.stopWatch.resume()
-        if childTask.exceptionValue:
-            raise childTask.exceptionValue
+        future.stopWatch.halt()
+        childFuture = _controller.switch(future)
+        future.stopWatch.resume()
+        if childFuture.exceptionValue:
+            raise childFuture.exceptionValue
             
-        yield childTask
+        yield childFuture
         n -= 1
 
 def _waitAll(*children):
@@ -194,9 +194,9 @@ def _waitAll(*children):
     order, the generator may have to wait for the last result to become
     available before it can produce an output. See waitAny for an alternative
     option."""
-    for index, task in enumerate(children):
-        for task in _waitAny(task):
-            yield task
+    for index, future in enumerate(children):
+        for f in _waitAny(future):
+            yield f
 
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
@@ -222,14 +222,14 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures."""
     DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if return_when == FIRST_COMPLETED:
-        for result, taskid in _waitAny(*fs):
+        for result, futureid in _waitAny(*fs):
             break
     elif return_when == ALL_COMPLETED:
         for result in _waitAll(*fs):
             pass
     elif return_when == FIRST_EXCEPTION:
-        for result, taskid in _waitAny(*fs):
-            if task.exceptionValue != None:
+        for future in _waitAny(*fs):
+            if future.exceptionValue != None:
                 break
     done = set(f for f in fs if f.done())
     not_done = set(fs) - done
@@ -258,9 +258,9 @@ def _join(child):
     
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
-    for task in _waitAny(child):
-        control.task_dict.pop(task.id)
-        return task.resultValue
+    for future in _waitAny(child):
+        control.futureDict.pop(future.id)
+        return future.resultValue
 
 def _joinAll(*children):
     """This private function is for joining the current Future with all of the
@@ -273,7 +273,7 @@ def _joinAll(*children):
     
     This function will wait for the completion of all specified child Futures
     before returning to the caller."""
-    return [_join(task) for task in _waitAll(*children)]
+    return [_join(future) for future in _waitAll(*children)]
 
 def shutdown(wait=True):
     """This function is here for compatibility with `futures` (PEP 3148).

@@ -22,96 +22,96 @@ from .types import Future, FutureId, FutureQueue
 import scoop
 
 # Set module-scope variables about this controller
-worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker task id
-rank = 0                                        # rank id for next task
+worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker future id
+rank = 0                                        # rank id for next future
 is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
-current = None                                  # task currently running in greenlet
-task_dict = {}                                  # dictionary of existing tasks
-execQueue = None                                # queue of tasks pending execution
+current = None                                  # future currently running in greenlet
+futureDict = {}                                 # dictionary of existing futures
+execQueue = None                                # queue of futures pending execution
 if scoop.DEBUG:
     import time
     stats = {}
     QueueLength = []
 
-# This is the callable greenlet for running tasks.
-def runFuture(task):
+# This is the callable greenlet for running futures.
+def runFuture(future):
     if scoop.DEBUG:
-        stats.setdefault(task.id, {}).setdefault('start_time', []).append(time.time())
-    task.waitTime = task.stopWatch.get()
-    task.stopWatch.reset()
+        stats.setdefault(future.id, {}).setdefault('start_time', []).append(time.time())
+    future.waitTime = future.stopWatch.get()
+    future.stopWatch.reset()
     try:
-        task.resultValue = task.callable(*task.args, **task.kargs)    
+        future.resultValue = future.callable(*future.args, **future.kargs)    
     except Exception as err:
-        task.exceptionValue = err
-    task.executionTime = task.stopWatch.get()
-    assert task.done(), "callable must return a value!"
+        future.exceptionValue = err
+    future.executionTime = future.stopWatch.get()
+    assert future.done(), "callable must return a value!"
     
     # Set debugging informations if needed
     if scoop.DEBUG:
         t = time.time()
-        stats[task.id].setdefault('end_time', []).append(t)
-        stats[task.id].update({'executionTime': task.executionTime,
+        stats[future.id].setdefault('end_time', []).append(t)
+        stats[future.id].update({'executionTime': future.executionTime,
                                'worker': worker,
-                               'creationTime': task.creationTime,
-                               'callable': str(task.callable.__name__)
-                                    if hasattr(task.callable, '__name__')
+                               'creationTime': future.creationTime,
+                               'callable': str(future.callable.__name__)
+                                    if hasattr(future.callable, '__name__')
                                     else 'No name',
-                               'parent': task.parentId})
+                               'parent': future.parentId})
         QueueLength.append((t, len(execQueue)))
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    for callback in task.callback:
-        try: callback(task)
+    for callback in future.callback:
+        try: callback(future)
         except: pass # Ignored callback exception as stated in PEP 3148
-    return task
+    return future
 
 # This is the callable greenlet that implements the controller logic.
 def runController(callable, *args, **kargs):
     global execQueue
-    # initialize and run root task
+    # initialize and run root future
     rootId = FutureId(-1,0)
     
     # initialise queue
     if execQueue == None:
         execQueue = deque() if len(scoop.BROKER_ADDRESS) == 0  else FutureQueue()
     
-    # launch task if origin or try to pickup a task if slave worker
+    # launch future if origin or try to pickup a future if slave worker
     if is_origin == True:
-        task = Future(rootId, callable, *args, **kargs)
+        future = Future(rootId, callable, *args, **kargs)
     else:
-        task = execQueue.pop()
+        future = execQueue.pop()
         
-    task.greenlet = greenlet.greenlet(runFuture)
-    task = task._switch(task)
+    future.greenlet = greenlet.greenlet(runFuture)
+    future = future._switch(future)
     
-    while task.parentId != rootId or not task.done() or is_origin == False:
-        # process task
-        if task.done():
-            # task is finished
-            if task.id.worker != worker:
-                # task is not local
-                execQueue.sendResult(task)
-                task = execQueue.pop()
+    while future.parentId != rootId or not future.done() or is_origin == False:
+        # process future
+        if future.done():
+            # future is finished
+            if future.id.worker != worker:
+                # future is not local
+                execQueue.sendResult(future)
+                future = execQueue.pop()
             else:
-                # task is local, parent is waiting
-                if task.index != None:
-                    parent = task_dict[task.parentId]
+                # future is local, parent is waiting
+                if future.index != None:
+                    parent = futureDict[future.parentId]
                     if parent.exceptionValue == None:
-                        task = parent._switch(task)
+                        future = parent._switch(future)
                     else:
-                        task = execQueue.pop()
+                        future = execQueue.pop()
                 else:
-                    execQueue.append(task)
-                    task = execQueue.pop()
+                    execQueue.append(future)
+                    future = execQueue.pop()
         else:
-            # task is in progress; run next task from pending execution queue.
-            task = execQueue.pop()
+            # future is in progress; run next future from pending execution queue.
+            future = execQueue.pop()
 
-        if task.resultValue == None and task.greenlet == None:
-            # initialize if the task hasn't started
-            task.greenlet = greenlet.greenlet(runFuture)
-            task = task._switch(task)
+        if future.resultValue == None and future.greenlet == None:
+            # initialize if the future hasn't started
+            future.greenlet = greenlet.greenlet(runFuture)
+            future = future._switch(future)
 
     execQueue.socket.shutdown()
-    if task.exceptionValue:
-        raise task.exceptionValue
-    return task.resultValue
+    if future.exceptionValue:
+        raise future.exceptionValue
+    return future.resultValue

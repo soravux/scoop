@@ -57,43 +57,43 @@ class TimeoutError(Exception):
 
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
-    """This class encapsulates and independent task that can be executed in parallel.
-    A task can spawn other parallel tasks which themselves can recursively spawn
-    other tasks."""
+    """This class encapsulates and independent future that can be executed in parallel.
+    A future can spawn other parallel futures which themselves can recursively spawn
+    other futures."""
     
     def __init__(self, parentId, callable, *args, **kargs):
-        """Initialize a new task."""
+        """Initialize a new future."""
         self.id = FutureId(scoop.control.worker, scoop.control.rank); scoop.control.rank += 1
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
         self.args = args                  # arguments of callable
         self.kargs = kargs                # key arguments of callable
-        self.creationTime = time.ctime()  # task creation time
+        self.creationTime = time.ctime()  # future creation time
         self.stopWatch = StopWatch()      # stop watch for measuring time
-        self.greenlet = None              # cooperative thread for running task 
-        self.resultValue = None          # task result
+        self.greenlet = None              # cooperative thread for running future 
+        self.resultValue = None          # future result
         self.exceptionValue = None             # exception raised by callable
         self.callback = []                # set callback
-        # insert task into global dictionary
-        scoop.control.task_dict[self.id] = self
+        # insert future into global dictionary
+        scoop.control.futureDict[self.id] = self
 
     def __lt__(self, other):
-        """Order tasks by creation time."""
+        """Order futures by creation time."""
         return self.creationTime < other.creationTime
     
     def __str__(self):
-        """Convert task to string."""
+        """Convert future to string."""
         return "{0}:{1}{2}={3}".format(self.id,
                                        self.callable.__name__,
                                        self.args,
                                        self.resultValue)
     
-    def _switch(self, task):
+    def _switch(self, future):
         """Switch greenlet."""
         scoop.control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
-        return self.greenlet.switch(task)
+        return self.greenlet.switch(future)
 
     def cancel(self):
         """Attempt to cancel the call.
@@ -103,7 +103,7 @@ class Future(object):
             the call will be cancelled and the method will return True."""
         if self in scoop.control.execQueue.movable:
             self.exceptionValue = CancelledError()
-            scoop.control.task_dict.pop(self.id)
+            scoop.control.futureDict.pop(self.id)
             scoop.control.execQueue.remove(self)
             return True
         return False
@@ -180,8 +180,8 @@ class Future(object):
 
 
 class FutureQueue(object):
-    """This class encapsulates a queue of tasks that are pending execution.
-    Within this class lies the entry points for task communications."""
+    """This class encapsulates a queue of futures that are pending execution.
+    Within this class lies the entry points for future communications."""
     def __init__(self):
         """initialize queue to empty elements and create a communication
         object."""
@@ -203,25 +203,25 @@ class FutureQueue(object):
         lengths."""
         return len(self.movable) + len(self.ready)
     
-    def append(self, task):
-        """append a task to the queue."""
-        if task.resultValue != None and task.index == None:
-            self.inprogress.append(task)
-        elif task.resultValue != None and task.index != None:
-            self.ready.append(task)
-        elif task.greenlet != None:
-            self.inprogress.append(task)
+    def append(self, future):
+        """append a future to the queue."""
+        if future.resultValue != None and future.index == None:
+            self.inprogress.append(future)
+        elif future.resultValue != None and future.index != None:
+            self.ready.append(future)
+        elif future.greenlet != None:
+            self.inprogress.append(future)
         else:
-            self.movable.append(task)
-        # Send oldest tasks to the broker [Put that elsewhere?]
-        # TODO: Don't send cancelled tasks
+            self.movable.append(future)
+        # Send oldest futures to the broker [Put that elsewhere?]
+        # TODO: Don't send cancelled futures
         while len(self.movable) > self.highwatermark:
             self.socket.sendFuture(self.movable.popleft())
         
     def pop(self):
-        """pop the next task from the queue; 
-        in progress tasks have priority over those that have not yet started;
-        higher level tasks have priority over lower level ones; """
+        """pop the next future from the queue; 
+        in progress futures have priority over those that have not yet started;
+        higher level futures have priority over lower level ones; """
         self.updateQueue()
         if len(self) < self.lowwatermark:
             self.requestFuture()
@@ -246,19 +246,19 @@ class FutureQueue(object):
     def updateQueue(self):
         """updates the local queue with elements from the broker."""
         to_remove = []
-        for task in self.inprogress:
-            if task.index != None:
-                self.ready.append(task)
-                to_remove.append(task)
-        for task in to_remove:
-            self.inprogress.remove(task)        
-        for task in self.socket.recvFuture():
-            if task.id in scoop.control.task_dict:
-                scoop.control.task_dict[task.id].resultValue = task.resultValue
+        for future in self.inprogress:
+            if future.index != None:
+                self.ready.append(future)
+                to_remove.append(future)
+        for future in to_remove:
+            self.inprogress.remove(future)        
+        for future in self.socket.recvFuture():
+            if future.id in scoop.control.futureDict:
+                scoop.control.futureDict[future.id].resultValue = future.resultValue
             else:
-                scoop.control.task_dict[task.id] = task
-            task = scoop.control.task_dict[task.id]
-            self.append(task)
+                scoop.control.futureDict[future.id] = future
+            future = scoop.control.futureDict[future.id]
+            self.append(future)
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
@@ -266,11 +266,11 @@ class FutureQueue(object):
         self.movable.remove(future)
     
     def select(self, duration):
-        """return a list of movable tasks that have an estimated total runtime
+        """return a list of movable futures that have an estimated total runtime
         of at most "duration" seconds."""
         pass
 
-    def sendResult(self, task):
-        task.greenlet = None  # greenlets cannot be pickled
-        assert task.done(), "The results are not valid"
-        self.socket.sendResult(task)
+    def sendResult(self, future):
+        future.greenlet = None  # greenlets cannot be pickled
+        assert future.done(), "The results are not valid"
+        self.socket.sendResult(future)
