@@ -48,7 +48,27 @@ def func3(n):
 def func4(n):
     result = n*n
     return result
-
+    
+def funcCallback():
+    f = futures.submit(func4, 100)
+    
+    def callBack(future):
+        future.was_callabacked = True
+        
+    f.add_done_callback(callBack)
+    if len(f.callback) == 0:
+        return False
+    futures.wait((f,))
+    try:
+        return f.was_callabacked
+    except:
+        return False
+        
+def funcCancel():
+    f = futures.submit(func4, 100)
+    f.cancel()
+    return f.cancelled()
+            
 def funcCompleted(n):
     launches = []
     for i in range(n):
@@ -56,20 +76,31 @@ def funcCompleted(n):
     result = futures.as_completed(launches)
     return sum(r.result() for r in result)
 
-def funcSub(n):
-    f = futures.submit(func4, n)
-    return f.result()
-
+def funcDone():
+    f = futures.submit(func4, 100)
+    futures.wait((f,))
+    done = f.done()
+    if done != True:
+        return done
+    res = f.result()
+    done = f.done()
+    return done
+    
 def funcExcept(n):
     f = futures.submit(funcRaise, n)
     try:
         f.result()
     except:
         return True
+
     return False
 
 def funcRaise(n):
     raise Exception("Test exception")
+    
+def funcSub(n):
+    f = futures.submit(func4, n)
+    return f.result()
 
 def main(n):
     task = futures.submit(func0, n)
@@ -114,7 +145,9 @@ class TestScoopCommon(unittest.TestCase):
         
     def setUp(self):
         # Start the server
-        self.server = subprocess.Popen([sys.executable, "broker.py"])
+        from scoop.broker import Broker
+        self.server = subprocess.Popen([sys.executable,
+                os.path.abspath(sys.modules[Broker.__module__].__file__)])
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
@@ -260,6 +293,16 @@ class TestApi(TestScoopCommon):
         self.w = self.multiworker_set()
         result = futures._startup(funcExcept, 19)
         self.assertTrue(result)
+
+    def test_done(self):
+        result = futures._startup(funcDone)
+        self.assertTrue(result)
+
+    def test_cancel(self):
+        self.assertTrue(futures._startup(funcCancel))
+
+    def test_callback(self):
+        self.assertTrue(futures._startup(funcCallback))
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)

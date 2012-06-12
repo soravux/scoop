@@ -80,8 +80,7 @@ import runpy, sys, functools
 sys.path.append(r"{programPath}")
 from {basename} import *
 sys.argv += {arguments}
-_startup(functools.partial(runpy.run_path, '{executable}',
-                           init_globals=globals(), run_name='__main__'))
+_startup(functools.partial(runpy.run_path, '{executable}',init_globals=globals(), run_name='__main__'))
 """
 
 # String passed to bash throught ssh to the foreign members of the working group.
@@ -177,7 +176,7 @@ class launchScoop(object):
         """Starts a broker on random unoccupied port(s)"""
         # Find the broker
         # TODO: _broker.py
-        from broker import Broker
+        from scoop.broker import Broker
         
         # Check if port is not already in use
         while True:

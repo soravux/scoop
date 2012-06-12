@@ -69,7 +69,7 @@ class Broker(object):
 
     def run(self):
         while True:
-            socks = dict(self.poller.poll())
+            socks = dict(self.poller.poll(-1))
             if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
