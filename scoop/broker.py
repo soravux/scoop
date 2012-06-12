@@ -69,7 +69,7 @@ class Broker(object):
 
     def run(self):
         while True:
-            socks = dict(self.poller.poll())
+            socks = dict(self.poller.poll(-1))
             if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
@@ -132,6 +132,8 @@ if __name__=="__main__":
     info_port = str(5556) if len(sys.argv) < 3 else sys.argv[2]
     this_broker = Broker("tcp://*:" + port, "tcp://*:" + info_port)
     try:
-        this_broker.run()
+        import cProfile
+        cProfile.run('this_broker.run()', "brokerprof")
+        #this_broker.run()
     finally:
         this_broker.shutdown()

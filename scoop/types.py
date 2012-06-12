@@ -19,7 +19,7 @@ from collections import namedtuple, deque
 import time
 import greenlet
 import scoop
-from .comm import ZMQCommunicator, Shutdown
+from scoop.comm import ZMQCommunicator, Shutdown
 
 
 # This class encapsulates a stopwatch that returns elapse time in seconds. 
