@@ -16,6 +16,7 @@ except ImportError:
 
 GlobalTree = None
 mapfunc = None
+nodeDone = 0
 maxHeight = 0
 maxDepth = 0
 if graph:
@@ -101,21 +102,22 @@ def executeTree(address=[]):
     to the function, the tree must be loaded in memory in every worker. To do
     this, simply call "Tree = importTree(filename)" before using the startup
     method of the parralisation library you are using"""
+    global nodeDone
     # Get tree subsection
     localTree = getTree(address)
     # Execute tasks
     localTree.intCalc()
     localTree.floatCalc()
-    # Select next nodes to be 
+    nodeDone += 1
+    print("{}/{}".format(nodeDone, GlobalTree.nodes))
+    # Select next nodes to be executed
     nextAddresses = [address + [i] for i in range(len(localTree.children))]
-    print(nextAddresses)
     if len(localTree.children) == 0:
         return 1
+    # Execute the children
     res = sum(mapfunc(executeTree, nextAddresses))
     assert res == localTree.leaves, (
         "Test failed: res = {0}, leaves = {1}").format(res, localTree.leaves)
-    if localTree.height == (GlobalTree.height - 1):
-        print("{}/{}".format(res, GlobalTree.leaves))
     return res
 
 def exportTree(tree, filename):
