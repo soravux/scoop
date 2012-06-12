@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-#import treeTester
 from treeTester import *
-
-
-filename = "tree.txt"
+import sys
+import cProfile
 
 def main():
-    return executeTree([])
+    return cProfile.run("executeTree()")
 
 if __name__=="__main__":
-    importTree(filename)
+    importTree(sys.argv[1] if len(sys.argv) > 1 else "tree.txt")
     registerMap(map)
     print(main())
