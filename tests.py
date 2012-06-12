@@ -48,28 +48,33 @@ def func3(n):
 def func4(n):
     result = n*n
     return result
-
+    
+def funcCallback():
+    f = futures.submit(func4, 100)
+    
+    def callBack(future):
+        future.was_callabacked = True
+        
+    f.add_done_callback(callBack)
+    if len(f.callback) == 0:
+        return False
+    futures.wait((f,))
+    try:
+        return f.was_callabacked
+    except:
+        return False
+        
+def funcCancel():
+    f = futures.submit(func4, 100)
+    f.cancel()
+    return f.cancelled()
+            
 def funcCompleted(n):
     launches = []
     for i in range(n):
         launches.append(futures.submit(func4, i + 1))
     result = futures.as_completed(launches)
     return sum(r.result() for r in result)
-
-def funcSub(n):
-    f = futures.submit(func4, n)
-    return f.result()
-
-def funcExcept(n):
-    f = futures.submit(funcRaise, n)
-    try:
-        f.result()
-    except:
-        return True
-    return False
-
-def funcRaise(n):
-    raise Exception("Test exception")
 
 def funcDone():
     f = futures.submit(func4, 100)
@@ -80,26 +85,22 @@ def funcDone():
     res = f.result()
     done = f.done()
     return done
-
-def funcCancel():
-    f = futures.submit(func4, 100)
-    f.cancel()
-    return f.cancelled()
-
-def funcCallback():
-    f = futures.submit(func4, 100)
-    f.add_done_callback(callBack)
-    if len(f.callback) == 0:
-        return False
-    futures.wait((f,))
+    
+def funcExcept(n):
+    f = futures.submit(funcRaise, n)
     try:
-        return f.was_callabacked
+        f.result()
     except:
-        return False
+        return True
 
+    return False
 
-def callBack(future):
-    future.was_callabacked = True
+def funcRaise(n):
+    raise Exception("Test exception")
+    
+def funcSub(n):
+    f = futures.submit(func4, n)
+    return f.result()
 
 def main(n):
     task = futures.submit(func0, n)
@@ -144,7 +145,9 @@ class TestScoopCommon(unittest.TestCase):
         
     def setUp(self):
         # Start the server
-        self.server = subprocess.Popen([sys.executable, "broker.py"])
+        from scoop.broker import Broker
+        self.server = subprocess.Popen([sys.executable,
+                os.path.abspath(sys.modules[Broker.__module__].__file__)])
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()

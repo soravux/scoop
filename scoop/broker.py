@@ -132,8 +132,6 @@ if __name__=="__main__":
     info_port = str(5556) if len(sys.argv) < 3 else sys.argv[2]
     this_broker = Broker("tcp://*:" + port, "tcp://*:" + info_port)
     try:
-        import cProfile
-        cProfile.run('this_broker.run()', "brokerprof")
-        #this_broker.run()
+        this_broker.run()
     finally:
         this_broker.shutdown()
