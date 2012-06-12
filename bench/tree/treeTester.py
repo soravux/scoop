@@ -81,18 +81,14 @@ class Tree():
                                        self.nodes)
 
     def intCalc(self):
-        print("intcalc: ", self.intRange)
         x = 1
         for i in range(self.intRange):
             x = (x + x * i) % 2**32
-        print("intcalc fin")
 
     def floatCalc(self):
-        print("floatcalc", self.floatRange)
         x = 1.1
         for i in range(self.floatRange):
             x = (x + x * i) % 2**32
-        print("floatcalc fin")
 
 def getTree(addresses):
     t = GlobalTree
@@ -116,7 +112,8 @@ def executeTree(address=[]):
     if len(localTree.children) == 0:
         return 1
     res = sum(mapfunc(executeTree, nextAddresses))
-    assert res == localTree.leaves, "Test failed: res = {0}, leaves = {1}".format(res, localTree.leaves)
+    assert res == localTree.leaves, (
+        "Test failed: res = {0}, leaves = {1}").format(res, localTree.leaves)
     if localTree.height == (GlobalTree.height - 1):
         print("{}/{}".format(res, GlobalTree.leaves))
     return res
