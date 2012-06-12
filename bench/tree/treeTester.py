@@ -127,54 +127,31 @@ def exportTree(tree, filename):
     f.close()
 
 def importTree(filename):
-    f = open(filename, 'rb')
     global GlobalTree
+    f = open(filename, 'rb')
     GlobalTree = pickle.load(f)
     f.close()
-    #return tree
 
 def registerMap(newMap):
     global mapfunc
-    mapfunc = newMap
-
-def execfloat(floatValue):
-    x = 1.1 * numpy.random.randint(1, 9)
-    for i in range(int(math.floor(floatValue))):
-        x = (x + x * i) % 2**32
+    mapfunc = newMap    
     
 def calibrate(meanTime):
-    acceptedMin = meanTime - (meanTime * 0.05)
-    acceptedMax = meanTime + (meanTime * 0.05)
-    total = 0
-    intValue = 1
-    while total < acceptedMin or total > acceptedMax:
-        try:
-            intValue =  meanTime * intValue / total
-        except ZeroDivisionError:
-            intValue = 1
-        bt = time.time()
-        x = 0
-        for i in range(int(math.floor(intValue))):
-            x = (x + x * i) % 2**32
-        total = time.time() - bt
+    x = numpy.random.randint(1, 9)
+    bt = time.time()
+    for i in range(1000000):
+        x = (x + x * i) % 2**32
+    total = time.time() - bt
+    intValue = meanTime * 1000000 / total / 2
     
-    print(total)
-    total = 0
-    floatValue = 1
+    x = 1.1 * numpy.random.randint(1, 9)
+    bt = time.time()
+    for i in range(1000000):
+        x = (x + x * i) % 2**32
+    total = time.time() - bt
+    floatValue = meanTime * 1000000 / total / 2
     
-    while total < acceptedMin or total > acceptedMax:
-        try:
-            floatValue =  meanTime * floatValue / total
-        except ZeroDivisionError:
-            floatValue = 1
-        bt = time.time()
-        execfloat(int(math.floor(floatValue)))
-        #x = 1.1 * numpy.random.randint(1, 9)
-        #for i in range():
-        #    x = (x + x * i) % 2**32
-        total = time.time() - bt
     print(intValue, floatValue)
-    print(total)
     return intValue, floatValue
 
 if __name__=="__main__":
@@ -211,7 +188,10 @@ if __name__=="__main__":
     if args.minChildren > args.maxChildren:
         args.maxChildren = args.minChildren + 1
     
-    tree = Tree(args.height, args.minChildren, args.maxChildren,
-                args.alpha, *calibrate(args.scale))
+    tree = Tree(args.height,
+                args.minChildren,
+                args.maxChildren,
+                args.alpha,
+                *calibrate(args.scale))
     exportTree(tree, args.filename)
     print("Generated :\n{0}".format(tree))
