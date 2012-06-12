@@ -17,8 +17,8 @@
 from __future__ import print_function
 import os
 from collections import namedtuple
-from .types import Future
 import scoop
+from scoop.types import Future
 from scoop import control
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
@@ -54,7 +54,7 @@ def _startup(rootFuture, *args, **kargs):
     Be sure to launch your root Future using this method."""
     import greenlet
     global _controller
-    _controller = greenlet.greenlet(scoop.control.runController)
+    _controller = greenlet.greenlet(control.runController)
     try:
         result = _controller.switch(rootFuture, *args, **kargs)
     except scoop.comm.Shutdown:
@@ -66,9 +66,9 @@ def _startup(rootFuture, *args, **kargs):
         except:
             pass
         with open("debug/" + scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'w') as f:
-            f.write(str(scoop.control.stats))
+            f.write(str(control.stats))
         with open("debug/" + scoop.WORKER_NAME + "-QUEUE", 'w') as f:
-            f.write(str(scoop.control.QueueLength))
+            f.write(str(control.QueueLength))
     return result
 
 def _mapFuture(callable, *iterables, **kargs):
@@ -142,8 +142,8 @@ def submit(func, *args, **kargs):
     transfered remotely depending on load or on remote distributed workers. You
     may carry on with any further computations while the Future completes. Result
     retrieval is made via the ``result()`` function on the Future."""
-    child = Future(scoop.control.current.id, func, *args, **kargs)
-    scoop.control.execQueue.append(child)
+    child = Future(control.current.id, func, *args, **kargs)
+    control.execQueue.append(child)
     return child
 
 def _waitAny(*children):
@@ -168,7 +168,7 @@ def _waitAny(*children):
             n -= 1
         else:
             future.index = index
-    future = scoop.control.current
+    future = control.current
     while n > 0:
         # wait for remaining results; switch to controller
         future.stopWatch.halt()

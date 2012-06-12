@@ -76,12 +76,11 @@ args = parser.parse_args()
 # the interpreter with the user's module.
 
 localBootstrap = """from scoop.futures import _startup
-import runpy, sys, functools
+import runpy, sys, functools, cProfile
 sys.path.append(r"{programPath}")
 from {basename} import *
 sys.argv += {arguments}
-_startup(functools.partial(runpy.run_path, '{executable}',
-                           init_globals=globals(), run_name='__main__'))
+cProfile.run("_startup(functools.partial(runpy.run_path, '{executable}',init_globals=globals(), run_name='__main__'))", 'testprof')
 """
 
 # String passed to bash throught ssh to the foreign members of the working group.
@@ -177,7 +176,7 @@ class launchScoop(object):
         """Starts a broker on random unoccupied port(s)"""
         # Find the broker
         # TODO: _broker.py
-        from broker import Broker
+        from scoop.broker import Broker
         
         # Check if port is not already in use
         while True:
