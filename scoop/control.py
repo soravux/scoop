@@ -28,6 +28,8 @@ is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
 current = None                                  # future currently running in greenlet
 futureDict = {}                                 # dictionary of existing futures
 execQueue = None                                # queue of futures pending execution
+
+
 if scoop.DEBUG:
     import time
     stats = {}
@@ -58,6 +60,8 @@ def runFuture(future):
                                     else 'No name',
                                'parent': future.parentId})
         QueueLength.append((t, len(execQueue)))
+
+
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if future.parentId.worker == worker:
         for callback in future.callback:

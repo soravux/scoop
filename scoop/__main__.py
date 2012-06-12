@@ -76,11 +76,11 @@ args = parser.parse_args()
 # the interpreter with the user's module.
 
 localBootstrap = """from scoop.futures import _startup
-import runpy, sys, functools, cProfile
+import runpy, sys, functools
 sys.path.append(r"{programPath}")
 from {basename} import *
 sys.argv += {arguments}
-cProfile.run("_startup(functools.partial(runpy.run_path, '{executable}',init_globals=globals(), run_name='__main__'))", 'testprof')
+_startup(functools.partial(runpy.run_path, '{executable}',init_globals=globals(), run_name='__main__'))
 """
 
 # String passed to bash throught ssh to the foreign members of the working group.

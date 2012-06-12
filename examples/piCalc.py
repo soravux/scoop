@@ -20,7 +20,6 @@ Calculation of Pi using a Monte Carlo method.
 
 from math import hypot
 from random import random
-
 from scoop import futures
 
 # A range is used in this function for python3. If you are using python2, a
