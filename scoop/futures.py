@@ -65,9 +65,10 @@ def _startup(rootFuture, *args, **kargs):
             os.mkdir("debug")
         except:
             pass
-        with open("debug/" + scoop.WORKER_NAME + "-" + scoop.BROKER_NAME, 'w') as f:
+        with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
+                scoop.BROKER_NAME.decode(), 'w') as f:
             f.write(str(control.stats))
-        with open("debug/" + scoop.WORKER_NAME + "-QUEUE", 'w') as f:
+        with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'w') as f:
             f.write(str(control.QueueLength))
     return result
 
