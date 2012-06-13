@@ -19,7 +19,7 @@ from collections import namedtuple, deque
 import time
 import greenlet
 import scoop
-from scoop.comm import ZMQCommunicator, Shutdown
+from scoop._comm import ZMQCommunicator, Shutdown
 
 
 # This class encapsulates a stopwatch that returns elapse time in seconds. 
@@ -34,11 +34,11 @@ class StopWatch(object):
         if self.halted:
             return self.totalTime
         else:
-            return self.totalTime + time.time()-self.startTime
+            return self.totalTime + time.time() - self.startTime
     # halt stopWatch.
     def halt(self):
         self.halted = True
-        self.totalTime += time.time()-self.startTime
+        self.totalTime += time.time() - self.startTime
     # resume stopwatch.
     def resume(self):
         self.halted = False
@@ -47,14 +47,17 @@ class StopWatch(object):
     def reset(self):
         self.__init__()
 
+        
 class CancelledError(Exception):
     """The Future was cancelled."""
     pass
+    
     
 class TimeoutError(Exception):
     """The operation exceeded the given deadline."""
     pass
 
+    
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
     """This class encapsulates and independent future that can be executed in parallel.
@@ -63,7 +66,7 @@ class Future(object):
     
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
-        self.id = FutureId(scoop.control.worker, scoop.control.rank); scoop.control.rank += 1
+        self.id = FutureId(scoop._control.worker, scoop._control.rank); scoop._control.rank += 1
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -76,7 +79,7 @@ class Future(object):
         self.exceptionValue = None             # exception raised by callable
         self.callback = []                # set callback
         # insert future into global dictionary
-        scoop.control.futureDict[self.id] = self
+        scoop._control.futureDict[self.id] = self
 
     def __lt__(self, other):
         """Order futures by creation time."""
@@ -91,7 +94,7 @@ class Future(object):
     
     def _switch(self, future):
         """Switch greenlet."""
-        scoop.control.current = self
+        scoop._control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(future)
 
@@ -101,10 +104,10 @@ class Future(object):
         :returns: If the call is currently being executed then it cannot
             be cancelled and the method will return False, otherwise
             the call will be cancelled and the method will return True."""
-        if self in scoop.control.execQueue.movable:
+        if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
-            scoop.control.futureDict.pop(self.id)
-            scoop.control.execQueue.remove(self)
+            scoop._control.futureDict.pop(self.id)
+            scoop._control.execQueue.remove(self)
             return True
         return False
 
@@ -120,7 +123,7 @@ class Future(object):
         
         :returns: True if the call is currently being executed and cannot be
             cancelled."""
-        return not self.done() and self not in scoop.control.execQueue
+        return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
         """Returns a status flag of the process.
@@ -193,18 +196,18 @@ class FutureQueue(object):
         self.highwatermark = 20
         
     def __iter__(self):
-        """iterates over the selectable (cancellable) elements of the queue."""
+        """Iterates over the selectable (cancellable) elements of the queue."""
         for it in (self.movable, self.ready):
             for element in it:
                 yield element
 
     def __len__(self):
-        """returns the length of the queue, meaning the sum of it's elements
+        """Returns the length of the queue, meaning the sum of it's elements
         lengths."""
         return len(self.movable) + len(self.ready)
     
     def append(self, future):
-        """append a future to the queue."""
+        """Append a future to the queue."""
         if future.resultValue != None and future.index == None:
             self.inprogress.append(future)
         elif future.resultValue != None and future.index != None:
@@ -219,7 +222,7 @@ class FutureQueue(object):
             self.socket.sendFuture(self.movable.popleft())
         
     def pop(self):
-        """pop the next future from the queue; 
+        """Pop the next future from the queue; 
         in progress futures have priority over those that have not yet started;
         higher level futures have priority over lower level ones; """
         self.updateQueue()
@@ -244,7 +247,7 @@ class FutureQueue(object):
             self.socket.sendRequest()
     
     def updateQueue(self):
-        """updates the local queue with elements from the broker."""
+        """Updates the local queue with elements from the broker."""
         to_remove = []
         for future in self.inprogress:
             if future.index != None:
@@ -253,16 +256,16 @@ class FutureQueue(object):
         for future in to_remove:
             self.inprogress.remove(future)        
         for future in self.socket.recvFuture():
-            if future.id in scoop.control.futureDict:
-                scoop.control.futureDict[future.id].resultValue = future.resultValue
-                for callback in scoop.control.futureDict[future.id].callback:
+            if future.id in scoop._control.futureDict:
+                scoop._control.futureDict[future.id].resultValue = future.resultValue
+                for callback in scoop._control.futureDict[future.id].callback:
                     try:
-                        callback.future(scoop.control.futureDict[future.id])
+                        callback.future(scoop._control.futureDict[future.id])
                     except:
                         pass
             else:
-                scoop.control.futureDict[future.id] = future
-            future = scoop.control.futureDict[future.id]
+                scoop._control.futureDict[future.id] = future
+            future = scoop._control.futureDict[future.id]
             self.append(future)
 
     def remove(self, future):
@@ -271,11 +274,13 @@ class FutureQueue(object):
         self.movable.remove(future)
     
     def select(self, duration):
-        """return a list of movable futures that have an estimated total runtime
+        """Return a list of movable futures that have an estimated total runtime
         of at most "duration" seconds."""
         pass
 
     def sendResult(self, future):
-        future.greenlet = None  # greenlets cannot be pickled
+        """Send back results to broker for distribution to parent task."""
+        # Greenlets cannot be pickled
+        future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)

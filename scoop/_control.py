@@ -18,7 +18,7 @@ from __future__ import print_function
 from collections import deque
 import greenlet
 import os
-from .types import Future, FutureId, FutureQueue
+from ._types import Future, FutureId, FutureQueue
 import scoop
 
 # Set module-scope variables about this controller
