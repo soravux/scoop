@@ -16,7 +16,7 @@
 #
 from __future__ import print_function
 from scoop import futures
-from scoop import control
+from scoop import _control
 import scoop
 import unittest
 import subprocess
@@ -186,51 +186,51 @@ class TestMultiFunction(TestScoopCommon):
         self.large_result = 76153
 
     def test_small_uniworker(self):
-        control.FutureQueue.highwatermark = 10
-        control.FutureQueue.lowwatermark = 5
+        _control.FutureQueue.highwatermark = 10
+        _control.FutureQueue.lowwatermark = 5
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_no_lowwatermark_uniworker(self):
-        control.FutureQueue.highwatermark = 9999999999999
-        control.FutureQueue.lowwatermark = 1
+        _control.FutureQueue.highwatermark = 9999999999999
+        _control.FutureQueue.lowwatermark = 1
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_small_foreign_uniworker(self):
-        control.FutureQueue.highwatermark = 1
+        _control.FutureQueue.highwatermark = 1
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
         
     def test_small_local_uniworker(self):
-        control.FutureQueue.highwatermark = 9999999999999
+        _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
     
     def test_large_uniworker(self):
-        control.FutureQueue.highwatermark = 9999999999999
+        _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_no_lowwatermark_uniworker(self):
-        control.FutureQueue.lowwatermark = 1
-        control.FutureQueue.highwatermark = 9999999999999
+        _control.FutureQueue.lowwatermark = 1
+        _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
 
     def test_large_foreign_uniworker(self):
-        control.FutureQueue.highwatermark = 1
+        _control.FutureQueue.highwatermark = 1
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_large_local_uniworker(self):
-        control.FutureQueue.highwatermark = 9999999999999
+        _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
         
     def test_small_local_multiworker(self):
         self.w = self.multiworker_set()
-        control.FutureQueue.highwatermark = 9999999999
+        _control.FutureQueue.highwatermark = 9999999999
         Backupenv = os.environ.copy()
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
@@ -239,7 +239,7 @@ class TestMultiFunction(TestScoopCommon):
     
     def test_small_foreign_multiworker(self):
         self.w = self.multiworker_set()
-        control.FutureQueue.highwatermark = 1
+        _control.FutureQueue.highwatermark = 1
         Backupenv = os.environ.copy()
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)

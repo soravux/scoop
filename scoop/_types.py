@@ -19,7 +19,7 @@ from collections import namedtuple, deque
 import time
 import greenlet
 import scoop
-from scoop.comm import ZMQCommunicator, Shutdown
+from scoop._comm import ZMQCommunicator, Shutdown
 
 
 # This class encapsulates a stopwatch that returns elapse time in seconds. 
@@ -63,7 +63,7 @@ class Future(object):
     
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
-        self.id = FutureId(scoop.control.worker, scoop.control.rank); scoop.control.rank += 1
+        self.id = FutureId(scoop._control.worker, scoop._control.rank); scoop._control.rank += 1
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -76,7 +76,7 @@ class Future(object):
         self.exceptionValue = None             # exception raised by callable
         self.callback = []                # set callback
         # insert future into global dictionary
-        scoop.control.futureDict[self.id] = self
+        scoop._control.futureDict[self.id] = self
 
     def __lt__(self, other):
         """Order futures by creation time."""
@@ -91,7 +91,7 @@ class Future(object):
     
     def _switch(self, future):
         """Switch greenlet."""
-        scoop.control.current = self
+        scoop._control.current = self
         assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(future)
 
@@ -101,10 +101,10 @@ class Future(object):
         :returns: If the call is currently being executed then it cannot
             be cancelled and the method will return False, otherwise
             the call will be cancelled and the method will return True."""
-        if self in scoop.control.execQueue.movable:
+        if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
-            scoop.control.futureDict.pop(self.id)
-            scoop.control.execQueue.remove(self)
+            scoop._control.futureDict.pop(self.id)
+            scoop._control.execQueue.remove(self)
             return True
         return False
 
@@ -120,7 +120,7 @@ class Future(object):
         
         :returns: True if the call is currently being executed and cannot be
             cancelled."""
-        return not self.done() and self not in scoop.control.execQueue
+        return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
         """Returns a status flag of the process.
@@ -254,16 +254,16 @@ class FutureQueue(object):
         for future in to_remove:
             self.inprogress.remove(future)        
         for future in self.socket.recvFuture():
-            if future.id in scoop.control.futureDict:
-                scoop.control.futureDict[future.id].resultValue = future.resultValue
-                for callback in scoop.control.futureDict[future.id].callback:
+            if future.id in scoop._control.futureDict:
+                scoop._control.futureDict[future.id].resultValue = future.resultValue
+                for callback in scoop._control.futureDict[future.id].callback:
                     try:
-                        callback.future(scoop.control.futureDict[future.id])
+                        callback.future(scoop._control.futureDict[future.id])
                     except:
                         pass
             else:
-                scoop.control.futureDict[future.id] = future
-            future = scoop.control.futureDict[future.id]
+                scoop._control.futureDict[future.id] = future
+            future = scoop._control.futureDict[future.id]
             self.append(future)
 
     def remove(self, future):
