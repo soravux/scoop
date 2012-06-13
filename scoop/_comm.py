@@ -31,6 +31,7 @@ class ZMQCommunicator(object):
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
+        print(scoop.BROKER_ADDRESS)
         self.socket.connect(scoop.BROKER_ADDRESS)
 
         self.poller = zmq.Poller()
