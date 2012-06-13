@@ -32,6 +32,7 @@ parser.add_argument('--inputs', type=int, default=6)
 parser.add_argument('--cores', type=int, default=1)
 parser.add_argument('--filename')
 parser.add_argument('--population', type=int, default=300)
+parser.add_argument('--generations', type=int, default=40)
 
 args = parser.parse_args()
 INPUTS = args.inputs
@@ -105,7 +106,7 @@ def main():
         stats.functions.keys()])
     logger.logHeader()
 
-    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 40
+    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, args.generations
     
     evalBegin = time.time()
     # Evaluate every individuals

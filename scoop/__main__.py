@@ -278,6 +278,9 @@ class launchScoop(object):
         # Ensure everything is cleaned up on exit
         logging.debug('Destroying local elements of the federation...')
         self.created_subprocesses.reverse() # Kill the broker last
+        if scoop.DEBUG == 1:
+            # give time to flush data
+            time.sleep(1)
         for process in self.created_subprocesses:
             try:
                 process.terminate()

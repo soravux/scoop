@@ -240,6 +240,7 @@ class FutureQueue(object):
                 return self.movable.pop()
 
     def requestFuture(self):
+        """Request futures from the broker"""
         for a in range(len(self), self.lowwatermark + 1):
             self.socket.sendRequest()
     
@@ -276,6 +277,11 @@ class FutureQueue(object):
         pass
 
     def sendResult(self, future):
+        """Send a result back to it's parent after the execution"""
         future.greenlet = None  # greenlets cannot be pickled
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
+
+    def shutdown(self):
+        """Shutdown the ressources used by the queue"""
+        self.socket.shutdown()

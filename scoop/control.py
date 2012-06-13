@@ -116,7 +116,7 @@ def runController(callable, *args, **kargs):
             future.greenlet = greenlet.greenlet(runFuture)
             future = future._switch(future)
 
-    execQueue.socket.shutdown()
+    execQueue.shutdown()
     if future.exceptionValue:
         raise future.exceptionValue
     return future.resultValue
