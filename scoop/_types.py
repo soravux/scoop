@@ -34,11 +34,11 @@ class StopWatch(object):
         if self.halted:
             return self.totalTime
         else:
-            return self.totalTime + time.time()-self.startTime
+            return self.totalTime + time.time() - self.startTime
     # halt stopWatch.
     def halt(self):
         self.halted = True
-        self.totalTime += time.time()-self.startTime
+        self.totalTime += time.time() - self.startTime
     # resume stopwatch.
     def resume(self):
         self.halted = False
@@ -47,14 +47,17 @@ class StopWatch(object):
     def reset(self):
         self.__init__()
 
+        
 class CancelledError(Exception):
     """The Future was cancelled."""
     pass
+    
     
 class TimeoutError(Exception):
     """The operation exceeded the given deadline."""
     pass
 
+    
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
     """This class encapsulates and independent future that can be executed in parallel.
@@ -193,18 +196,18 @@ class FutureQueue(object):
         self.highwatermark = 20
         
     def __iter__(self):
-        """iterates over the selectable (cancellable) elements of the queue."""
+        """Iterates over the selectable (cancellable) elements of the queue."""
         for it in (self.movable, self.ready):
             for element in it:
                 yield element
 
     def __len__(self):
-        """returns the length of the queue, meaning the sum of it's elements
+        """Returns the length of the queue, meaning the sum of it's elements
         lengths."""
         return len(self.movable) + len(self.ready)
     
     def append(self, future):
-        """append a future to the queue."""
+        """Append a future to the queue."""
         if future.resultValue != None and future.index == None:
             self.inprogress.append(future)
         elif future.resultValue != None and future.index != None:
@@ -219,7 +222,7 @@ class FutureQueue(object):
             self.socket.sendFuture(self.movable.popleft())
         
     def pop(self):
-        """pop the next future from the queue; 
+        """Pop the next future from the queue; 
         in progress futures have priority over those that have not yet started;
         higher level futures have priority over lower level ones; """
         self.updateQueue()
@@ -240,12 +243,12 @@ class FutureQueue(object):
                 return self.movable.pop()
 
     def requestFuture(self):
-        """Request futures from the broker"""
+        """Request futures from the broker."""
         for a in range(len(self), self.lowwatermark + 1):
             self.socket.sendRequest()
     
     def updateQueue(self):
-        """updates the local queue with elements from the broker."""
+        """Updates the local queue with elements from the broker."""
         to_remove = []
         for future in self.inprogress:
             if future.index != None:
@@ -272,13 +275,14 @@ class FutureQueue(object):
         self.movable.remove(future)
     
     def select(self, duration):
-        """return a list of movable futures that have an estimated total runtime
+        """Return a list of movable futures that have an estimated total runtime
         of at most "duration" seconds."""
         pass
 
     def sendResult(self, future):
-        """Send a result back to it's parent after the execution"""
-        future.greenlet = None  # greenlets cannot be pickled
+        """Send back results to broker for distribution to parent task."""
+        # Greenlets cannot be pickled
+        future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
 
