@@ -30,7 +30,8 @@ parser = argparse.ArgumentParser(description='Starts the executable on the nodes
                                  fromfile_prefix_chars='@',
                                  prog="{0} -m scoop".format(sys.executable))
 parser.add_argument('--hosts', '--host',
-                    help='A file containing a list of hosts. The first host will execute the origin.',
+                    help="A file containing a list of hosts. The first host "
+                         "will execute the origin.",
                     nargs='*',
                     default=["127.0.0.1"])
 parser.add_argument('--path', '-p',
@@ -38,10 +39,12 @@ parser.add_argument('--path', '-p',
                     default=os.getcwd())
 parser.add_argument('--nice',
                     type=int,
-                    help="UNIX niceness level (-20 to 19) to run the executable")
+                    help="UNIX niceness level (-20 to 19) to run the "
+                         "executable")
 parser.add_argument('--verbose', '-v',
                     action = 'count',
-                    help = "Verbosity level of this launch script (-vv for more)",
+                    help = "Verbosity level of this launch script (-vv for "
+                           "more)",
                     default = 0)
 parser.add_argument('--log',
                     help = "The file to log the output (default is stdout)",
@@ -51,15 +54,20 @@ parser.add_argument('-n',
                     type=int,
                     default=1)
 parser.add_argument('-e',
-                    help="Activate ssh tunnels to route toward the broker sockets over remote connections (may eliminate routing problems and activate encryption but slows down communications)",
+                    help="Activate ssh tunnels to route toward the broker "
+                         "sockets over remote connections (may eliminate "
+                         "routing problems and activate encryption but "
+                         "slows down communications)",
                     action='store_true')
 parser.add_argument('--broker-hostname',
                     nargs=1,
-                    help='The externally routable broker hostname / ip (defaults to the local hostname)',
+                    help="The externally routable broker hostname / ip "
+                         "(defaults to the local hostname)",
                     default=[socket.getfqdn()])
 parser.add_argument('--python-executable',
                     nargs=1,
-                    help='The python executable with which to execute the script (with absolute path if necessary)',
+                    help="The python executable with which to execute the "
+                         "script (with absolute path if necessary)",
                     default=[sys.executable])
 parser.add_argument('executable',
                     nargs=1,
@@ -99,7 +107,7 @@ arguments = {'executable': args.executable[0],
              'arguments': str(args.args),
              'remoteArguments': str(args.args).replace("'", '\\"'),
              'basename': os.path.basename(args.executable[0])[:-3],
-             'programPath': os.path.join(args.path, os.path.dirname(args.executable[0])),
+             'programPath': os.path.join(args.path, os.path.dirname(args.executable[0])).replace("\\", "/"),
              'remotePath': args.path,
              'nice': ('','nice -n {}'.format(args.nice))[args.nice != None],
              'pythonExecutable': args.python_executable[0],

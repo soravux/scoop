@@ -18,8 +18,8 @@ from __future__ import print_function
 import os
 from collections import namedtuple
 import scoop
-from scoop.types import Future
-from scoop import control
+from scoop._types import Future
+from scoop import _control as control
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
 FIRST_COMPLETED = 'FIRST_COMPLETED'
@@ -57,7 +57,7 @@ def _startup(rootFuture, *args, **kargs):
     _controller = greenlet.greenlet(control.runController)
     try:
         result = _controller.switch(rootFuture, *args, **kargs)
-    except scoop.comm.Shutdown:
+    except scoop._comm.Shutdown:
         result = None
     if scoop.DEBUG:
         import os
