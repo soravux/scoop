@@ -18,7 +18,6 @@ from __future__ import print_function
 import zmq
 import scoop
 import time
-import gc
 try:
     import cPickle as pickle
 except ImportError:
@@ -63,14 +62,10 @@ class ZMQCommunicator(object):
             yield self._recv()
         
     def sendFuture(self, future):
-        gc.disable()
         self.socket.send_multipart([b"TASK", pickle.dumps(future, pickle.HIGHEST_PROTOCOL)])
-        gc.enable()
         
     def sendResult(self, future):
-        gc.disable()
         self.socket.send_multipart([b"REPLY", pickle.dumps(future, pickle.HIGHEST_PROTOCOL), future.id.worker[0]])
-        gc.enable()
 
     def sendRequest(self):
         self.socket.send(b"REQUEST")
