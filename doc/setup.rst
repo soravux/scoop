@@ -4,6 +4,8 @@ Setup
 Environment setup
 -----------------
 
+.. wget http://scoop.googlecode.com/hg/scoop_install.sh && chmod u+x scoop_install.sh && ./scoop_install.sh
+
 Here is a scratchpad allowing you to set a working SCOOP environment.
 
 Python environment

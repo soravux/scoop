@@ -63,12 +63,16 @@ parser.add_argument('--broker-hostname',
                     nargs=1,
                     help="The externally routable broker hostname / ip "
                          "(defaults to the local hostname)",
-                    default=[socket.getfqdn()])
+                    default=[socket.getfqdn().split(".")[0]])
 parser.add_argument('--python-executable',
                     nargs=1,
                     help="The python executable with which to execute the "
                          "script (with absolute path if necessary)",
                     default=[sys.executable])
+parser.add_argument('--pythonpath',
+                    nargs=1,
+                    help="The PYTHONPATH environment variable",
+                    default=[os.environ.get('PYTHONPATH', '')])
 parser.add_argument('executable',
                     nargs=1,
                     help='The executable to start with scoop')
@@ -237,7 +241,8 @@ class launchScoop(object):
                             'META_ADDRESS': 'tcp://{0}:{1}'.format(
                                 args.broker_hostname,
                                 info_port),
-                            'SCOOP_DEBUG': '1' if scoop.DEBUG else '0'}
+                            'SCOOP_DEBUG': '1' if scoop.DEBUG else '0',
+                            'PYTHONPATH': args.pythonpath[0],}
 
                 arguments['envVars'] = " ".join([key + "=" + value for key, value in env_vars.items()])
 
@@ -255,7 +260,6 @@ class launchScoop(object):
                     localBootstrap.format(**arguments)]))
                 else:
                     # If the host is remote, connect with ssh
-                    # PYTHONPATH? Virtualenvs? Put sys.argv[0] correctly?
                     command.append(foreignBootstrap.format(**arguments))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 
