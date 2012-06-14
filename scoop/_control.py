@@ -105,7 +105,6 @@ def runController(callable, *args, **kargs):
                     else:
                         future = execQueue.pop()
                 else:
-                    execQueue.append(future)
                     future = execQueue.pop()
         else:
             # future is in progress; run next future from pending execution queue.
