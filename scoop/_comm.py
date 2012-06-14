@@ -18,6 +18,7 @@ from __future__ import print_function
 import zmq
 import scoop
 import time
+import gc
 try:
     import cPickle as pickle
 except ImportError:
@@ -45,9 +46,9 @@ class ZMQCommunicator(object):
     
     def _poll(self, timeout):
         socks = dict(self.poller.poll(timeout))
-        if socks.get(self.infoSocket) != None:
+        if self.infoSocket in socks:
             raise Shutdown("Closing the communication")
-        elif socks.get(self.socket) != None:
+        elif self.socket in socks:
             return True
         else:
             return False
@@ -62,10 +63,14 @@ class ZMQCommunicator(object):
             yield self._recv()
         
     def sendFuture(self, future):
-        self.socket.send_multipart([b"TASK", pickle.dumps(future)])
+        gc.disable()
+        self.socket.send_multipart([b"TASK", pickle.dumps(future, pickle.HIGHEST_PROTOCOL)])
+        gc.enable()
         
     def sendResult(self, future):
-        self.socket.send_multipart([b"REPLY", pickle.dumps(future), future.id.worker[0]])
+        gc.disable()
+        self.socket.send_multipart([b"REPLY", pickle.dumps(future, pickle.HIGHEST_PROTOCOL), future.id.worker[0]])
+        gc.enable()
 
     def sendRequest(self):
         self.socket.send(b"REQUEST")

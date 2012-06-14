@@ -60,11 +60,8 @@ def _startup(rootFuture, *args, **kargs):
     except scoop._comm.Shutdown:
         result = None
     if scoop.DEBUG:
-        import os
-        try:
-            os.mkdir("debug")
-        except:
-            pass
+        if not os.path.exists("debug"):
+            os.makedirs("debug")
         with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
                 scoop.BROKER_NAME.decode(), 'w') as f:
             f.write(str(control.stats))

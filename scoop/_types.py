@@ -186,7 +186,7 @@ class FutureQueue(object):
     """This class encapsulates a queue of futures that are pending execution.
     Within this class lies the entry points for future communications."""
     def __init__(self):
-        """initialize queue to empty elements and create a communication
+        """Initialize queue to empty elements and create a communication
         object."""
         self.movable = deque()
         self.ready = deque()
@@ -197,18 +197,18 @@ class FutureQueue(object):
         self.pendingRequest = 0
         
     def __iter__(self):
-        """iterates over the selectable (cancellable) elements of the queue."""
+        """Iterates over the selectable (cancellable) elements of the queue."""
         for it in (self.movable, self.ready):
             for element in it:
                 yield element
 
     def __len__(self):
-        """returns the length of the queue, meaning the sum of it's elements
+        """Returns the length of the queue, meaning the sum of it's elements
         lengths."""
         return len(self.movable) + len(self.ready)
     
     def append(self, future):
-        """append a future to the queue."""
+        """Append a future to the queue."""
         if future.done() and future.index == None:
             self.inprogress.append(future)
         elif future.done() and future.index != None:
@@ -217,8 +217,7 @@ class FutureQueue(object):
             self.inprogress.append(future)
         else:
             self.movable.append(future)
-        # Send oldest futures to the broker [Put that elsewhere?]
-        # TODO: Don't send cancelled futures
+        # Send oldest futures to the broker
         while len(self.movable) > self.highwatermark:
             self.socket.sendFuture(self.movable.pop())
         
@@ -252,14 +251,14 @@ class FutureQueue(object):
         self.pendingRequest += 1
     
     def updateQueue(self):
-        """updates the local queue with elements from the broker."""
+        """Updates the local queue with elements from the broker."""
         to_remove = []
         for future in self.inprogress:
             if future.index != None:
                 self.ready.append(future)
                 to_remove.append(future)
         for future in to_remove:
-            self.inprogress.remove(future)        
+            self.inprogress.remove(future)
         for future in self.socket.recvFuture():
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
