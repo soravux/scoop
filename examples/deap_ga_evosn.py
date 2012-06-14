@@ -37,9 +37,6 @@ parser.add_argument('--generations', type=int, default=40)
 args = parser.parse_args()
 INPUTS = args.inputs
 
-
-
-
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
     return network.assess(), network.length, network.depth
