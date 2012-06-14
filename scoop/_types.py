@@ -191,6 +191,7 @@ class FutureQueue(object):
         self.socket = ZMQCommunicator()
         self.lowwatermark  = 5
         self.highwatermark = 20
+        self.pendingRequest = 0
         
     def __iter__(self):
         """iterates over the selectable (cancellable) elements of the queue."""
@@ -205,9 +206,9 @@ class FutureQueue(object):
     
     def append(self, future):
         """append a future to the queue."""
-        if future.resultValue != None and future.index == None:
+        if future.done() and future.index == None:
             self.inprogress.append(future)
-        elif future.resultValue != None and future.index != None:
+        elif future.done() and future.index != None:
             self.ready.append(future)
         elif future.greenlet != None:
             self.inprogress.append(future)
@@ -216,7 +217,7 @@ class FutureQueue(object):
         # Send oldest futures to the broker [Put that elsewhere?]
         # TODO: Don't send cancelled futures
         while len(self.movable) > self.highwatermark:
-            self.socket.sendFuture(self.movable.popleft())
+            self.socket.sendFuture(self.movable.pop())
         
     def pop(self):
         """pop the next future from the queue; 
@@ -241,8 +242,11 @@ class FutureQueue(object):
 
     def requestFuture(self):
         """Request futures from the broker"""
-        for a in range(len(self), self.lowwatermark + 1):
+        for a in range(len(self) + self.pendingRequest, self.lowwatermark):
             self.socket.sendRequest()
+            self.pendingRequest += 1
+        self.socket.sendRequest()
+        self.pendingRequest += 1
     
     def updateQueue(self):
         """updates the local queue with elements from the broker."""
@@ -254,17 +258,20 @@ class FutureQueue(object):
         for future in to_remove:
             self.inprogress.remove(future)        
         for future in self.socket.recvFuture():
-            if future.id in scoop._control.futureDict:
+            if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
+                scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
                 for callback in scoop._control.futureDict[future.id].callback:
                     try:
                         callback.future(scoop._control.futureDict[future.id])
                     except:
                         pass
-            else:
+            elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
-            future = scoop._control.futureDict[future.id]
-            self.append(future)
+                self.pendingRequest -= 1
+            else:
+                self.pendingRequest -= 1
+            self.append(scoop._control.futureDict[future.id])
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
