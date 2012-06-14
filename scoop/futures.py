@@ -151,7 +151,7 @@ def _waitAny(*children):
     :param children: A tuple of children Future objects spawned by the calling 
         Future.
         
-    :return: A generator function that iterates on (index, result) tuples.
+    :return: A generator function that iterates on futures that are done.
     
     The generator produces results of the children in a non deterministic order
     that depends on the particular parallel execution of the Futures. The
@@ -174,12 +174,11 @@ def _waitAny(*children):
         future.stopWatch.resume()
         if childFuture.exceptionValue:
             raise childFuture.exceptionValue
-            
         yield childFuture
         n -= 1
 
 def _waitAll(*children):
-    """This private function waits on all child tasks specified by a tuple of
+    """This private function waits on all child futures specified by a tuple of
     previously created Future.
     
     :param children: A tuple of children Future objects spawned by the calling 
@@ -220,10 +219,10 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures."""
     DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if return_when == FIRST_COMPLETED:
-        for result, futureid in _waitAny(*fs):
+        for future in _waitAny(*fs):
             break
     elif return_when == ALL_COMPLETED:
-        for result in _waitAll(*fs):
+        for future in _waitAll(*fs):
             pass
     elif return_when == FIRST_EXCEPTION:
         for future in _waitAny(*fs):
