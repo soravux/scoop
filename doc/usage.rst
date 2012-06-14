@@ -36,3 +36,8 @@ The ``map()`` and ``submit()`` functions are lazy, meaning that it won't start c
         results = list(futures.map(add, range(8), range(8)))
     
     futures.startup(main)
+
+SCOOP and greenlets
+-------------------
+
+Since SCOOP uses greenlets to schedule and run futures, program using greenlets will not work with SCOOP. However, users should consider using the futures function to achieve the same goals.
