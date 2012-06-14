@@ -94,7 +94,7 @@ def main():
     evaluationTime = 0
 
     population = toolbox.population(n=args.population)
-    #hof = tools.ParetoFront()
+    hof = tools.ParetoFront()
     
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", tools.mean)
@@ -118,7 +118,7 @@ def main():
 
     evaluationTime += (time.time() - evalBegin)
     
-    #hof.update(population)
+    hof.update(population)
     stats.update(population)
     
     logger.logGeneration(gen=0, evals=len(population), stats=stats, time=evaluationTime)
@@ -156,14 +156,14 @@ def main():
         evaluationTime += (time.time() - evalBegin)
         
         population = toolbox.select(population+offspring, len(offspring))
-        #hof.update(population)
+        hof.update(population)
         stats.update(population)
         logger.logGeneration(gen=g, evals=len(invalid_ind), stats=stats, time=evaluationTime)
 
-    #best_network = sn.SortingNetwork(INPUTS, hof[0])
-    #print(best_network)
-    #print(best_network.draw())
-    #print("%i errors, length %i, depth %i" % hof[0].fitness.values)
+    best_network = sn.SortingNetwork(INPUTS, hof[0])
+    print(best_network)
+    print(best_network.draw())
+    print("%i errors, length %i, depth %i" % hof[0].fitness.values)
     totalTime = time.time() - beginTime
     
     print("Total time: {0}\nEvaluation time: {1}".format(totalTime, evaluationTime))
@@ -172,7 +172,7 @@ def main():
         f.write("{0};{1};{2};{3}\n".format(args.cores, INPUTS, totalTime, evaluationTime))
         f.close()
         
-    return population, stats#, hof
+    return population, stats, hof
 
 if __name__ == "__main__":
     main()
