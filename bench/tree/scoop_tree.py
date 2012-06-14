@@ -8,5 +8,5 @@ def main():
 
 if __name__=="__main__":
     importTree(sys.argv[1] if len(sys.argv) > 1 else "tree.txt")
-    registerMap(futures.mapJoin)
-    print(futures.startup(main))
+    registerMap(futures.map)
+    print(main())
