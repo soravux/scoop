@@ -16,7 +16,6 @@ except ImportError:
 
 GlobalTree = None
 mapfunc = None
-nodeDone = 0
 maxHeight = 0
 maxDepth = 0
 if graph:
@@ -108,8 +107,6 @@ def executeTree(address=[]):
     # Execute tasks
     localTree.intCalc()
     localTree.floatCalc()
-    nodeDone += 1
-    print("{}/{}".format(nodeDone, GlobalTree.nodes))
     # Select next nodes to be executed
     nextAddresses = [address + [i] for i in range(len(localTree.children))]
     if len(localTree.children) == 0:
