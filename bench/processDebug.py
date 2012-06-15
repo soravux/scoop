@@ -6,116 +6,205 @@ import matplotlib.ticker as ticker
 import numpy as np
 import itertools
 import os
+import argparse
 
 TaskId = namedtuple('TaskId', ['worker', 'rank'])
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 
-dataTask = OrderedDict()
-dataQueue = {}
+parser = argparse.ArgumentParser(description='Analyse the debug info')
+parser.add_argument("--inputdir", help='The directory containing the debug info',
+        default="debug")
 
-def format_worker(x, pos=None):
-    """This function is used as a formater"""
-    return dataTask.keys()[x]
+parser.add_argument("--prog", choices=["all", "broker", "density", "queue"],
+        default="all", help="The output graph")
 
-# Parse the input files
-for fichier in os.listdir("debug"):
-    print("opening {}".format(fichier))
-    with open("debug/"+fichier, 'r') as f:
-        splitFile = fichier.split('-')
-        fileType = splitFile[1]
-        fileName = splitFile[0]
-        if  fileType == "QUEUE":
-            dataQueue[fileName] = eval(f.read())
-        else:
-            dataTask[fileName] = eval(f.read())
-
-print(dataQueue)
-
-# First graph
-graphdata = []
-workers_names = []
-# Get start and end times 
-start_time = 9999999999999999999999999; end_time = 0
-for fichier, vals in dataTask.items():
-    if type(vals) == dict:
-        tmp_start_time = min([a['start_time'] for a in vals.values()])[0]
-        if tmp_start_time < start_time:
-            start_time = tmp_start_time
-        tmp_end_time = max([a['end_time'] for a in vals.values()])[0]
-        if tmp_end_time > end_time:
-            end_time = tmp_end_time
-
-# We determine the step size for the graphs.
-
-step = (end_time - start_time)/2000
-if step < 100:
-    step = 100
-print("range {0} step {1}".format(end_time - start_time, step))
-
-for fichier, vals in dataTask.items():
-    if type(vals) == dict:
-        workers_names.append(fichier)
-        # Data from worker
-        workerdata = []
-        print(fichier)
-        for graphtime in range(int(start_time * 100.), int(end_time * 100.),
-                int(step*100.)):
-            workerdata.append(sum([a['start_time'][0] <= float(graphtime) / 100. <= a['end_time'][0] for a in vals.values()]))
-        graphdata.append(workerdata)
-        
-# Worker density graph
-fig = plt.figure()
-ax = fig.add_subplot(111)
-box = ax.get_position()
-ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
-cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
-plt.xlabel('time (ms)'); plt.ylabel('Queue Length'); ax.set_title('Work density')
-ax.yaxis.set_ticks(range(len(graphdata)))
-ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
-cbar = fig.colorbar(cax)
-fig.savefig('WorkerDensity.png')
-
-# Broker Queue length Graph
-fig = plt.figure()
-ax = fig.add_subplot(111)
-for fichier, vals in dataTask.items():
-    if type(vals) == list:
-        # Data is from broker
-        ax.plot(zip(*vals)[0], zip(*vals)[2], linewidth=1.0, marker='o', label=fichier)
-plt.xlabel('time (s)'); plt.ylabel('Entries in broker queue')
-plt.title('Evolution of broker queue size during the job')
-box = ax.get_position()
-ax.set_position([box.x0, box.y0, box.width * 0.80, box.height])
-ax.legend(loc='center left', bbox_to_anchor=(1.00, 0.5))
-plt.setp(plt.gca().get_legend().get_texts(), fontsize='small')
-fig.savefig('BrokerQueueLength.png')
-
-# Broker Awaiting Workers Graph
-fig = plt.figure()
-ax = fig.add_subplot(111)
-for fichier, vals in dataTask.items():
-    if type(vals) == list:
-        # Data is from broker
-        ax.plot(zip(*vals)[0], zip(*vals)[3], linewidth=1.0, marker='o', label=fichier)
-plt.xlabel('time (s)'); plt.ylabel('Available workers')
-plt.title('Evolution of awaiting workers during the job')
-box = ax.get_position()
-ax.set_position([box.x0, box.y0, box.width * 0.80, box.height])
-ax.legend(loc='center left', bbox_to_anchor=(1.00, 0.5))
-plt.setp(plt.gca().get_legend().get_texts(), fontsize='small')
-fig.savefig('BrokerAwaitingWorkers.png')
+parser.add_argument("--output", help="The filename for the output graphs",
+        default="debug.png")
 
 
-# workers Queue length Graph
-fig = plt.figure()
-ax = fig.add_subplot(111)
+args = parser.parse_args()
 
-for fichier, vals in dataQueue.items():
-    print(zip(*vals))
-    ax.plot(*zip(*vals), label=fichier)
-    print("plotted")
-plt.xlabel('time(s)'); plt.ylabel('Queue Length')
-plt.title('Queue length throught time')
-ax.legend(loc='center left')
-fig.savefig('QueueLength.png')
 
+def getWorkersName(data):
+    """Returns the list of the names of the workers sorted alphabetically"""
+    names = [fichier for fichier in data.keys()]
+    names.sort()
+    names.remove("broker")
+    return names
+
+
+def importData(directory):
+    """Parse the input files and return two dictionnaries"""
+    dataTask = OrderedDict()
+    dataQueue = OrderedDict()
+    for fichier in os.listdir(directory):
+        print("opening {}".format(fichier))
+        with open(directory+"/"+fichier, 'r') as f:
+            splitFile = fichier.split('-')
+            fileType = splitFile[1]
+            fileName = splitFile[0]
+            if fileType == "QUEUE":
+                dataQueue[fileName] = eval(f.read())
+            else:
+                dataTask[fileName] = eval(f.read())
+    return dataTask, dataQueue
+
+def stepSize(startTime, endTime, points):
+    step = int((endTime - startTime)/points)
+    if step == 0:
+        return 1
+    else:
+        return step
+
+def timeRange(startTime, endTime, points):
+    return range(int(startTime), int(endTime), stepSize(startTime, endTime,
+        points))
+
+def getTimes(dataTasks):
+    """Get the start time and the end time of data in milliseconds"""
+    start_time = 9999999999999999999999999; end_time = 0
+    for fichier, vals in dataTask.items():
+        if type(vals) == dict:
+            tmp_start_time = min([a['start_time'] for a in vals.values()])[0]
+            if tmp_start_time < start_time:
+                start_time = tmp_start_time
+            tmp_end_time = max([a['end_time'] for a in vals.values()])[0]
+            if tmp_end_time > end_time:
+                end_time = tmp_end_time
+    return 1000 * start_time, 1000 * end_time
+
+
+
+def WorkerDensity(dataTasks):
+    """Return the worker density data for the graph."""
+
+    start_time, end_time = getTimes(dataTasks)
+    graphdata = []
+
+    for name in getWorkersName(dataTasks):
+        vals = dataTasks[name]
+        if type(vals) == dict:
+            # Data from worker
+            workerdata = []
+            print("Ploting density map for {}".format(name))
+            # We only have 800 pixels
+            for graphtime in timeRange(start_time, end_time, 800):
+                workerdata.append(sum([a['start_time'][0] <= float(graphtime) /
+                    1000. <= a['end_time'][0] for a in vals.values()]))
+            graphdata.append(workerdata)
+    return graphdata
+
+def plotDensity(dataTask, scale, filename):
+    # Worker density graph
+    def format_worker(x, pos=None):
+        """This function is used as a formater"""
+        return dataTask.keys()[x]
+
+    graphdata = WorkerDensity(dataTask)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    box = ax.get_position()
+    ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
+    cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
+    plt.xlabel('time ({})'.format(scale)); plt.ylabel('Queue Length'); ax.set_title('Work density')
+    ax.yaxis.set_ticks(range(len(graphdata)))
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
+    cbar = fig.colorbar(cax)
+    fig.savefig(filename)
+
+def plotBrokerQueue(dataTask, filename):
+    # Broker queue length graph
+    plt.figure()
+    plt.subplot(211)
+    for fichier, vals in dataTask.items():
+        if type(vals) == list:
+            # Data is from broker
+            plt.plot(zip(*vals)[0], zip(*vals)[2], linewidth=1.0, marker='o', label=fichier)   
+    plt.title('Queue length in time')
+    plt.ylabel('Tasks')
+
+    plt.subplot(212)
+    for fichier, vals in dataTask.items():
+        if type(vals) == list:
+            # Data is from broker
+            plt.plot(zip(*vals)[0], zip(*vals)[3], linewidth=1.0, marker='o', label=fichier)
+    plt.xlabel('time (s)')
+    plt.ylabel('Requests')
+    plt.savefig(filename)
+
+def plotWorkerQueue(dataQueue, filename):
+    # workers Queue length Graph
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    for fichier, vals in dataQueue.items():
+        ax.plot(*zip(*vals), label=fichier)
+    plt.xlabel('time(s)'); plt.ylabel('Queue Length')
+    plt.title('Queue length throught time')
+    fig.savefig(filename)
+
+def getWorkerInfo(dataTask):
+    # total work time by worker
+    workertime = []
+    workertasks = []
+    for fichier, vals in dataTask.items():
+        if type(vals) == dict:
+            #workers_names.append(fichier)
+            # Data from worker
+            totaltime = sum([a['executionTime'] for a in vals.values()])
+            totaltasks = sum([1 for a in vals.values()])
+            workertime.append(totaltime)
+            workertasks.append(totaltasks)
+    return workertime, workertasks
+
+def plotWorkerTime(workertime,worker_names, filename):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ind = range(len(workertime))
+    width = 0.35
+
+    rects = ax.bar(ind, workertime, width)
+    ax.set_ylabel('WorkedTime')
+    ax.set_title('Worked time for each worker')
+    #ax.set_xticks([x+width for x in ind])
+    ax.set_xticklabels(worker_names)
+
+    fig.savefig(filename)
+
+
+def plotWorkerTask(workertask,worker_names, filename):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ind = range(len(workertask))
+    width = 0.35
+
+    rects = ax.bar(ind, workertask, width)
+    ax.set_ylabel('Tasks')
+    ax.set_title('Number of tasks executed by each worker')
+    #ax.set_xticks([x+width for x in ind])
+    ax.set_xticklabels(worker_names)
+
+    fig.savefig(filename)
+
+if __name__ == "__main__":
+    print(args.inputdir)
+    print(args.prog)
+    print(args.output)
+    dataTask, dataQueue = importData(args.inputdir)
+
+    if args.prog == "density" or args.prog == "all":
+        plotDensity(dataTask, "s", "density_" + args.output)
+
+    if args.prog == "broker" or args.prog == "all":
+        plotBrokerQueue(dataTask, "broker_" + args.output)
+
+    if args.prog == "queue" or args.prog == "all":
+        plotWorkerQueue(dataQueue, "queue_" + args.output)
+
+    if args.prog == "time" or args.prog == "all":
+        workerTime, workerTasks = getWorkerInfo(dataTask)
+        plotWorkerTime(workerTime, getWorkersName(dataTask), "time_" + args.output)
+
+    if args.prog == "task" or args.prog == "all":
+        workerTime, workerTasks = getWorkerInfo(dataTask)
+        plotWorkerTask(workerTasks, getWorkersName(dataTask), "task_" + args.output)
