@@ -247,11 +247,11 @@ class launchScoop(object):
                 arguments['envVars'] = " ".join([key + "=" + value for key, value in env_vars.items()])
 
 
-                logging.debug('Initialising {0} worker {1} ({2} left){3}.'.format(
+                logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
                     "local" if host in ["127.0.0.1", "localhost"] else "remote",
-                    n,
-                    self.workers_left - 1,
-                    " -> Origin" if env_vars['IS_ORIGIN'] == '1' else ""))
+                    " origin" if env_vars['IS_ORIGIN'] == '1' else "",
+                    self.workers_left,
+                    host))
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     os.environ.update(env_vars)
