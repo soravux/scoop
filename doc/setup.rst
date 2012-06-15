@@ -4,7 +4,7 @@ Setup
 Environment setup
 -----------------
 
-.. wget http://scoop.googlecode.com/hg/scoop_install.sh && chmod u+x scoop_install.sh && ./scoop_install.sh
+.. Soon : wget http://scoop.googlecode.com/hg/scoop_install.sh && chmod u+x scoop_install.sh && ./scoop_install.sh
 
 Here is a scratchpad allowing you to set a working SCOOP environment.
 
@@ -26,7 +26,7 @@ Follow this **optional** section if you need to use another Python version (ie. 
     
 .. note::
     
-    If you are using the python offered by the system (the python which came installed by your operating system), you can still install the dependencies with the ``--prefix`` argument::
+    If you are using the python offered by the system (the python which came installed by your operating system) but can't install packages in the system-wide library path, you can still install the dependencies with the ``--prefix`` argument. See the `official documentation <http://docs.python.org/install/index.html#alternate-installation>`_ about alternate installation paths. It can be used as such::
     
         python setup.py install --prefix=$HOME/wanted/path/
     
@@ -37,10 +37,12 @@ Follow this **optional** section if you need to use another Python version (ie. 
         
     Keep in mind that this technique is tedious since you must keep your repository organised yourself and remember to use the ``--prefix`` argument.
     
-    We strongly recommend that you use a `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongsite with a `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ to help you with this matter. Please check their documentations for more informations.
+    We **strongly** recommend that you use a `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongside with a `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ instead of manually handling installation paths. Please check their documentations for more informations.
 
 Requirements
 ~~~~~~~~~~~~
+    
+.. TODO use pyzmq-static dev
     
 This section installs the requirements needed to run SCOOP::
     
@@ -50,6 +52,9 @@ This section installs the requirements needed to run SCOOP::
     [downloads]$ pip install pyzmq --install-option="--zmq=$HOME/zmq"
     [downloads]$ pip install -U greenlet==dev
 
+    
+.. TODO don't talk about mercurial
+    
 If you don't already have mercurial or SCOOP, you can use this section as reference::    
 
     [downloads]$ pip install mercurial
@@ -58,10 +63,10 @@ If you don't already have mercurial or SCOOP, you can use this section as refere
     
 .. _ssh-keys-information:
 
-remote usage
+Remote usage
 ~~~~~~~~~~~~
     
-Ensure your ssh keys are up-to-date and authorized on your remote hosts. You should log into every system that will be a foreign worker started by ``scooprun.py`` and ensure you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared ``/home/`` over your systems, you can do as such::
+Ensure your ssh keys are up-to-date and authorized on your remote hosts. You should log into every system that will be a foreign worker used by scoop and verify that you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared ``/home/`` over your systems, you can do as such::
     
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
@@ -74,7 +79,7 @@ Ensure your ssh keys are up-to-date and authorized on your remote hosts. You sho
 Startup scripts (supercomputer or grid)
 ---------------------------------------
 
-On grids, you must provide startup scripts to the task scheduler. Here is provided some example startup scripts using different grid task managers.
+You must provide a startup script on systems using a scheduler. Here is provided some example startup scripts using different grid task managers.
 
 .. note::
 
@@ -87,7 +92,7 @@ Here is an example of submit file for Torque::
 
     #!/bin/bash
     ## Please refer to your grid documentation for available flags. This is only an example.
-    #PBS -l procs=4
+    #PBS -l procs=16
     #PBS -V
     #PBS -N SCOOPJob
 
@@ -106,7 +111,7 @@ Here is an example of submit file for Torque::
     hosts=$(cat $PBS_NODEFILE | sed ':a;N;$!ba;s/\n/ /g')
     
     # Launch SCOOP using the hosts
-    time scooprun.py --hosts $hosts -vv -N 4 fullTree.py --python-executable `which python`
+    time scooprun.py --hosts $hosts -vv -N 16 fullTree.py
 
 
 Sun Grid Engine (SGE)
@@ -114,6 +119,7 @@ Sun Grid Engine (SGE)
 
 Here is an example of submit file for SGE::
 
+    ## Please refer to your grid documentation for available flags. This is only an example.
     #$ -l h_rt=300
     #$ -pe test 16
     #$ -S /bin/bash
@@ -135,4 +141,4 @@ Here is an example of submit file for SGE::
     hosts=$(cat $PE_HOSTFILE | awk '{printf "%s ", $1}')
 
     # Launch the remotes workers
-    time scooprun.py --hosts $hosts -vv -N 16 test-scoop.py --python-executable `which python`
+    time scooprun.py --hosts $hosts -vv -N 16 test-scoop.py

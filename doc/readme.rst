@@ -4,22 +4,24 @@ Readme
 Please refer to :doc:`setup` and :doc:`usage` for installation and usage instructions.
 
 
-Terminology
+Nomenclature
 ------------
 
 The nomenclature used to describe our architecture to execute parallel tasks is described in the following table:
 
 .. _Nomenclature-table:
 
-=========== =================================================================================================================
+=========== ==============================================================================================================================================================
   Keyword   Description
-=========== =================================================================================================================
+=========== ==============================================================================================================================================================
+Futures     A task, in the meaning of :pep:`3148#future-objects`.
+Worker      Process executing and/or generating futures it received from or sending to its broker.
+Origin      The worker executing the user program. Every other worker will wait for work dispatched as futures from the broker.
+Broker      Process receiving and dispatching tasks to-and-fro its workers and/or other brokers. In charge of the load-balancing.
 Federation  Conglomerate of brokers that works together on a task.
-Broker      Process dispatching tasks to its workers and/or other brokers and managing the load-balancing.   
-Worker      Process executing tasks it received from its broker, potentially generating and sending tasks back to the broker.
-Origin      Special status of a worker stating that he spawns the root task and that it will receive the task answer.
-Meta socket Extraneous Publisher-Subscriber socket created between the brokers to propagate load informations.
-=========== =================================================================================================================
+Main socket Router-Dealer (see the `ZeroMQ Guide <http://zguide.zeromq.org/page:all>`_) socket created between
+Meta socket Publisher-Subscriber (see the `ZeroMQ Guide <http://zguide.zeromq.org/page:all>`_) socket created between the workers and brokers to propagate load and meta informations.
+=========== ==========================================================================================================================================================================
 
 
 Requirements
@@ -29,22 +31,25 @@ You may want to run your distributed and parallel tasks over a tightly integrate
 
 The software requirements for SCOOP is as follows:
 
-* Python >= 2.6
-* argparse >= 1.2.1 (for python 2.6)
+* Python >= 2.7 or >= 3.2*
 * Greenlets >= 0.3.4
-* PyZMQ as well as libzmq >= 2.2.0
+* PyZMQ and libzmq >= 2.2.0
 
-SCOOP works with Linux and Windows. If you launch tasks from the latter, be sure to have Cygwin installed and your PATH environment variable setted correctly in order to be able to launch tasks remotely, since this feature uses ``ssh``.
+.. note::
+    
+    * Python versions earlier than 2.7 and 3.2 will work, but need the argparse module to be installed separately.    
+    
+SCOOP will work locally on any operating system that Python supports. For remote connexions to work, you will need the ``ssh`` executable to be properly installed on the machine.
 
 Please check the document :doc:`setup` for more technical informations about the setup of a working SCOOP system.
 
 
-Launching a task
-----------------
+Program launch
+--------------
 
-The ``scoop`` module spawns the needed brokers and workers on a given list of computer, including remote ones via ``ssh``.
+The scoop module spawns the needed brokers and workers on a given list of computer, including remote ones via ``ssh``.
 
-You can execute ``python -m scoop --help``  to get the list of available arguments.
+You can execute ``python -m scoop --help`` to get the list of available arguments.
 
 An usage example may be as follow::
 
