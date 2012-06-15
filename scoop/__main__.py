@@ -249,9 +249,9 @@ class launchScoop(object):
 
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
                     "local" if host in ["127.0.0.1", "localhost"] else "remote",
-                    " origin" if env_vars['IS_ORIGIN'] == '1' else ""),
+                    " origin" if env_vars['IS_ORIGIN'] == '1' else "",
                     self.workers_left,
-                    host)
+                    host))
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     os.environ.update(env_vars)
