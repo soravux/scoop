@@ -4,8 +4,6 @@ Setup
 Environment setup
 -----------------
 
-.. Soon : wget http://scoop.googlecode.com/hg/scoop_install.sh && chmod u+x scoop_install.sh && ./scoop_install.sh
-
 Here is a scratchpad allowing you to set a working SCOOP environment.
 
 Python environment
@@ -32,7 +30,7 @@ Follow this **optional** section if you need to use another Python version (ie.
     system-wide library path, you can still install the dependencies with the 
     ``--prefix`` argument. See the `official documentation 
     <http://docs.python.org/install/index.html#alternate-installation>`_ about 
-    alternate installation paths. It can be used as such::
+    alternate installation paths. This feature can be used as such::
     
         python setup.py install --prefix=$HOME/wanted/path/
     
@@ -47,36 +45,31 @@ Follow this **optional** section if you need to use another Python version (ie.
     
     We **strongly** recommend that you use a 
     `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongside with a 
-    `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ instead of manually handling installation paths. Please check their documentations for more informations.
+    `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ 
+    instead of manually handling installation paths. Please refer to their 
+    documentation for more informations.
 
-Requirements
+Installation
 ~~~~~~~~~~~~
     
-.. TODO use pyzmq-static dev
-    
-This section installs the requirements needed to run SCOOP::
-    
-    [downloads]$ wget http://download.zeromq.org/zeromq-2.2.0.tar.gz
-    [downloads]$ tar xfvz zeromq-2.2.0.tar.gz && cd zeromq-2.2.0
-    [zeromq-2.2.0]$ ./configure --prefix=$HOME/zmq/ && make && make install && cd ..
-    [downloads]$ pip install pyzmq --install-option="--zmq=$HOME/zmq"
-    [downloads]$ pip install -U greenlet==dev
+To install SCOOP and its dependencies, use pip as such::
 
-    
-.. TODO don't talk about mercurial
-    
-If you don't already have mercurial or SCOOP, you can use this section as reference::    
-
-    [downloads]$ pip install mercurial
-    [downloads]$ hg clone https://code.google.com/p/scoop/ ./scoop/
-    [downloads]$ cd scoop/ && python setup.py install
+    [downloads]$ pip install -U scoop
     
 .. _ssh-keys-information:
 
 Remote usage
 ~~~~~~~~~~~~
     
-Ensure your ssh keys are up-to-date and authorized on your remote hosts. You should log into every system that will be a foreign worker used by scoop and verify that you've got your public ssh key in the ``~/.ssh/authorized_keys2`` file on the remote systems. If you have a shared ``/home/`` over your systems, you can do as such::
+.. TODO Refer to Fabric?
+    
+Keep in mind that connecting to remote hosts is be done without a prompt. 
+This is done by using ssh keys that allows passwordless authentication over ssh 
+on your remote hosts. 
+You should log into every system that will be a foreign worker used by scoop and 
+verify that you've got your public ssh key in the ``~/.ssh/authorized_keys2`` 
+file on the remote systems. If you have a shared ``/home/`` over your systems, 
+you can do as such::
     
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
@@ -84,16 +77,23 @@ Ensure your ssh keys are up-to-date and authorized on your remote hosts. You sho
     
 .. note::
 
-    If your remote hosts needs special configuration (non-default port, some specified username, etc.), you should do it in your ssh client configuration file (by default ``~/.ssh/config``). Please refer to the ssh manual as to how to configure and personalize your hosts connections.
+    If your remote hosts needs special configuration (non-default port, some 
+    specified username, etc.), you should do it in your ssh client 
+    configuration file (by default ``~/.ssh/config``). Please refer to the 
+    `ssh manual <http://www.openbsd.org/cgi-bin/man.cgi?query=ssh>`_ as to how 
+    to configure and personalize your hosts connections.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
 
-You must provide a startup script on systems using a scheduler. Here is provided some example startup scripts using different grid task managers.
+You must provide a startup script on systems using a scheduler. Here is 
+provided some example startup scripts using different grid task managers.
 
 .. note::
 
-    **Please note that these are only examples**. Refer to the documentation of your own scheduler to get the list of every arguments you must and/or can pass to be able the run the task on your grid.
+    **Please note that these are only examples**. Refer to the documentation of 
+    your own scheduler to get the list of every arguments you must and/or can 
+    pass to be able the run the task on your grid.
 
 Torque (Moab & Maui)
 ~~~~~~~~~~~~~~~~~~~~

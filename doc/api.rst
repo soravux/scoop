@@ -12,6 +12,8 @@ so::
     results = futures.map(func, data)
     futureObject = futures.submit(func, arg)
     ...
+    
+More informations are available in the :doc:`usage` document.
 
 .. automodule:: scoop.futures
    :members:
@@ -22,5 +24,5 @@ Future class
 When you ``submit()`` a task, you receive a Future object. This instance will
 possess the following methods.
    
-.. autoclass:: scoop.types.Future
+.. autoclass:: scoop._types.Future
    :members:
