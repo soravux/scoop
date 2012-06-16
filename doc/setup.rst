@@ -11,7 +11,8 @@ Here is a scratchpad allowing you to set a working SCOOP environment.
 Python environment
 ~~~~~~~~~~~~~~~~~~
 
-Follow this **optional** section if you need to use another Python version (ie. 3.2.3 in this example) than the system's::
+Follow this **optional** section if you need to use another Python version (ie. 
+3.2.3 in this example) than the system's::
 
     [~]$ mkdir downloads && cd downloads/
     [downloads]$ wget http://www.python.org/ftp/python/3.2.3/Python-3.2.3.tar.bz2
@@ -26,18 +27,27 @@ Follow this **optional** section if you need to use another Python version (ie. 
     
 .. note::
     
-    If you are using the python offered by the system (the python which came installed by your operating system) but can't install packages in the system-wide library path, you can still install the dependencies with the ``--prefix`` argument. See the `official documentation <http://docs.python.org/install/index.html#alternate-installation>`_ about alternate installation paths. It can be used as such::
+    If you are using the python offered by the system (the python which came 
+    installed by your operating system) but can't install packages in the 
+    system-wide library path, you can still install the dependencies with the 
+    ``--prefix`` argument. See the `official documentation 
+    <http://docs.python.org/install/index.html#alternate-installation>`_ about 
+    alternate installation paths. It can be used as such::
     
         python setup.py install --prefix=$HOME/wanted/path/
     
-    You will then be able to include these libraries by modifying the example startup scripts like this::
+    You will then be able to include these libraries by modifying the example 
+    startup scripts like this::
     
         #export PATH=$HOME/python/bin:$PATH
         export PYTHONPATH=$HOME/wanted/path/lib/python+version/site-packages/:$PYTHONPATH
         
-    Keep in mind that this technique is tedious since you must keep your repository organised yourself and remember to use the ``--prefix`` argument.
+    Keep in mind that this technique is tedious since you must keep your 
+    repository organised yourself and remember to use the ``--prefix`` argument.
     
-    We **strongly** recommend that you use a `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongside with a `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ instead of manually handling installation paths. Please check their documentations for more informations.
+    We **strongly** recommend that you use a 
+    `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongside with a 
+    `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ instead of manually handling installation paths. Please check their documentations for more informations.
 
 Requirements
 ~~~~~~~~~~~~
@@ -142,3 +152,6 @@ Here is an example of submit file for SGE::
 
     # Launch the remotes workers
     time scooprun.py --hosts $hosts -vv -N 16 test-scoop.py
+
+.. TODO Condor & autres
+        ~~~~~~
