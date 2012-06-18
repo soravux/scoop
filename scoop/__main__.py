@@ -242,7 +242,8 @@ class launchScoop(object):
                                 args.broker_hostname,
                                 info_port),
                             'SCOOP_DEBUG': '1' if scoop.DEBUG else '0',
-                            'PYTHONPATH': args.pythonpath[0],}
+                            'PYTHONPATH': args.pythonpath[0],
+                            'FEDERATION_SIZE': str(args.n),}
 
                 arguments['envVars'] = " ".join([key + "=" + value for key, value in env_vars.items()])
 
