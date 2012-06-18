@@ -38,7 +38,6 @@ def importData(directory):
     dataTask = OrderedDict()
     dataQueue = OrderedDict()
     for fichier in os.listdir(directory):
-        print("opening {}".format(fichier))
         with open(directory+"/"+fichier, 'r') as f:
             splitFile = fichier.split('-')
             fileType = splitFile[1]
@@ -163,10 +162,12 @@ def plotWorkerTime(workertime,worker_names, filename):
     ind = range(len(workertime))
     width = 0.35
 
+    print(ind, workertime, width)
+
     rects = ax.bar(ind, workertime, width)
     ax.set_ylabel('WorkedTime')
     ax.set_title('Worked time for each worker')
-    #ax.set_xticks([x+width for x in ind])
+    ax.set_xticks(ind)
     ax.set_xticklabels(worker_names)
 
     fig.savefig(filename)
@@ -187,9 +188,6 @@ def plotWorkerTask(workertask,worker_names, filename):
     fig.savefig(filename)
 
 if __name__ == "__main__":
-    print(args.inputdir)
-    print(args.prog)
-    print(args.output)
     dataTask, dataQueue = importData(args.inputdir)
 
     if args.prog == "density" or args.prog == "all":
