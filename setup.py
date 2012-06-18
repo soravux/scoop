@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 import scoop
 
@@ -12,9 +12,9 @@ setup(name='scoop',
       author_email='scoop-users@googlegroups.com',
       url='http://scoop.googlecode.com',
       download_url='http://code.google.com/p/scoop/downloads/list',
-      requires=['greenlet (>=0.3.4)',
-                'pyzmq (>=2.2.0)',
-                'argparse (>=1.1)'],
+      install_requires=['greenlet>=0.3.4',
+                'pyzmq>=2.2.0',
+                'argparse>=1.1'],
       packages=['scoop'],
       platforms=['any'],
       keywords=['distributed algorithms', 'parallel programming'],
