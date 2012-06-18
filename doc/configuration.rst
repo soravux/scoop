@@ -3,7 +3,7 @@ Configuration
 
 Manually launch SCOOP
 ---------------------
-To start a parallel task manually using SCOOP, you must launch a minimum of one broker and one worker, acting as the origin. Manually launching a SCOOP task can be summarised to:
+To start a parallel task manually using SCOOP, you must launch a minimum of one broker and one worker acting as the origin. Manually launching a SCOOP task can be summarised to:
 
 #. Start a broker;
 #. Start the desired non-origin workers;
@@ -15,7 +15,7 @@ The brokers are configured using arguments passed while launching them. You can 
 
 .. warning::
 
-    Be sure to launch every process using the SCOOP API using the same Python version. SCOOP uses Python serialisation which is known to be incompatible between versions. Using different Python versions, on a remote worker or locally, could lead in misinterpreted deserialisation. This translates to cryptic and indecipherable errors which the Python traceback could probably misidentify.
+    Be sure to launch every process using the SCOOP API using the same Python version. SCOOP uses Python serialisation which is known to be incompatible between versions. Using different Python versions, on a remote worker or locally, could lead in misinterpreted deserialisation. This translates to cryptic and indecipherable errors which the Python traceback will probably misidentify.
     
 .. _Environment-variables-for-the-workers:
 
