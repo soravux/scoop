@@ -21,8 +21,8 @@ More informations are available in the :doc:`usage` document.
 Future class
 ------------
 
-The :meth:`scoop.futures.submit` function will return a Future object. This 
-instance will possess the following methods.
+The :meth:`scoop.futures.submit` function returns a :class:`scoop._types.Future` object. This 
+instance possess the following methods.
    
 .. autoclass:: scoop._types.Future
    :members:
