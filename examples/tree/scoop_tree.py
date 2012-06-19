@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
-from treeTester import *
+from Tree import *
 import sys
-from scoop import futures
+import time
+from scoop import futures, FEDERATION_SIZE
 
 def main():
     return executeTree()
 
+importTree(sys.argv[1] if len(sys.argv) > 1 else "tree.txt")
+registerMap(futures.map)
+
 if __name__=="__main__":
-    importTree(sys.argv[1] if len(sys.argv) > 1 else "tree.txt")
-    registerMap(futures.map)
-    print(main())
+    bt = time.time()
+    main()
+    totalTime = time.time() - bt
+    print("total time : {}\ncores : {}".format(totalTime, FEDERATION_SIZE))
