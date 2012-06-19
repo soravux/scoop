@@ -99,11 +99,9 @@ class Future(object):
         return self.greenlet.switch(future)
 
     def cancel(self):
-        """Attempt to cancel the call.
-        
-        :returns: If the call is currently being executed then it cannot
-            be cancelled and the method will return False, otherwise
-            the call will be cancelled and the method will return True."""
+        """If the call is currently being executed then it cannot
+           be cancelled and the method will return False, otherwise
+           the call will be cancelled and the method will return True."""
         if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
             scoop._control.futureDict.pop(self.id)
@@ -112,24 +110,16 @@ class Future(object):
         return False
 
     def cancelled(self):
-        """Returns a status flag of the process.
-        
-        :returns: True if the call was successfully cancelled, else
-            otherwise."""
+        """True if the call was successfully cancelled, else otherwise."""
         return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
-        """Returns a status flag of the process.
-        
-        :returns: True if the call is currently being executed and cannot be
-            cancelled."""
+        """True if the call is currently being executed and cannot be 
+           cancelled."""
         return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
-        """Returns a status flag of the process.
-        
-        :returns: True if the call was successfully cancelled or finished
-            running."""
+        """True if the call was successfully cancelled or finished running."""
         return self.resultValue != None or self.exceptionValue != None
 
     def result(self, timeout=None):
@@ -168,7 +158,7 @@ class Future(object):
         return self.exceptionValue
 
     def add_done_callback(self, callable):
-        """Attaches a callable to the future that will be called when the future
+        """Attach a callable to the future that will be called when the future
         is cancelled or finishes running. Callable will be called with the
         future as its only argument.
 

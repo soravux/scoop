@@ -40,9 +40,9 @@ if 'IS_ORIGIN' not in os.environ:
 
 
 def _startup(rootFuture, *args, **kargs):
-    """This function initializes the SCOOP environment.
+    """Initializes the SCOOP environment.
     
-    :param rootFuture: Any callable object (function or class object with __call__
+    :param rootFuture: Any callable object (function or class object with *__call__*
         method); this object will be called once and allows the use of parallel
         calls inside this object.
     :param args: A tuple of positional arguments that will be passed to the
@@ -71,11 +71,11 @@ def _startup(rootFuture, *args, **kargs):
     return result
 
 def _mapFuture(callable, *iterables, **kargs):
-    """This function is similar to the built-in map function, but each of its 
+    """Similar to the built-in map function, but each of its 
     iteration will spawn a separate independent parallel Future that will run 
     either locally or remotely as `callable(*args, **kargs)`.
     
-    :param callable: Any callable object (function or class object with __call__
+    :param callable: Any callable object (function or class object with *__call__*
         method); this object will be called to execute each Future. 
     :param iterables: A tuple of iterable objects; each will be zipped
         to form an iterable of arguments tuples that will be passed to the
@@ -98,15 +98,18 @@ def _mapFuture(callable, *iterables, **kargs):
     return childrenList
 
 def map(func, *iterables, **kargs):
-    """Equivalent to map(func, \*iterables) but func is executed asynchronously
+    """Equivalent to 
+    `map(func, \*iterables, ...) <http://docs.python.org/library/functions.html#map>`_ 
+    but *func* is executed asynchronously
     and several calls to func may be made concurrently. The returned iterator
-    raises a TimeoutError if __next__() is called and the result isn't available
-    after timeout seconds from the original call to map(). If timeout is not
+    raises a TimeoutError if *__next__()* is called and the result isn't available
+    after timeout seconds from the original call to *map()* [To be done in future
+    version of SCOOP]. If timeout is not
     specified or None then there is no limit to the wait time. If a call raises
     an exception then that exception will be raised when its value is retrieved
     from the iterator.
     
-    :param func: Any callable object (function or class object with __call__
+    :param func: Any callable object (function or class object with *__call__*
         method); this object will be called to execute the Futures. 
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
@@ -125,10 +128,10 @@ def map(func, *iterables, **kargs):
         yield future.resultValue
 
 def submit(func, *args, **kargs):
-    """This function submits an independent parallel Future that will either run
-    locally or remotely as `func(*args, **kargs)`.
+    """Submits an independent parallel :class:`scoop._types.Future` that will 
+    either run locally or remotely as `func(*args, **kargs)`.
     
-    :param func: Any callable object (function or class object with __call__
+    :param func: Any callable object (function or class object with *__call__*
         method); this object will be called to execute the Future.
     :param args: A tuple of positional arguments that will be passed to the
         callable object.
@@ -146,8 +149,7 @@ def submit(func, *args, **kargs):
     return child
 
 def _waitAny(*children):
-    """This private function is for waiting on any child Future created by the
-    calling Fureu.
+    """Waits on any child Future created by the calling Future.
     
     :param children: A tuple of children Future objects spawned by the calling 
         Future.
@@ -179,8 +181,8 @@ def _waitAny(*children):
         n -= 1
 
 def _waitAll(*children):
-    """This private function waits on all child futures specified by a tuple of
-    previously created Future.
+    """Wait on all child futures specified by a tuple of previously created 
+       Future.
     
     :param children: A tuple of children Future objects spawned by the calling 
         Future.
@@ -201,7 +203,8 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
     
     :param fs: The sequence of Futures (possibly created by another instance) to
         wait upon.
-    :param timeout: The maximum number of seconds to wait. If None, then there
+    :param timeout: The maximum number of seconds to wait [To be done in future
+        version of SCOOP]. If None, then there
         is no limit on the wait time.
     :param return_when: Indicates when this function should return. The options
         are:
@@ -238,7 +241,8 @@ def as_completed(fs, timeout=None):
 
     :param fs: The sequence of Futures (possibly created by another instance) to
         wait upon.
-    :param timeout: The maximum number of seconds to wait. If None, then there
+    :param timeout: The maximum number of seconds to wait [To be done in future
+        version of SCOOP]. If None, then there
         is no limit on the wait time.
 
     :return: An iterator that yields the given Futures as they complete
