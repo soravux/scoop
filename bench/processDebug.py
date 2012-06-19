@@ -63,13 +63,16 @@ def getTimes(dataTasks):
     """Get the start time and the end time of data in milliseconds"""
     start_time = 9999999999999999999999999; end_time = 0
     for fichier, vals in dataTask.items():
-        if type(vals) == dict:
-            tmp_start_time = min([a['start_time'] for a in vals.values()])[0]
-            if tmp_start_time < start_time:
-                start_time = tmp_start_time
-            tmp_end_time = max([a['end_time'] for a in vals.values()])[0]
-            if tmp_end_time > end_time:
-                end_time = tmp_end_time
+        try:
+            if type(vals) == dict:
+                tmp_start_time = min([a['start_time'] for a in vals.values()])[0]
+                if tmp_start_time < start_time:
+                    start_time = tmp_start_time
+                tmp_end_time = max([a['end_time'] for a in vals.values()])[0]
+                if tmp_end_time > end_time:
+                    end_time = tmp_end_time
+        except ValueError:
+            continue
     return 1000 * start_time, 1000 * end_time
 
 
