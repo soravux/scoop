@@ -22,7 +22,8 @@ The future(s) distribution over workers is done via a blackboard pattern. In
 such pattern, workers act as independant elements which interacts with a 
 blackboard to equilibrate their workload.
 
-.. TODO: Add schema
+.. image:: images/architecture.png
+   :align: center
 
 .. note:
     
