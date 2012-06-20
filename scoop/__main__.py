@@ -95,15 +95,7 @@ sys.argv += {arguments}
 _startup(functools.partial(runpy.run_path, '{executable}',init_globals=globals(), run_name='__main__'))
 """
 
-# String passed to bash throught ssh to the foreign members of the working group.
 
-foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -c "from scoop.futures import _startup
-import runpy, sys, functools
-sys.path.append(r\\"{programPath}\\")
-from {basename} import *
-sys.argv += {remoteArguments}
-_startup(functools.partial(runpy.run_path, \\"{executable}\\",
-init_globals=globals(), run_name=\\"__main__\\"))" """
 
 # Dictionary to format the localBootstrap and foreignBootstrap strings.
 
@@ -256,11 +248,14 @@ class launchScoop(object):
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     os.environ.update(env_vars)
+                    #self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
+                    #"-c",
+                    #localBootstrap.format(**arguments)]))
                     self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
-                    "-c",
-                    localBootstrap.format(**arguments)]))
+                        "-m", "scoop.bootstrap", arguments['executable']]))
                 else:
                     # If the host is remote, connect with ssh
+                    foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -m {executable} {arguments}"""
                     command.append(foreignBootstrap.format(**arguments))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 

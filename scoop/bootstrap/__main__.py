@@ -24,21 +24,38 @@ import os
 import functools
 import argparse
 
-path = "examples"
-tempModule = 'piCalc.py'
-arguments = []
-basename = os.path.basename(tempModule)[:-3]
-programPath = os.path.join(path, os.path.dirname(tempModule))
+parser = argparse.ArgumentParser(description='Starts the executable.',
+                                 prog="{0} -m scoop.bootstrap".format(sys.executable))
+parser.add_argument('executable',
+                    nargs=1,
+                    help='The executable to start with scoop')
+parser.add_argument('args',
+                    nargs=argparse.REMAINDER,
+                    help='The arguments to pass to the executable',
+                    default=[])
+args = parser.parse_args()
 
-sys.path.append(programPath)
-user_module = __import__(basename)
-try:
-    attrlist = user_module.__all__
-except AttributeError:
-    attrlist = dir(user_module)
-for attr in attrlist:
-    globals()[attr] = getattr(user_module, attr)
 
-sys.argv += arguments
-_startup(functools.partial(runpy.run_path, tempModule,
-    init_globals=globals(),run_name="__main__"))
+if __name__ == "__main__":
+    # get the module path in the Python path
+    sys.path.append(os.path.join(os.getcwd(), os.path.dirname(args.executable[0])))
+    
+    # import the user module into the global dictionary
+    # equivalent to from {user_module} import *
+    user_module = __import__(os.path.basename(args.executable[0])[:-3])
+    try:
+        attrlist = user_module.__all__
+    except AttributeError:
+        attrlist = dir(user_module)
+    for attr in attrlist:
+        globals()[attr] = getattr(user_module, attr)
+
+    # Add the user arguments to argv
+    sys.argv += args.args
+    # Setup the scoop constants
+
+    # TODO add the scoop constants
+
+    # Startup the program
+    _startup(functools.partial(runpy.run_path, args.executable[0],
+             init_globals=globals(),run_name="__main__"))
