@@ -65,13 +65,13 @@ passed to Python, as such::
 Here is a list of the parameters that can be passed to scoop::
 
     python -m scoop --help
-    usage: C:\Python27\python.exe -m scoop [-h] [--hosts [HOSTS [HOSTS ...]]]
-                                           [--path PATH] [--nice NICE] [--verbose]
-                                           [--log LOG] [-n N] [-e]
-                                           [--broker-hostname BROKER_HOSTNAME]
-                                           [--python-executable PYTHON_EXECUTABLE]
-                                           [--pythonpath PYTHONPATH]
-                                           executable ...
+    usage: python -m scoop [-h] [--hosts [HOSTS [HOSTS ...]]]
+                                [--path PATH] [--nice NICE] [--verbose]
+                                [--log LOG] [-n N] [-e]
+                                [--broker-hostname BROKER_HOSTNAME]
+                                [--python-executable PYTHON_EXECUTABLE]
+                                [--pythonpath PYTHONPATH]
+                                executable ...
 
     Starts a parallel program using SCOOP.
 

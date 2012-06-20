@@ -19,6 +19,7 @@ div.related a:hover {
 
 div.related:first-child {
     border-top: 0;
+    padding-top: 0;
     border-bottom: 1px solid #ccc;
 }
 
