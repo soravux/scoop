@@ -1,0 +1,22 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+{{ super() }}
+{% if not embedded %}<script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>{% endif %}
+{% endblock %}
+
+{% block rootrellink %}
+    <li><a href="http://code.google.com/p/scoop/">Project Homepage</a>{{ reldelim1 }}</li>
+	<li><a href="{{ pathto('index') }}">{{ shorttitle }}</a>{{ reldelim1 }} </li>
+{% endblock %}
+
+
+{% block footer %}
+<div class="footer">
+    &copy; Copyright {{ copyright|e }}.
+    <br />
+    Last updated on {{ last_updated|e }}.
+    <br />
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> {{ sphinx_version|e }}.
+</div>
+{% endblock %}
