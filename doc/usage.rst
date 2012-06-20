@@ -55,39 +55,70 @@ How to launch SCOOP programs
 The scoop module spawns the needed broker and workers on a given list of 
 computers, including remote ones via ``ssh``.
 
-.. program-output:: python -m scoop --help
-
 Programs using SCOOP need to be launched with the ``-m scoop`` parameter 
 passed to Python, as such::
     
     cd scoop/examples/
     python -m scoop -n 2 fullTree.py
+    
+Here is a list of the parameters that can be passed to scoop::
+
+    python -m scoop --help
+    usage: C:\Python27\python.exe -m scoop [-h] [--hosts [HOSTS [HOSTS ...]]]
+                                           [--path PATH] [--nice NICE] [--verbose]
+                                           [--log LOG] [-n N] [-e]
+                                           [--broker-hostname BROKER_HOSTNAME]
+                                           [--python-executable PYTHON_EXECUTABLE]
+                                           [--pythonpath PYTHONPATH]
+                                           executable ...
+
+    Starts a parallel program using SCOOP.
+
+    positional arguments:
+      executable            The executable to start with SCOOP
+      args                  The arguments to pass to the executable
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --hosts [HOSTS [HOSTS ...]], --host [HOSTS [HOSTS ...]]
+                            The list of hosts. The first host will execute the
+                            origin.
+      --path PATH, -p PATH  The path to the executable on remote hosts
+      --nice NICE           *nix niceness level (-20 to 19) to run the executable
+      --verbose, -v         Verbosity level of this launch script (-vv for more)
+      --log LOG             The file to log the output (default is stdout)
+      -n N                  Number of process to launch the executable with
+      -e                    Activate ssh tunnels to route toward the broker
+                            sockets over remote connections (may eliminate routing
+                            problems and activate encryption but slows down
+                            communications)
+      --broker-hostname BROKER_HOSTNAME
+                            The externally routable broker hostname / ip (defaults
+                            to the local hostname)
+      --python-executable PYTHON_EXECUTABLE
+                            The python executable with which to execute the script
+      --pythonpath PYTHONPATH
+                            The PYTHONPATH environment variable
 
 A remote workers example may be as follow::
 
-    python -m scoop --hosts 127.0.0.1 192.168.1.101 192.168.1.102 192.168.1.103 -vv -n 16 your_program.py [your arguments]
+    python -m scoop --hosts 127.0.0.1 remotemachinedns 192.168.1.101 192.168.1.102 192.168.1.103 -vv -n 16 your_program.py [your arguments]
 
 ================    =================================
-Argument
+Argument            Meaning
 ================    =================================
--m scoop
---hosts [...]
--vv
--n 16
-your_program.py
-[your arguments]
+-m scoop            **Mandatory** Uses Scoop to run program.
+--hosts [...]       List of hosts to launcher workers on.
+-vv                 Double verbosity flag
+-n 16               Launch 16 workers
+your_program.py     The program to be launched
+[your arguments]    The arguments that needs to be passed to your program
 ================    =================================
-    
-.. warning::
 
-    Configure correctly your ``ssh`` instance. More information is available in the ref:`ssh-keys-information` section of the documentation.
-    
 .. note::
     
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly setted up on your local network or a system hosts file, consider using the ``--broker-hostname`` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the ``-e`` argument for testing purposes.
     
-    
-.. _examples-reference:
 
 Cookbook
 --------
@@ -105,12 +136,23 @@ upon element arrival using :meth:`scoop.futures.as_completed` like so::
     result = [i.result() for i in futures.as_completed(launches)]
 
     
+.. _examples-reference:
+    
 Examples
 --------
     
-Examples are available in the ``examples/`` directory of scoop.
+Examples are available in the ``examples/`` directory of scoop. For instance, 
+a Monte-Carlo method of calculating Pi using Scoop to parallelize its 
+computation is found in *examples/piCalc.py*:
 
-.. TODO discuss examples, literal include
+.. literalinclude:: ../examples/piCalc.py
+   :lines: 21-
+
+The *examples/fullTree.py* example holds a pretty good wrap-up of available
+functionnalities:
+
+.. literalinclude:: ../examples/fullTree.py
+   :lines: 21-
     
 Please check our :doc:`api` for any implentation detail of the proposed 
 functions.

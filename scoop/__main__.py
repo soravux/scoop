@@ -26,12 +26,12 @@ import socket
 import random
 import logging
     
-parser = argparse.ArgumentParser(description='Starts the executable on the nodes.',
+parser = argparse.ArgumentParser(description='Starts a parallel program using SCOOP.',
                                  fromfile_prefix_chars='@',
                                  prog="{0} -m scoop".format(sys.executable))
 parser.add_argument('--hosts', '--host',
-                    help="A file containing a list of hosts. The first host "
-                         "will execute the origin.",
+                    help="The list of hosts. The first host will execute the "
+                         "origin.",
                     nargs='*',
                     default=["127.0.0.1"])
 parser.add_argument('--path', '-p',
@@ -39,7 +39,7 @@ parser.add_argument('--path', '-p',
                     default=os.getcwd())
 parser.add_argument('--nice',
                     type=int,
-                    help="UNIX niceness level (-20 to 19) to run the "
+                    help="*nix niceness level (-20 to 19) to run the "
                          "executable")
 parser.add_argument('--verbose', '-v',
                     action = 'count',
@@ -67,7 +67,7 @@ parser.add_argument('--broker-hostname',
 parser.add_argument('--python-executable',
                     nargs=1,
                     help="The python executable with which to execute the "
-                         "script (with absolute path if necessary)",
+                         "script",
                     default=[sys.executable])
 parser.add_argument('--pythonpath',
                     nargs=1,
@@ -75,7 +75,7 @@ parser.add_argument('--pythonpath',
                     default=[os.environ.get('PYTHONPATH', '')])
 parser.add_argument('executable',
                     nargs=1,
-                    help='The executable to start with scoop')
+                    help='The executable to start with SCOOP')
 parser.add_argument('args',
                     nargs=argparse.REMAINDER,
                     help='The arguments to pass to the executable',

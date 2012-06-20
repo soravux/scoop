@@ -1,6 +1,6 @@
 {% extends "!layout.html" %}
 
-{%- block extrahead %}
+{% block extrahead %}
 {{ super() }}
 {% if not embedded %}<script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>{% endif %}
 {% endblock %}
@@ -16,7 +16,6 @@
     &copy; Copyright {{ copyright|e }}.
     <br />
     Last updated on {{ last_updated|e }}.
-    <a href="{{ pathto('bugs') }}">Found a bug</a>?
     <br />
     Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> {{ sphinx_version|e }}.
 </div>
