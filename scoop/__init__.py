@@ -29,3 +29,4 @@ META_ADDRESS = os.environ.get('META_ADDRESS', "").encode()
 try: FEDERATION_SIZE = int(os.environ.get('FEDERATION_SIZE', -1))
 except ValueError: FEDERATION_SIZE = -1
 DEBUG = os.environ.get('SCOOP_DEBUG', "0") == "1"
+VALID = False
