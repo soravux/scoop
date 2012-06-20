@@ -22,9 +22,7 @@ from ._types import Future, FutureId, FutureQueue
 import scoop
 
 # Set module-scope variables about this controller
-worker = (scoop.WORKER_NAME, scoop.BROKER_NAME) # worker future id
 rank = 0                                        # rank id for next future
-is_origin = scoop.IS_ORIGIN                     # is the worker the origin?
 current = None                                  # future currently running in greenlet
 futureDict = {}                                 # dictionary of existing futures
 execQueue = None                                # queue of futures pending execution
@@ -63,7 +61,7 @@ def runFuture(future):
 
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    if future.parentId.worker == worker:
+    if future.parentId.worker == scoop.worker:
         for callback in future.callback:
             try: callback(future)
             except: pass # Ignored callback exception as stated in PEP 3148
@@ -80,7 +78,7 @@ def runController(callable, *args, **kargs):
         execQueue = deque() if len(scoop.BROKER_ADDRESS) == 0  else FutureQueue()
     
     # launch future if origin or try to pickup a future if slave worker
-    if is_origin == True:
+    if scoop.IS_ORIGIN == True:
         future = Future(rootId, callable, *args, **kargs)
     else:
         future = execQueue.pop()
@@ -88,11 +86,11 @@ def runController(callable, *args, **kargs):
     future.greenlet = greenlet.greenlet(runFuture)
     future = future._switch(future)
     
-    while future.parentId != rootId or not future.done() or is_origin == False:
+    while future.parentId != rootId or not future.done() or scoop.IS_ORIGIN == False:
         # process future
         if future.done():
             # future is finished
-            if future.id.worker != worker:
+            if future.id.worker != scoop.worker:
                 # future is not local
                 execQueue.sendResult(future)
                 future = execQueue.pop()

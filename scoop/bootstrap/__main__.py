@@ -17,12 +17,13 @@
 #
 
 from __future__ import print_function
-from scoop.futures import _startup
+#from scoop.futures import _startup
 import runpy
 import sys
 import os
 import functools
 import argparse
+import scoop
 
 parser = argparse.ArgumentParser(description='Starts the executable.',
                                  prog="{0} -m scoop.bootstrap".format(sys.executable))
@@ -33,7 +34,31 @@ parser.add_argument('args',
                     nargs=argparse.REMAINDER,
                     help='The arguments to pass to the executable',
                     default=[])
+parser.add_argument('--origin', help="To specify that the worker is the origin",
+                    action='store_true')
+parser.add_argument('--workerName', help="The name of the worker",
+                    default="worker0")
+parser.add_argument('--brokerName', help="The name of the broker",
+                    default="broker")
+parser.add_argument('--brokerAddress',
+                    help="The tcp address of the broker written tcp://address:port",
+                    default="")
+parser.add_argument('--metaAddress',
+                    help="The tcp address of the info written tcp://address:port",
+                    default="")
+parser.add_argument('--size',
+                    help="The size of the worker pool",
+                    type=int,
+                    default = 1)
+parser.add_argument('--debug',
+                    help="Activate the debug",
+                    action='store_true')
+
+
+
+
 args = parser.parse_args()
+
 
 
 if __name__ == "__main__":
@@ -53,9 +78,18 @@ if __name__ == "__main__":
     # Add the user arguments to argv
     sys.argv += args.args
     # Setup the scoop constants
-
-    # TODO add the scoop constants
+    scoop.IS_ORIGIN       = args.origin
+    scoop.WORKER_NAME     = args.workerName.encode()
+    scoop.BROKER_NAME     = args.brokerName.encode()
+    scoop.BROKER_ADDRESS  = args.brokerAddress.encode()
+    scoop.META_ADDRESS    = args.metaAddress.encode()
+    scoop.FEDERATION_SIZE = args.size
+    scoop.DEBUG           = args.debug
+    scoop.IS_ORIGIN       = args.origin
+    scoop.worker          = (scoop.WORKER_NAME, scoop.BROKER_NAME)
+    scoop.VALID           = True
+   
 
     # Startup the program
-    _startup(functools.partial(runpy.run_path, args.executable[0],
+    scoop.futures._startup(functools.partial(runpy.run_path, args.executable[0],
              init_globals=globals(),run_name="__main__"))

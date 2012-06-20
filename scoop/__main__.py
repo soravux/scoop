@@ -21,7 +21,6 @@ import argparse
 import time
 import os
 import sys
-import scoop
 import socket
 import random
 import logging
@@ -73,28 +72,15 @@ parser.add_argument('--pythonpath',
                     nargs=1,
                     help="The PYTHONPATH environment variable",
                     default=[os.environ.get('PYTHONPATH', '')])
+parser.add_argument('--debug', help="Turn on the debuging", action='store_true')
 parser.add_argument('executable',
                     nargs=1,
                     help='The executable to start with scoop')
 parser.add_argument('args',
                     nargs=argparse.REMAINDER,
                     help='The arguments to pass to the executable',
-                    default=[])
+                    default=[])                   
 args = parser.parse_args()
-
-
-# Dictionary to format the localBootstrap and foreignBootstrap strings.
-
-arguments = {'executable': args.executable[0],
-             'arguments': str(args.args),
-             'remoteArguments': str(args.args).replace("'", '\\"'),
-             'basename': os.path.basename(args.executable[0])[:-3],
-             'programPath': os.path.join(args.path, os.path.dirname(args.executable[0])).replace("\\", "/"),
-             'remotePath': args.path,
-             'nice': ('','nice -n {}'.format(args.nice))[args.nice != None],
-             'pythonExecutable': args.python_executable[0],
-             'envVars': []}
-
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 def port_ready(port):
@@ -209,36 +195,33 @@ class launchScoop(object):
         for host in args.hosts:
             command = []
             for n in range(min(self.maximum_workers[host], self.workers_left)):
-                # Setting up environment variables
-                env_vars = {'IS_ORIGIN': '0' if self.workers_left > 1 else '1',
-                            'WORKER_NAME': 'worker{0}'.format(self.workers_left),
-                            'BROKER_NAME': 'broker',
-                            'BROKER_ADDRESS': 'tcp://{0}:{1}'.format(
-                                args.broker_hostname,
-                                broker_port),
-                            'META_ADDRESS': 'tcp://{0}:{1}'.format(
-                                args.broker_hostname,
-                                info_port),
-                            'SCOOP_DEBUG': '1' if scoop.DEBUG else '0',
-                            'PYTHONPATH': args.pythonpath[0],
-                            'FEDERATION_SIZE': str(args.n),}
-
-                arguments['envVars'] = " ".join([key + "=" + value for key, value in env_vars.items()])
 
 
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
                     "local" if host in ["127.0.0.1", "localhost"] else "remote",
-                    " origin" if env_vars['IS_ORIGIN'] == '1' else "",
+                    " origin" if self.workers_left == 1 else "",
                     self.workers_left,
                     host))
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
-                    os.environ.update(env_vars)
-                    #self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
-                    #"-c",
-                    #localBootstrap.format(**arguments)]))
-                    self.created_subprocesses.append(subprocess.Popen([args.python_executable[0],
-                        "-m", "scoop.bootstrap", arguments['executable']]))
+                    c = [args.python_executable[0],
+                        "-m", "scoop.bootstrap",
+                        "--workerName", "worker{}".format(self.workers_left),
+                        "--brokerName", "broker",
+                        "--brokerAddress",
+                        "tcp://{0}:{1}".format(args.broker_hostname,
+                                               broker_port),
+                        "--metaAddress",
+                        'tcp://{0}:{1}'.format(args.broker_hostname,
+                                               info_port),
+                        "--size", str(args.n),
+                        ]
+                    if self.workers_left == 1:
+                        c.append("--origin")
+                    c.append(args.executable[0])
+                    c.extend(args.args)
+                    self.created_subprocesses.append(subprocess.Popen(c))
+                    print("c: {}".format(c))
                 else:
                     # If the host is remote, connect with ssh
                     foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -m scoop.bootstrap {executable} {arguments}"""
@@ -272,7 +255,7 @@ class launchScoop(object):
         # Ensure everything is cleaned up on exit
         logging.debug('Destroying local elements of the federation...')
         self.created_subprocesses.reverse() # Kill the broker last
-        if scoop.DEBUG == 1:
+        if args.debug == 1:
             # give time to flush data
             time.sleep(1)
         for process in self.created_subprocesses:
@@ -283,8 +266,7 @@ class launchScoop(object):
         logging.info('Finished destroying spawned subprocesses.')
         os.environ = self.backup_environ
         logging.info('Restored environment variables.')
-
-    
+   
 scoopLaunching = launchScoop()
 try:
     scoopLaunching.run()
