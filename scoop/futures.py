@@ -30,13 +30,14 @@ _AS_COMPLETED = '_AS_COMPLETED'
 # This is the greenlet for running the controller logic.
 _controller = None
 
-# Warning displayed if not started with -m scoop
-if 'IS_ORIGIN' not in os.environ:
-    import logging
-    logging.basicConfig(format='[%(asctime)-15s] %(levelname)-7s %(message)s')
-    logging.error("\n\n\nScoop is being used without '-m scoop'. This script "
-                  "will likely crash unexpectedly upon SCOOP API calls.\n"
-                  "Please refer to the SCOOP manual for more information.\n\n")
+# TODO Find a way to test if scoop was started with -m scoop
+## Warning displayed if not started with -m scoop
+#if scoop.VALID == False:
+#    import logging
+#    logging.basicConfig(format='[%(asctime)-15s] %(levelname)-7s %(message)s')
+#    logging.error("\n\n\nScoop is being used without '-m scoop'. This script "
+#                  "will likely crash unexpectedly upon SCOOP API calls.\n"
+#                  "Please refer to the SCOOP manual for more information.\n\n")
 
 
 def _startup(rootFuture, *args, **kargs):

@@ -20,7 +20,7 @@ import time
 import zmq
 import sys
 from collections import deque
-import scoop
+#import scoop
 
 REQUEST    = b"REQUEST"
 TASK       = b"TASK"
@@ -52,8 +52,8 @@ class Broker(object):
         self.poller.register(self.infoSocket, zmq.POLLIN)
         
         # init statistics
-        if scoop.DEBUG:
-            self.stats = []
+#        if scoop.DEBUG:
+#            self.stats = []
         
         # Two cases are important and must be optimised:
         # - The search of unassigned task
@@ -105,8 +105,8 @@ class Broker(object):
                 elif msg_type == SHUTDOWN:
                     break
                     
-                if scoop.DEBUG:
-                    self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), len(self.available_workers)))
+#                if scoop.DEBUG:
+#                    self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), len(self.available_workers)))
 
     def shutdown(self):
         self.infoSocket.send(SHUTDOWN)
@@ -118,14 +118,14 @@ class Broker(object):
         self.context.term()
         
         # write down statistics about this run if asked
-        if scoop.DEBUG:
-            import os
-            try:
-                os.mkdir('debug')
-            except:
-                pass
-            with open("debug/broker-" + scoop.BROKER_NAME.decode(), 'w') as f:
-                f.write(str(self.stats))
+#        if scoop.DEBUG:
+#            import os
+#            try:
+#                os.mkdir('debug')
+#            except:
+#                pass
+#            with open("debug/broker-" + scoop.BROKER_NAME.decode(), 'w') as f:
+#                f.write(str(self.stats))
 
 if __name__=="__main__":
     port = str(5555) if len(sys.argv) < 2 else sys.argv[1]

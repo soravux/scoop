@@ -66,7 +66,7 @@ class Future(object):
     
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
-        self.id = FutureId(scoop._control.worker, scoop._control.rank); scoop._control.rank += 1
+        self.id = FutureId(scoop.worker, scoop._control.rank); scoop._control.rank += 1
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
