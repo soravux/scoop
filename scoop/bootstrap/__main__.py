@@ -16,7 +16,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 
-
+from __future__ import print_function
 from scoop.futures import _startup
 import runpy
 import sys

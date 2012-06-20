@@ -83,20 +83,6 @@ parser.add_argument('args',
 args = parser.parse_args()
 
 
-
-# String passed to the python interpreter to bootstrap the process and launch
-# the interpreter with the user's module.
-
-localBootstrap = """from scoop.futures import _startup
-import runpy, sys, functools
-sys.path.append(r"{programPath}")
-from {basename} import *
-sys.argv += {arguments}
-_startup(functools.partial(runpy.run_path, '{executable}',init_globals=globals(), run_name='__main__'))
-"""
-
-
-
 # Dictionary to format the localBootstrap and foreignBootstrap strings.
 
 arguments = {'executable': args.executable[0],
@@ -255,7 +241,7 @@ class launchScoop(object):
                         "-m", "scoop.bootstrap", arguments['executable']]))
                 else:
                     # If the host is remote, connect with ssh
-                    foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -m {executable} {arguments}"""
+                    foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -m scoop.bootstrap {executable} {arguments}"""
                     command.append(foreignBootstrap.format(**arguments))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 
