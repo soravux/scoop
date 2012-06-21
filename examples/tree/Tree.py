@@ -1,6 +1,6 @@
 from __future__ import print_function
+import random
 import math
-import numpy.random
 import time
 import argparse
 try:
@@ -8,23 +8,23 @@ try:
 except ImportError:
     import pickle
 
-graph = True
 try:
     import pydot
 except ImportError:
-    graph = False
+    pydot = None
 
 GlobalTree = None
 mapfunc = None
 maxHeight = 0
 maxDepth = 0
-if graph:
+if pydot:
     g = pydot.Dot()
     h = 0
 
 class Tree():
     def __init__(self, height, minChildren, maxChildren, a, intMean, floatMean):
         global maxHeight, maxDepth, g, h
+        import numpy.random
         self.intRange = int(numpy.random.weibull(a)*intMean)
         self.floatRange = int(numpy.random.weibull(a)*floatMean)
 
@@ -39,7 +39,7 @@ class Tree():
         self.leaves = 0
         
         # Generate a new node in graph
-        if graph:
+        if pydot:
             self.node = pydot.Node( h )
             g.add_node( self.node )
             h += 1
@@ -49,7 +49,7 @@ class Tree():
             return
 
         # Generate children
-        n = numpy.random.randint(minChildren, maxChildren)
+        n = random.randint(minChildren, maxChildren)
         self.children = []
         for i in range(n):
             self.children.append(Tree(height - 1,
@@ -66,13 +66,16 @@ class Tree():
         for child in self.children:
             self.nodes += child.nodes
             self.leaves += child.leaves
-            if graph:
+            if pydot:
                 g.add_edge( pydot.Edge( self.node, child.node ) )
+                del child.node
             
         self.height = maxHeight - maxDepth
+        if height == maxHeight:
+            del self.node
 
     def __str__(self):
-        if graph:
+        if pydot:
             g.write_png("graph.png")
         return ("height : {0}\n"
                 "leaves : {1}\n"
@@ -133,14 +136,14 @@ def registerMap(newMap):
     mapfunc = newMap    
     
 def calibrate(meanTime):
-    x = numpy.random.randint(1, 9)
+    x = random.randint(1, 9)
     bt = time.time()
     for i in range(1000000):
         x = (x + x * i) % 2**32
     total = time.time() - bt
     intValue = meanTime * 1000000 / total / 2
     
-    x = 1.1 * numpy.random.randint(1, 9)
+    x = 1.1 * random.randint(1, 9)
     bt = time.time()
     for i in range(1000000):
         x = (x + x * i) % 2**32
