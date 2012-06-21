@@ -17,7 +17,6 @@
 #
 
 from __future__ import print_function
-#from scoop.futures import _startup
 import runpy
 import sys
 import os
@@ -47,7 +46,6 @@ parser.add_argument('--size',
 parser.add_argument('--debug',
                     help="Activate the debug",
                     action='store_true')
-
 parser.add_argument('executable',
                     nargs=1,
                     help='The executable to start with scoop')
@@ -55,11 +53,7 @@ parser.add_argument('args',
                     nargs=argparse.REMAINDER,
                     help='The arguments to pass to the executable',
                     default=[])
-
-
 args = parser.parse_args()
-
-
 
 if __name__ == "__main__":
     # Setup the scoop constants
@@ -94,7 +88,6 @@ if __name__ == "__main__":
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
    
-
     # Startup the program
     scoop.futures._startup(functools.partial(runpy.run_path, executable,
              init_globals=globals(),run_name="__main__"))

@@ -221,7 +221,6 @@ class launchScoop(object):
                     c.append(args.executable[0])
                     c.extend(args.args)
                     self.created_subprocesses.append(subprocess.Popen(c))
-                    print("c: {}".format(c))
                 else:
                     # If the host is remote, connect with ssh
                     arguments = {'remotePath' : args.path,
