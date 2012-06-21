@@ -152,4 +152,3 @@ def calibrate(meanTime):
     
     print(intValue, floatValue)
     return intValue, floatValue
-
