@@ -71,7 +71,7 @@ class Tree():
                 del child.node
             
         self.height = maxHeight - maxDepth
-        if height == maxHeight:
+        if pydot and height == maxHeight:
             del self.node
 
     def __str__(self):
