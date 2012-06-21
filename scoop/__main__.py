@@ -224,7 +224,17 @@ class launchScoop(object):
                     print("c: {}".format(c))
                 else:
                     # If the host is remote, connect with ssh
-                    foreignBootstrap = """cd {remotePath} && {envVars} {nice} {pythonExecutable} -m scoop.bootstrap {executable} {arguments}"""
+                    arguments = {'remotePath' : args.path,
+                                 'nice': ('', 'nice -n {}'.format(args.nice))[args.nice != None],
+                                 'pythonExecutable' : args.python_executable[0],
+                                 'workers_left' : self.workers_left,
+                                 'broker_hostname' : args.broker_hostname,
+                                 'broker_port' : broker_port,
+                                 'info_port'   : info_port,
+                                 'n' : args.n,
+                                 'executable' : args.executable[0],
+                                 'arguments' : args.args}
+                    foreignBootstrap = "cd {remotePath} && {nice} {pythonExecutable} -m scoop.bootstrap --workerName worker{workers_left} --brokerName broker --brokerAddress tcp://{broker_hostname}:{broker_port} --metaAddress tcp://{broker_hostname}:{info_port} --size {n} {executable} {arguments}"
                     command.append(foreignBootstrap.format(**arguments))
                 self.workers_left -= 1
             # Launch every remote hosts in the same time 
