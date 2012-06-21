@@ -152,7 +152,6 @@ class launchScoop(object):
         """Starts a broker on random unoccupied port(s)"""
         # Find the broker
         # TODO: _broker.py
-        from scoop.broker import Broker
         
         # Check if port is not already in use
         while True:
@@ -162,8 +161,7 @@ class launchScoop(object):
         
         # Spawn the broker
         broker_subproc = subprocess.Popen([args.python_executable[0],
-                os.path.abspath(sys.modules[Broker.__module__].__file__),
-                str(broker_port), str(broker_port + 1)])
+                "-m", "scoop.broker", "--tPort",str(broker_port),"--mPort", str(broker_port + 1)])
             
         # Let's wait until the local broker is up and running...
         begin = time.time()
@@ -221,7 +219,6 @@ class launchScoop(object):
                     c.append(args.executable[0])
                     c.extend(args.args)
                     self.created_subprocesses.append(subprocess.Popen(c))
-                    print("c: {}".format(c))
                 else:
                     # If the host is remote, connect with ssh
                     arguments = {'remotePath' : args.path,
