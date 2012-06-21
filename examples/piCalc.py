@@ -34,5 +34,6 @@ def calcPi(n, t):
     return pi_value
 
 if __name__ == "__main__":
+    print("bonjour")
     dataPi = calcPi(3000, 5000)
 
