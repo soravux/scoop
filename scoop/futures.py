@@ -129,7 +129,7 @@ def map(func, *iterables, **kargs):
         yield future.resultValue
 
 def submit(func, *args, **kargs):
-    """Submits an independent parallel :class:`scoop._types.Future` that will 
+    """Submit an independent parallel :class:`scoop._types.Future` that will 
     either run locally or remotely as `func(*args, **kargs)`.
     
     :param func: Any callable object (function or class object with *__call__*
