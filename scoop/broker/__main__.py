@@ -16,20 +16,19 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
+from collections import deque
 import time
 import zmq
 import sys
-from collections import deque
-#import scoop
+import argparse
 
 REQUEST    = b"REQUEST"
 TASK       = b"TASK"
 REPLY      = b"REPLY"
 SHUTDOWN   = b"SHUTDOWN"
 
-
 class Broker(object):
-    def __init__(self, tSock="tcp://*:5555", mSock="tcp://*:5556"):
+    def __init__(self, tSock="tcp://*:5555", mSock="tcp://*:5556", debug=False):
         """This function initializes a broker.
     
     :param tSock: Task Socket Address. Must contain protocol, address and port
@@ -38,6 +37,8 @@ class Broker(object):
         information."""
         self.context = zmq.Context(1)
         
+        self.debug = debug
+
         # zmq Socket for the tasks, replies and request.
         self.taskSocket = self.context.socket(zmq.ROUTER)
         self.taskSocket.bind(tSock)
@@ -52,8 +53,8 @@ class Broker(object):
         self.poller.register(self.infoSocket, zmq.POLLIN)
         
         # init statistics
-#        if scoop.DEBUG:
-#            self.stats = []
+        if self.debug == True:
+            self.stats = []
         
         # Two cases are important and must be optimised:
         # - The search of unassigned task
@@ -63,7 +64,6 @@ class Broker(object):
         
         # Initializing the queue of workers and tasks
         # The busy workers variable will contain a dict (map) of workers: task
-        self.busy_workers = {}
         self.available_workers = deque()
         self.unassigned_tasks = deque()
 
@@ -79,7 +79,6 @@ class Broker(object):
                     task = msg[2]
                     try:
                         address = self.available_workers.popleft()
-                        self.busy_workers[address] = task
                         self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.unassigned_tasks.append(task)
@@ -87,9 +86,6 @@ class Broker(object):
                 # Broker received a request for task
                 elif msg_type == REQUEST:
                     address = msg[0]
-                    if address in self.busy_workers:
-                        del self.busy_workers[address]
-                    
                     try:
                         task = self.unassigned_tasks.pop()
                         self.taskSocket.send_multipart([address, TASK, task])
@@ -105,8 +101,8 @@ class Broker(object):
                 elif msg_type == SHUTDOWN:
                     break
                     
-#                if scoop.DEBUG:
-#                    self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), len(self.available_workers)))
+                if self.debug:
+                    self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), len(self.available_workers)))
 
     def shutdown(self):
         self.infoSocket.send(SHUTDOWN)
@@ -118,19 +114,27 @@ class Broker(object):
         self.context.term()
         
         # write down statistics about this run if asked
-#        if scoop.DEBUG:
-#            import os
-#            try:
-#                os.mkdir('debug')
-#            except:
-#                pass
-#            with open("debug/broker-" + scoop.BROKER_NAME.decode(), 'w') as f:
-#                f.write(str(self.stats))
+        if self.debug:
+            import os
+            try:
+                os.mkdir('debug')
+            except:
+                pass
+            with open("debug/broker-" + scoop.BROKER_NAME.decode(), 'w') as f:
+                f.write(str(self.stats))
+
+parser = argparse.ArgumentParser(description='Starts the broker on the current computer')
+parser.add_argument('--tPort', help='The port of the task socket',
+                    default = "5555")
+parser.add_argument('--mPort', help="The port of the info socket",
+                    default = "5556")
+parser.add_argument('--debug', help="Activate the debug", action='store_true')
+
+args = parser.parse_args()
 
 if __name__=="__main__":
-    port = str(5555) if len(sys.argv) < 2 else sys.argv[1]
-    info_port = str(5556) if len(sys.argv) < 3 else sys.argv[2]
-    this_broker = Broker("tcp://*:" + port, "tcp://*:" + info_port)
+    this_broker = Broker("tcp://*:" + args.tPort, "tcp://*:" + args.mPort,
+                         debug=True if args.debug == True else False)
     try:
         this_broker.run()
     finally:
