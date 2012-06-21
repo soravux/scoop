@@ -132,22 +132,23 @@ class TestScoopCommon(unittest.TestCase):
         super(TestScoopCommon, self).__init__(*args, **kwargs)
         
     def multiworker_set(self):
-        Backupenv = os.environ.copy()
-        os.environ.update({'WORKER_NAME': 'worker',
-                       'BROKER_NAME':'broker',
-                       'IS_ORIGIN': '0',
-                       'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
-                       'META_ADDRESS': 'tcp://127.0.0.1:5556'})   
-        worker = subprocess.Popen([sys.executable, "tests.py"])
-        os.environ = Backupenv
+        #Backupenv = os.environ.copy()
+        #os.environ.update({'WORKER_NAME': 'worker',
+        #               'BROKER_NAME':'broker',
+        #               'IS_ORIGIN': '0',
+        #               'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
+        #               'META_ADDRESS': 'tcp://127.0.0.1:5556'})   
+        worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
+        "--workerName", "worker", "--brokerName", "broker", "--brokerAddress",
+        "tcp://127.0.0.1:5555", "--metaAddress", "tcp://127.0.0.1:5556", "tests.py"])
+        #os.environ = Backupenv
         return worker
 
         
     def setUp(self):
         # Start the server
-        from scoop.broker import Broker
-        self.server = subprocess.Popen([sys.executable,
-                os.path.abspath(sys.modules[Broker.__module__].__file__)])
+        #from scoop.broker import Broker
+        self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker"])
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
@@ -155,16 +156,24 @@ class TestScoopCommon(unittest.TestCase):
             if (datetime.datetime.now() - begin > datetime.timedelta(seconds=3)):
                 raise Exception('Could not start server!')
             pass
-        os.environ.update({'WORKER_NAME': 'origin', # this is the default name
-                       'BROKER_NAME':'broker',
-                       'IS_ORIGIN': '1',
-                       'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
-                       'META_ADDRESS': 'tcp://127.0.0.1:5556'})
-        try:
-            reload(scoop)
-        except:
-            import imp
-            imp.reload(scoop)
+        scoop.IS_ORIGIN = True
+        scoop.WORKER_NAME = 'origin'.encode()
+        scoop.BROKER_NAME = 'broker'.encode()
+        scoop.BROKER_ADDRESS = 'tcp://127.0.0.1:5555'
+        scoop.META_ADDRESS = 'tcp://127.0.0.1:5556'
+        scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
+        scoop.VALID = True
+        
+        #os.environ.update({'WORKER_NAME': 'origin', # this is the default name
+        #               'BROKER_NAME':'broker',
+        #               'IS_ORIGIN': '1',
+        #               'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
+        #               'META_ADDRESS': 'tcp://127.0.0.1:5556'})
+        #try:
+        #    reload(scoop)
+        #except:
+        #    import imp
+        #    imp.reload(scoop)
         
     
     def tearDown(self):
