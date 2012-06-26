@@ -107,7 +107,7 @@ class launchScoop(object):
         self.python_executable = python_executable[0]
         self.n = n
         self.e = e
-        self.executable = executable
+        self.executable = executable[0]
         self.args = arguments
         self.verbose = verbose
         self.path = path
@@ -153,7 +153,7 @@ class launchScoop(object):
 scoop.bootstrap --workerName worker{workers_left} --brokerName \
 broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
 --metaAddress tcp://{broker_hostname}:{info_port} --size {n} \
-{origin} {executable}\
+{origin} {executable} \
 {arguments}".format(remotePath = self.path, 
                     nice = 'nice - n {}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workers_left == 1 else '',
@@ -303,7 +303,7 @@ broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
         logging.info('Finished destroying spawned subprocesses.')
 if __name__ == "__main__":
     scoopLaunching = launchScoop(args.hosts, args.n, args.verbose,
-            args.python_executable, args.broker_hostname, args.executable[0],
+            args.python_executable, args.broker_hostname, args.executable,
             args.args, args.e, args.log, args.path, args.debug, args.nice)
     try:
         scoopLaunching.run()
