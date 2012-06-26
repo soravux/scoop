@@ -3,16 +3,24 @@ Welcome to SCOOP's documentation!
 
 SCOOP (Scalable COncurrent Operations in Python) is a distributed task
 module allowing concurrent parallel programming on various environments,
-including grids and supercomputers.
+from motley grids to supercomputers.
 
-It offers simple and easy parallelization paradigms based on the `futures`
-module see :pep:`3148`.
+Our philosophy is based on these ideas:
 
-You may want to run your distributed and parallel tasks over a tightly 
-integrated grid such as a supercomputer or you may want to test a bunch of 
-computers laying there in the laboratory or put to good use some heterogeneous 
-systems at home. SCOOP allows you to scale your parallel tasks to all these 
-situations with minor modifications to your source code.
+    * **Simplicity** and standard usage and interface are essential;
+    * **Fast prototyping** allows precious time saving;
+    * The **future** is parallel.
+
+SCOOP features and advantages over 
+`Futures <http://docs.python.org/dev/library/concurrent.futures.html>`_,
+`Multiprocessing <http://docs.python.org/dev/library/multiprocessing.html>`_ 
+and similar modules are as follows:
+
+    * API compatible with :pep:`3148`;
+    * Parallelizing with only minor modifications to serial code;
+    * Intelligent load-blancing (*Currently being developped*);
+    * Ability to spawn multiple futures (tasks) inside a future;
+    * Harness the power of **multiple computers** over network.
 
 .. toctree::
    :maxdepth: 2
