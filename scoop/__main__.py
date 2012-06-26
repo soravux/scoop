@@ -94,45 +94,57 @@ def port_ready(port):
         return True
 
 class launchScoop(object):
-    def __init__(self):
+    def __init__(self, hosts, n, verbose, python_executable, broker_hostname,
+            executable, arguments, e, log, path, debug, nice):
         # Assure setup sanity
-        assert type(args.hosts) == list and args.hosts != [], "You should at least specify one host."
-        args.hosts.reverse()
-        self.hosts = set(args.hosts)
-        self.workers_left = args.n
+        assert type(hosts) == list and hosts != [], "You should at least specify one host."
+        hosts.reverse()
+        self.hosts = set(hosts)
+        self.workers_left = n
         self.created_subprocesses = []
-        
+
+        # launch information
+        self.python_executable = python_executable[0]
+        self.n = n
+        self.e = e
+        self.executable = executable
+        self.args = arguments
+        self.verbose = verbose
+        self.path = path
+        self.debug = debug
+        self.nice = nice
+
         # Logging configuration
-        if args.verbose > 2:
-            args.verbose = 2
+        if self.verbose > 2:
+            self.verbose = 2
         verbose_levels = {0: logging.WARNING,
                           1: logging.INFO,
                           2: logging.DEBUG}
-        logging.basicConfig(filename=args.log,
-                            level=verbose_levels[args.verbose],
+        logging.basicConfig(filename=log,
+                            level=verbose_levels[self.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s %(message)s')
-        logging.info('Deploying {0} workers over {1} host(s).'.format(args.n, len(self.hosts)))
+        logging.info('Deploying {0} workers over {1} host(s).'.format(n, len(self.hosts)))
 
-        self.divideHosts()
+        self.divideHosts(hosts, broker_hostname)
     
     @property
     def launchLocal(self):
-        c = [args.python_executable[0],
+        c = [self.python_executable,
                         "-m", "scoop.bootstrap",
                         "--workerName", "worker{}".format(self.workers_left),
                         "--brokerName", "broker",
                         "--brokerAddress",
-                        "tcp://{0}:{1}".format(args.broker_hostname,
+                        "tcp://{0}:{1}".format(self.broker_hostname,
                                                self.broker_port),
                         "--metaAddress",
-                        'tcp://{0}:{1}'.format(args.broker_hostname,
+                        'tcp://{0}:{1}'.format(self.broker_hostname,
                                                self.info_port),
-                        "--size", str(args.n),
+                        "--size", str(self.n),
                         ]
         if self.workers_left == 1:
             c.append("--origin")
-        c.append(args.executable[0])
-        c.extend(args.args)
+        c.append(self.executable)
+        c.extend(self.args)
         return c
 
     @property
@@ -142,50 +154,50 @@ scoop.bootstrap --workerName worker{workers_left} --brokerName \
 broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
 --metaAddress tcp://{broker_hostname}:{info_port} --size {n} \
 {origin} {executable}\
-{arguments}".format(remotePath = args.path, 
-                    nice = 'nice - n {}'.format(args.nice) if args.nice != None else '',
+{arguments}".format(remotePath = self.path, 
+                    nice = 'nice - n {}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workers_left == 1 else '',
-                    pythonExecutable = args.python_executable[0],
+                    pythonExecutable = self.python_executable,
                     workers_left = self.workers_left,
-                    broker_hostname = args.broker_hostname,
+                    broker_hostname = self.broker_hostname,
                     broker_port = self.broker_port,
                     info_port = self.info_port,
-                    n = args.n,
-                    executable = args.executable[0],
-                    arguments = " ".join(args.args))
+                    n = self.n,
+                    executable = self.executable,
+                    arguments = " ".join(self.args))
 
 
-    def divideHosts(self):
+    def divideHosts(self, hosts, broker_hostname):
         """ Separe the workers accross hosts. """
         self.maximum_workers = {}
-        if len(args.hosts) != len(self.hosts):
+        if len(hosts) != len(self.hosts):
             logging.debug('Using amount of duplicates in self.hosts entry to set the number of workers.')
-            for host in args.hosts:
-                self.maximum_workers[host] = args.hosts.count(host)
+            for host in hosts:
+                self.maximum_workers[host] = hosts.count(host)
         else :
             # No duplicate entries in self.hosts found, division of workers pseudo-equally
             # upon the self.hosts
             logging.debug('Dividing workers pseudo-equally over hosts')
             
-            for index, host in enumerate(reversed(args.hosts)):
-                self.maximum_workers[host] = (args.n // (len(self.hosts)) \
-                    + int((args.n % len(self.hosts)) > index))
+            for index, host in enumerate(reversed(hosts)):
+                self.maximum_workers[host] = (self.n // (len(self.hosts)) \
+                    + int((self.n % len(self.hosts)) > index))
 
         # Show worker distribution
-        if args.verbose > 1:
+        if self.verbose > 1:
             logging.info('Worker distribution: ')
             for worker, number in self.maximum_workers.items():
                 logging.info('   {0}:\t{1} {2}'.format(
                     worker,
-                    number - 1 if worker == args.hosts[-1] else str(number),
-                    "+ origin" if worker == args.hosts[-1] else ""))
+                    number - 1 if worker == hosts[-1] else str(number),
+                    "+ origin" if worker == hosts[-1] else ""))
 
         # Handling Broker Hostname
-        args.broker_hostname = '127.0.0.1' if args.e else args.broker_hostname[0]
+        self.broker_hostname = '127.0.0.1' if self.e else broker_hostname[0]
         logging.debug('Using hostname/ip: "{0}" as external broker reference.'\
-            .format(args.broker_hostname))
+            .format(self.broker_hostname))
         logging.info('The python executable to execute the program with is: {0}.'\
-            .format(args.python_executable[0]))
+            .format(self.python_executable))
 
 
 
@@ -198,7 +210,7 @@ broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
                 break
 
         # Spawn the broker
-        broker_subproc = subprocess.Popen([args.python_executable[0],
+        broker_subproc = subprocess.Popen([self.python_executable,
                 "-m", "scoop.broker", "--tPort",str(broker_port),"--mPort", str(broker_port + 1)])
 
         # Let's wait until the local broker is up and running...
@@ -233,7 +245,7 @@ broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
         logging.debug('Local broker launched on ports {0}, {1}.'.format(broker_port, info_port))
         
         # Launch the workers
-        for host in args.hosts:
+        for host in self.hosts:
             command = []
             for n in range(min(self.maximum_workers[host], self.workers_left)):
 
@@ -253,7 +265,7 @@ broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
             # Launch every remote hosts in the same time 
             if len(command) != 0 :
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                if args.e:
+                if self.e:
                             ssh_command += ['-R {0}:127.0.0.1:{0}'.format(self.broker_port),
                                             '-R {0}:127.0.0.1:{0}'.format(self.info_port)]
                 shell = subprocess.Popen(ssh_command + [
@@ -278,9 +290,9 @@ broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
 
     def close(self):
         # Ensure everything is cleaned up on exit
-        logging.debug('Destroying local elements of the federation...')
+        logging.debug('Destroying local elements...')
         self.created_subprocesses.reverse() # Kill the broker last
-        if args.debug == 1:
+        if self.debug == 1:
             # give time to flush data
             time.sleep(1)
         for process in self.created_subprocesses:
@@ -289,9 +301,11 @@ broker --brokerAddress tcp://{broker_hostname}:{broker_port} \
             except OSError:
                 pass
         logging.info('Finished destroying spawned subprocesses.')
-   
-scoopLaunching = launchScoop()
-try:
-    scoopLaunching.run()
-finally:
-    scoopLaunching.close()
+if __name__ == "__main__":
+    scoopLaunching = launchScoop(args.hosts, args.n, args.verbose,
+            args.python_executable, args.broker_hostname, args.executable[0],
+            args.args, args.e, args.log, args.path, args.debug, args.nice)
+    try:
+        scoopLaunching.run()
+    finally:
+        scoopLaunching.close()
