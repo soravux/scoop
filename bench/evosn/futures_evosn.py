@@ -19,7 +19,7 @@ from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
-from deap import dtm
+import concurrent.futures
 
 from dependency import sortingnetwork as sn
 import logging
@@ -85,8 +85,10 @@ toolbox.register("mutate", mutWire, dimension=INPUTS, indpb=0.05)
 toolbox.register("addwire", mutAddWire, dimension=INPUTS)
 toolbox.register("delwire", mutDelWire)
 toolbox.register("select", tools.selTournament, tournsize=3)
-toolbox.register("map", dtm.map)
-#logging.warning("avant main")
+
+executor = concurrent.futures.ProcessPoolExecutor(args.cores)
+toolbox.register("map", executor.map)
+
 def main():
     # test if file is ok before starting the test
     if args.filename:
@@ -174,7 +176,7 @@ def main():
         f = open(args.filename, "a")
         f.write("{0};{1};{2};{3}\n".format(args.cores, INPUTS, totalTime, evaluationTime))
         f.close()
-        
+    executor.shutdown()
     return population, stats, hof
 
 if __name__ == "__main__":
