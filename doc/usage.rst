@@ -15,19 +15,20 @@ Worker      Process executing Futures.
 Origin      The worker executing the user program.
 =========== =======================================================================================================================================
 
-Architecture schema
--------------------
+Architecture diagram
+--------------------
 
-The future(s) distribution over workers is done via a blackboard pattern. In 
-such pattern, workers act as independant elements which interacts with a 
-blackboard to equilibrate their workload.
+The future(s) distribution over workers is done via a 
+`Broker pattern <http://zguide.zeromq.org/page:all#A-Request-Reply-Broker>`_. 
+In such pattern, workers act as independant elements which interacts with a 
+broker to mediate their communications.
 
 .. image:: images/architecture.png
    :align: center
 
 .. note:
     
-    The only available architecture of SCOOP 0.5 is the Blackboard Pattern, but 
+    The only available architecture of SCOOP 0.5 is the Broker pattern, but 
     subsequent versions of SCOOP has been forecasted to support multiple 
     architectures.
     
