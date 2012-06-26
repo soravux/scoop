@@ -37,6 +37,10 @@ parser.add_argument('--generations', type=int, default=40)
 args = parser.parse_args()
 INPUTS = args.inputs
 
+sizes = {11 : (29,39), 12 : (25,45), 13 : (39,51), 14 : (45,56),
+         15 : (51,60), 16 : (56,65), 17 : (60,69), 18 : (65,74),
+         19 : (69,78)}
+
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
     return network.assess(), network.length, network.depth
@@ -67,7 +71,9 @@ creator.create("Individual", list, fitness=creator.FitnessMin)
 toolbox = base.Toolbox()
 
 # Gene initializer
-toolbox.register("network", genNetwork, dimension=INPUTS, min_size=35, max_size=45)
+toolbox.register("network", genNetwork, dimension=INPUTS,
+        min_size=sizes[INPUTS][0] if INPUTS in sizes else 25,
+        max_size=sizes[INPUTS][1] if INPUTS in sizes else 35)
 
 # Structure initializers
 toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.network)
