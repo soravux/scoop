@@ -52,7 +52,7 @@ class Broker(object):
         if mSock[-2:] == ":*":
             self.infoSockPort = self.infoSocket.bind_to_random_port(mSock[:-2])
         else:
-            self.infoSocket.bind(tSock)
+            self.infoSocket.bind(mSock)
 
         # init self.poller
         self.poller = zmq.Poller()
