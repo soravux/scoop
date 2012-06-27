@@ -10,6 +10,12 @@ Our philosophy is based on these ideas:
     * Usage and interface ought to be standard and **simple**;
     * **Fast prototyping** allows precious time saving;
     * The **future** is parallel.
+    
+These tenets are translated concretely in a **minimum number of functions** 
+allowing **maximum parallel efficiency** while keeping at **minimum the 
+inner knowledge required** to use them. It is implemented in Python 3 in mind 
+while being compatible with 2.6+ to allow fast prototyping without sacrificing 
+efficienty and speed.
 
 SCOOP features and advantages over 
 `Futures <http://docs.python.org/dev/library/concurrent.futures.html>`_,
@@ -22,6 +28,16 @@ and similar modules are as follows:
     * Parallelizing serial code with only minor modifications;
     * Intelligent load-balancing (*Currently being developped*);
 
+The common applications of our module consist but is not limited to:
+
+    * Monte Carlo simulations
+    * Graph traversal
+    * Hidden Markov models
+    * Bayesian networks
+    * Linear algebra
+    * Data processing
+    * Large signal analysis
+    
 .. toctree::
    :maxdepth: 2
    
