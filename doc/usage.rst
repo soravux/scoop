@@ -67,12 +67,12 @@ Here is a list of the parameters that can be passed to scoop::
 
     python -m scoop --help
     usage: python -m scoop [-h] [--hosts [HOSTS [HOSTS ...]]]
-                                [--path PATH] [--nice NICE] [--verbose]
-                                [--log LOG] [-n N] [-e]
-                                [--broker-hostname BROKER_HOSTNAME]
-                                [--python-executable PYTHON_EXECUTABLE]
-                                [--pythonpath PYTHONPATH]
-                                executable ...
+                           [--path PATH] [--nice NICE] [--verbose]
+                           [--log LOG] [-n N] [-e]
+                           [--broker-hostname BROKER_HOSTNAME]
+                           [--python-executable PYTHON_EXECUTABLE]
+                           [--pythonpath PYTHONPATH] [--debug]
+                           executable ...
 
     Starts a parallel program using SCOOP.
 
@@ -101,6 +101,7 @@ Here is a list of the parameters that can be passed to scoop::
                             The python executable with which to execute the script
       --pythonpath PYTHONPATH
                             The PYTHONPATH environment variable
+      --debug               Turn on the debuging
 
 A remote workers example may be as follow::
 
@@ -109,7 +110,7 @@ A remote workers example may be as follow::
 ================    =================================
 Argument            Meaning
 ================    =================================
--m scoop            **Mandatory** Uses Scoop to run program.
+-m scoop            **Mandatory** Uses SCOOP to run program.
 --hosts [...]       List of hosts to launcher workers on.
 -vv                 Double verbosity flag
 -n 16               Launch 16 workers
@@ -128,8 +129,8 @@ Cookbook
 Unordered processing
 ~~~~~~~~~~~~~~~~~~~~
 
-You can :meth:`scoop.futures.wait` over desired Futures or unordered processing 
-upon element arrival using :meth:`scoop.futures.as_completed` like so::
+You can iterate over desired Futures upon element arrival for unordered 
+processing using :meth:`scoop.futures.as_completed` like so::
 
     from scoop import futures
     launches = [futures.submit(func, data) for i in range(10)]

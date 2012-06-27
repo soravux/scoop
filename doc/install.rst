@@ -11,31 +11,17 @@ The software requirements for SCOOP are as follows:
 * `PyZMQ <http://www.zeromq.org/bindings:python>`_ and `libzmq <http://www.zeromq.org/>`_ >= 2.2.0
 * ``ssh`` for remote execution
 
-.. note::
-    
-    Python versions earlier than 2.7 and 3.2 will work, but need the 
-    `argparse <http://pypi.python.org/pypi/argparse>`_ module to be installed 
-    separately.
-
 Installation
 ------------
     
 To install SCOOP and its dependencies, use pip as such::
 
     pip install -U scoop
-    
-.. note::
-    
-    We **strongly** recommend that you use a 
-    `virtualenv <http://pypi.python.org/pypi/virtualenv>`_ alongside with a 
-    `wrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_ 
-    instead of manually handling installation paths. Please refer to their 
-    documentation for more informations.
 
 Remote usage
 ~~~~~~~~~~~~
     
-Keep in mind that connecting to remote hosts is be done without a prompt. 
+Keep in mind that connecting to remote hosts is to be done without a prompt. 
 This is done by using ssh keys that allows passwordless authentication over ssh 
 on your remote hosts. 
 You should log into every system that will be a foreign worker used by scoop and 
