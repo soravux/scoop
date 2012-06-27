@@ -148,7 +148,8 @@ class TestScoopCommon(unittest.TestCase):
     def setUp(self):
         # Start the server
         #from scoop.broker import Broker
-        self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker"])
+        self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker",
+        "--tPort", "5555", "--mPort", "5556"])
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
