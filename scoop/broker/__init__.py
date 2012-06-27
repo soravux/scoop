@@ -1,1 +1,1 @@
-from broker import Broker
+from scoop.broker.broker import Broker
