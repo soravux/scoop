@@ -30,13 +30,11 @@ and similar modules are as follows:
 
 The common applications of our module consist but is not limited to:
 
+    * Evolutionary Algorithms
     * Monte Carlo simulations
-    * Graph traversal
-    * Hidden Markov models
-    * Bayesian networks
-    * Linear algebra
+    * Data mining
     * Data processing
-    * Large signal analysis
+    * Graph traversal
     
 .. toctree::
    :maxdepth: 2
