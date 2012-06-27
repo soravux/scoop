@@ -1,6 +1,11 @@
 API Reference
 =============
 
+.. note:
+
+    Please note that the current version of SCOOP doesn't support timeout. Its
+    support has been scheduled in a future version.
+
 Futures module
 --------------
 

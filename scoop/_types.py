@@ -124,10 +124,10 @@ class Future(object):
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
-        completed then this method will wait up to ''timeout'' seconds. If the
-        call hasn't completed in timeout seconds then a TimeoutError will be
-        raised. If timeout is not specified or None then there is no limit to
-        the wait time.
+        completed then this method will wait up to ''timeout'' seconds [To be 
+        done in future version of SCOOP]. If the call hasn't completed in 
+        timeout seconds then a TimeoutError will be raised. If timeout is not 
+        specified or None then there is no limit to the wait time.
         
         If the future is cancelled before completing then CancelledError will
         be raised.
@@ -144,10 +144,10 @@ class Future(object):
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
-        completed then this method will wait up to timeout seconds. If the call
-        hasn't completed in timeout seconds then a TimeoutError will be raised.
-        If timeout is not specified or None then there is no limit to the wait
-        time.
+        completed then this method will wait up to timeout seconds [To be done 
+        in future version of SCOOP]. If the call hasn't completed in timeout 
+        seconds then a TimeoutError will be raised. If timeout is not specified 
+        or None then there is no limit to the wait time.
 
         If the future is cancelled before completing then CancelledError will be
         raised.

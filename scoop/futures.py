@@ -115,8 +115,8 @@ def map(func, *iterables, **kargs):
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
-    :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time.
+    :param timeout: The maximum number of seconds to wait [To be done in future 
+        version of SCOOP]. If None, then there is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object. 
         
