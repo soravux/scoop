@@ -220,6 +220,7 @@ def getHosts(filename):
     """
     f = open(filename)
     hosts = [line.split() for line in f]
+    f.close()
     return [(h[0], h[1].split("=")[1]) for h in hosts]
 
 parser = argparse.ArgumentParser(description='Starts a parallel program using SCOOP.',
