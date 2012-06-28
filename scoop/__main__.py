@@ -31,7 +31,6 @@ class launchScoop(object):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], "You should at least specify one host."
         hosts.reverse()
-        #self.hosts = set(hosts)
         self.workersLeft = n
         self.createdSubprocesses = []
 
@@ -55,8 +54,9 @@ class launchScoop(object):
         logging.basicConfig(filename=log,
                             level=verbose_levels[self.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s %(message)s')
-        logging.info('Deploying {0} workers over {1} host(s).'.format(n,
-            len(args.hosts)))
+        logging.info("Deploying {0} workers over {1} "
+                     "host(s).".format(n,
+                                       len(hosts)))
 
         self.divideHosts(hosts)
      
@@ -116,16 +116,17 @@ class launchScoop(object):
         else:
             self.hosts = set(hosts)
         if type(hosts[0]) == tuple:
-            logging.debug('Using the hostfile to set the number of workers.')
+            logging.debug("Using the hostfile to set the number of workers.")
             for host in hosts:
                 self.maximum_workers[host[0]] = int(host[1])
         elif len(hosts) != len(self.hosts):
-            logging.debug('Using amount of duplicates in self.hosts entry to set the number of workers.')
+            logging.debug("Using amount of duplicates in self.hosts entry to "
+                          "set the number of workers.")
             for host in hosts:
                 self.maximum_workers[host] = hosts.count(host)
         else :
-            # No duplicate entries in self.hosts found, division of workers pseudo-equally
-            # upon the self.hosts
+            # No duplicate entries in self.hosts found, division of workers 
+            # pseudo-equally upon the self.hosts
             logging.debug('Dividing workers pseudo-equally over hosts')
             
             for index, host in enumerate(reversed(hosts)):
@@ -152,9 +153,10 @@ class launchScoop(object):
 
     def run(self):
         # Launching the local broker, repeat until it works
-        logging.debug('Initialising local broker.')
+        logging.debug("Initialising local broker.")
         self.startBroker()
-        logging.debug('Local broker launched on ports {0}, {1}.'.format(self.brokerPort, self.infoPort))
+        logging.debug("Local broker launched on ports {0}, {1}"
+                      ".".format(self.brokerPort, self.infoPort))
         
         # Launch the workers
         for host in self.hosts:
@@ -167,7 +169,8 @@ class launchScoop(object):
                     host))
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
-                    self.createdSubprocesses.append(subprocess.Popen(self.launchLocal))
+                    self.createdSubprocesses.append(
+                        subprocess.Popen(self.launchLocal))
                 else:
                     # If the host is remote, connect with ssh
                     command.append(self.launchForeign)
@@ -176,8 +179,9 @@ class launchScoop(object):
             if len(command) != 0 :
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 if self.e:
-                            ssh_command += ['-R {0}:127.0.0.1:{0}'.format(self.brokerPort),
-                                            '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
+                    ssh_command += [
+                        '-R {0}:127.0.0.1:{0}'.format(self.brokerPort),
+                        '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
                     host,
                     "bash -c '{0}; wait'".format(" & ".join(command))])
@@ -213,8 +217,6 @@ class launchScoop(object):
                 pass
         logging.info('Finished destroying spawned subprocesses.')
 
-
-
 def getHosts(filename):
     """Parse the hostfile to get number of slots. The hostfile must have
     the following structure : 
@@ -226,7 +228,8 @@ def getHosts(filename):
     f.close()
     return [(h[0], h[1].split("=")[1]) for h in hosts]
 
-parser = argparse.ArgumentParser(description='Starts a parallel program using SCOOP.',
+parser = argparse.ArgumentParser(description="Starts a parallel program using "
+                                             "SCOOP.",
                                  prog="{0} -m scoop".format(sys.executable))
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--hosts', '--host',
