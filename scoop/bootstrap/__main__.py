@@ -89,5 +89,8 @@ if __name__ == "__main__":
         globals()[attr] = getattr(user_module, attr)
    
     # Startup the program
-    scoop.futures._startup(functools.partial(runpy.run_path, executable,
-             init_globals=globals(),run_name="__main__"))
+    from scoop import futures
+    futures._startup(functools.partial(runpy.run_path,
+                                       executable,
+                                       init_globals=globals(),
+                                       run_name="__main__"))

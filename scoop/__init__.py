@@ -30,6 +30,3 @@ try: FEDERATION_SIZE = int(os.environ.get('FEDERATION_SIZE', -1))
 except ValueError: FEDERATION_SIZE = -1
 DEBUG = os.environ.get('SCOOP_DEBUG', "0") == "1"
 VALID = False
-
-# Allows for scoop.futures
-import futures
