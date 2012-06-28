@@ -22,11 +22,11 @@ SCOOP features and advantages over
 `multiprocessing <http://docs.python.org/dev/library/multiprocessing.html>`_ 
 and similar modules are as follows:
 
-    * Harness the power of **multiple computers** over network.
+    * Harness the power of **multiple computers** over network;
     * Ability to spawn multiple tasks inside a task;
     * API compatible with :pep:`3148`;
     * Parallelizing serial code with only minor modifications;
-    * Intelligent load-balancing (*Currently being developped*);
+    * Intelligent load-balancing (*Currently being developped*).
 
 The common applications of our module consist but is not limited to:
 
