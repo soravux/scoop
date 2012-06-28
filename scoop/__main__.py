@@ -111,7 +111,10 @@ class launchScoop(object):
     def divideHosts(self, hosts):
         """ Separe the workers accross hosts. """
         self.maximum_workers = {}
-        self.hosts = set(host[0] for host in hosts)
+        if type(hosts[0]) == tuple:
+            self.hosts = set(host[0] for host in hosts)
+        else:
+            self.hosts = set(hosts)
         if type(hosts[0]) == tuple:
             logging.debug('Using the hostfile to set the number of workers.')
             for host in hosts:
