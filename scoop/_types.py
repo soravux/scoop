@@ -182,8 +182,8 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = deque()
         self.socket = ZMQCommunicator()
-        self.lowwatermark  = 5
-        self.highwatermark = 20
+        self.lowwatermark  = 1
+        self.highwatermark = 1
         self.pendingRequest = 0
         
     def __iter__(self):
