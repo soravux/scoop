@@ -1,9 +1,7 @@
 
 .. image:: images/logo.png
-   :align: right
-
-Welcome to SCOOP's documentation!
-=================================
+   :align: center
+   :height: 140px
 
 SCOOP (Scalable COncurrent Operations in Python) is a distributed task
 module allowing concurrent parallel programming on various environments,
@@ -38,31 +36,28 @@ and similar modules are as follows:
     * Parallelizing serial code with only minor modifications;
     * Intelligent load-balancing (*Currently being developped*).
 
+Anatomy of a SCOOPed program
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data to local or remote workers simultaneously and effortlessly. Its **high flexibility** allows you to use it even inside functions already launched with SCOOP.
+
+.. image:: images/introductory_tree.png
+   :align: center
+   :width: 600 px
+
+Through SCOOP, you can execute simultaneously tasks that are different by 
+nature, shown by the task color, or different by complexity, shown by the task radius. The module will handle the physical considerations of parallelization, such as task distribution over your resources (load balancing), communications, etc.
+
 Applications
 ~~~~~~~~~~~~
 
-The common applications of our module consist but is not limited to:
+The common applications of SCOOP consist but is not limited to:
 
     * Evolutionary Algorithms
     * Monte Carlo simulations
     * Data mining
     * Data processing
     * Graph traversal
-    
-Workflow
-~~~~~~~~
-
-.. image:: images/introductory_tree.png
-   :align: center
-   :width: 400 px
-
-Let the disks of the graphic be tasks and the top one being your program. SCOOP 
-can handle multiple diverses recursive tasks, as shown below. Through SCOOP, 
-you can execute tasks different by nature, shown by the task color, or 
-different by complexity, shown by the task radius, or both, and this at the 
-same time. SCOOP will handle the physical considerations of parallelization, 
-such as task distribution over your resources (load balancing), communications, 
-etc.
 
 Manual
 ------
