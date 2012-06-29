@@ -203,9 +203,6 @@ class launchScoop(object):
     def close(self):
         # Ensure everything is cleaned up on exit
         logging.debug('Destroying local elements...')
-        try: self.localBroker.shutdown()
-        except AttributeError:
-            pass
         self.createdSubprocesses.reverse() # Kill the broker last
         if self.debug == 1:
             # give time to flush data

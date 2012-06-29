@@ -106,6 +106,7 @@ class Broker(object):
                     self.taskSocket.send_multipart([address, REPLY, task])
                    
                 elif msg_type == SHUTDOWN:
+                    self.shutdown()
                     break
                     
                 if self.debug:
