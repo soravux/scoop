@@ -34,12 +34,12 @@ and similar modules are as follows:
     * Ability to spawn multiple tasks inside a task;
     * API compatible with :pep:`3148`;
     * Parallelizing serial code with only minor modifications;
-    * Intelligent load-balancing (*Currently being developped*).
+    * Efficient load-balancing.
 
 Anatomy of a SCOOPed program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data to local or remote workers simultaneously and effortlessly. Its **high flexibility** allows you to use it even inside functions already launched with SCOOP.
+SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data simultaneously and effortlessly while the framework execute them locally or remotely. Its **high flexibility** allows you to use it even inside functions already launched with SCOOP.
 
 .. image:: images/introductory_tree.png
    :align: center
