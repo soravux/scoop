@@ -1,0 +1,7 @@
+0.5.0 (Alpha) (2012/05/11)
+-----------------------------------
+
++ Greenlet based task handling
++ ZeroMQ based networking
++ Master-Slave paradigm implemented named Broker <-> Worker
++ Tasks caching features implemented (Thresholds named high and low water marks)
