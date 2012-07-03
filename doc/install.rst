@@ -14,9 +14,16 @@ The software requirements for SCOOP are as follows:
 Installation
 ------------
     
-To install SCOOP and its dependencies, use pip as such::
+To install SCOOP and its other dependencies, use pip as such::
 
     pip install -U scoop
+
+.. note::
+
+	If you don't already have `libzmq <http://www.zeromq.org/>`_ installed in a
+	default library location, please visit the 
+	`PyZMQ installation page <http://www.zeromq.org/bindings:python/>`_ for 
+	further assistance.
 
 Remote usage
 ~~~~~~~~~~~~
