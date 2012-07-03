@@ -131,5 +131,5 @@ class Broker(object):
                 os.mkdir('debug')
             except:
                 pass
-            with open("debug/broker-" + scoop.BROKER_NAME.decode(), 'w') as f:
+            with open("debug/broker-broker", 'w') as f:
                 f.write(str(self.stats))
