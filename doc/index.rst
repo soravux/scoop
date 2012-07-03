@@ -39,7 +39,7 @@ and similar modules are as follows:
 Anatomy of a SCOOPed program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data simultaneously and effortlessly while the framework execute them locally or remotely. Its **high flexibility** allows you to use it even inside functions already launched with SCOOP.
+SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Its **high flexibility** allows you to use it even inside functions already launched with SCOOP.
 
 .. image:: images/introductory_tree.png
    :align: center
