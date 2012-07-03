@@ -85,6 +85,9 @@ class launchScoop(object):
                         ]
         if self.workersLeft == 1:
             c.append("--origin")
+        if self.debug == True:
+            logging.debug('Set debug on')
+            c.append("--debug")
         c.append(self.executable)
         c.extend(self.args)
         return c
@@ -95,10 +98,11 @@ class launchScoop(object):
                 "scoop.bootstrap --workerName worker{workersLeft} "
                 "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
-                "{infoPort} --size {n} {origin} {executable} "
+                "{infoPort} --size {n} {origin} {debug} {executable} "
                 "{arguments}").format(remotePath = self.path, 
                     nice = 'nice - n {}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workersLeft == 1 else '',
+                    debug = '--debug' if self.debug == 1 else '',
                     pythonExecutable = self.python_executable,
                     workersLeft = self.workersLeft,
                     brokerHostname = self.brokerHostname,
