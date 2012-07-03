@@ -106,6 +106,7 @@ class Broker(object):
                     self.taskSocket.send_multipart([address, REPLY, task])
                    
                 elif msg_type == SHUTDOWN:
+                    self.shutdown()
                     break
                     
                 if self.debug:
@@ -130,5 +131,5 @@ class Broker(object):
                 os.mkdir('debug')
             except:
                 pass
-            with open("debug/broker-" + scoop.BROKER_NAME.decode(), 'w') as f:
+            with open("debug/broker-broker", 'w') as f:
                 f.write(str(self.stats))

@@ -51,7 +51,7 @@ def runFuture(future):
         t = time.time()
         stats[future.id].setdefault('end_time', []).append(t)
         stats[future.id].update({'executionTime': future.executionTime,
-                               'worker': worker,
+                               'worker': scoop.worker,
                                'creationTime': future.creationTime,
                                'callable': str(future.callable.__name__)
                                     if hasattr(future.callable, '__name__')
