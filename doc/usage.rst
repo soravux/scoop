@@ -18,7 +18,7 @@ Origin      The worker executing the user program.
 Architecture diagram
 --------------------
 
-The future(s) distribution over workers is done via a 
+The future(s) distribution over workers is done by a 
 `Broker pattern <http://zguide.zeromq.org/page:all#A-Request-Reply-Broker>`_. 
 In such pattern, workers act as independant elements which interacts with a 
 broker to mediate their communications.
