@@ -28,12 +28,10 @@ To install SCOOP and its other dependencies, use pip as such::
 Remote usage
 ~~~~~~~~~~~~
     
-Keep in mind that connecting to remote hosts is to be done without a prompt. 
-This is done by using ssh keys that allows passwordless authentication over ssh 
-on your remote hosts. 
-You should log into every system that will be a foreign worker used by scoop and 
-verify that you've got your public ssh key in the ``~/.ssh/authorized_keys2`` 
-file on the remote systems. If you have a shared ``/home/`` over your systems, 
+Because remote host connection needs to be done without a prompt, you must use 
+ssh keys to allow passwordless authentication.
+You should make sure that your public ssh key is contained in the ``~/.ssh/authorized_keys2`` 
+file on the remote systems (Refer to the `ssh manual <http://www.openbsd.org/cgi-bin/man.cgi?query=ssh>`_). If you have a shared ``/home/`` over your systems, 
 you can do as such::
     
     [~]$ mkdir ~/.ssh; cd ~/.ssh
@@ -44,6 +42,5 @@ you can do as such::
 
     If your remote hosts needs special configuration (non-default port, some 
     specified username, etc.), you should do it in your ssh client 
-    configuration file (by default ``~/.ssh/config``). Please refer to the 
-    `ssh manual <http://www.openbsd.org/cgi-bin/man.cgi?query=ssh>`_ as to how 
+    configuration file (by default ``~/.ssh/config``). Please  as to how 
     to configure and personalize your hosts connections.
