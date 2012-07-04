@@ -12,9 +12,9 @@ Philosophy
 
 Our philosophy is based on these ideas:
 
-    * Usage and interface ought to be standard and **simple**;
-    * **Fast prototyping** allows precious time saving;
-    * The **future** is parallel.
+    * The **future** is parallel;
+    * **Simple** is beautiful;
+    * **Parallelism** should be easy.
     
 These tenets are translated concretely in a **minimum number of functions** 
 allowing **maximum parallel efficiency** while keeping at **minimum the 
@@ -31,7 +31,7 @@ SCOOP features and advantages over
 and similar modules are as follows:
 
     * Harness the power of **multiple computers** over network;
-    * Ability to spawn multiple tasks inside a task;
+    * Ability to spawn subtasks within tasks;
     * API compatible with :pep:`3148`;
     * Parallelizing serial code with only minor modifications;
     * Efficient load-balancing.
@@ -39,19 +39,19 @@ and similar modules are as follows:
 Anatomy of a SCOOPed program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Its **high flexibility** allows you to use it even inside functions already launched with SCOOP.
+SCOOP can handle multiple diversified multi-layered tasks. You can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Contrarly to most multiprocessing frameworks, it allows to launch subtasks within tasks.
 
 .. image:: images/introductory_tree.png
    :align: center
    :width: 600 px
 
-Through SCOOP, you can execute simultaneously tasks that are different by 
-nature, shown by the task color, or different by complexity, shown by the task radius. The module will handle the physical considerations of parallelization, such as task distribution over your resources (load balancing), communications, etc.
+Through SCOOP, you can simultaneously execute tasks that are of different 
+nature (Discs of different colors) or different by complexity (Discs radiuses). The module will handle the physical considerations of parallelization, such as task distribution over your resources (load balancing), communications, etc.
 
 Applications
 ~~~~~~~~~~~~
 
-The common applications of SCOOP consist but is not limited to:
+The common applications of SCOOP consist of, but is not limited to:
 
     * Evolutionary Algorithms
     * Monte Carlo simulations
