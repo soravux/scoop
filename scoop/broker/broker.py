@@ -116,7 +116,10 @@ class Broker(object):
         return (self.tSockPort, self.infoSockPort)
 
     def shutdown(self):
-        self.infoSocket.send(SHUTDOWN)
+        try:
+            self.infoSocket.send(SHUTDOWN)
+        except:
+            pass
         # out of infinite loop: do some housekeeping
         time.sleep (0.3)
         
