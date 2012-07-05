@@ -75,8 +75,8 @@ class Future(object):
         self.creationTime = time.ctime()  # future creation time
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running future 
-        self.resultValue = None          # future result
-        self.exceptionValue = None             # exception raised by callable
+        self.resultValue = None           # future result
+        self.exceptionValue = None        # exception raised by callable
         self.callback = []                # set callback
         # insert future into global dictionary
         scoop._control.futureDict[self.id] = self
@@ -196,6 +196,10 @@ class FutureQueue(object):
         """Returns the length of the queue, meaning the sum of it's elements
         lengths."""
         return len(self.movable) + len(self.ready)
+
+    def timelen(self, queue_):
+        stats = scoop._control.execStats
+        return sum([stats[f.callable.__name__].mean() for f in queue_])
     
     def append(self, future):
         """Append a future to the queue."""
@@ -206,17 +210,17 @@ class FutureQueue(object):
         elif future.greenlet != None:
             self.inprogress.append(future)
         else:
-            self.movable.append(future)
-        # Send oldest futures to the broker
-        while len(self.movable) > self.highwatermark:
-            self.socket.sendFuture(self.movable.pop())
+            if self.timelen(self.movable) > self.highwatermark:
+                self.socket.sendFuture(future)
+            else:
+                self.movable.append(future)
         
     def pop(self):
         """Pop the next future from the queue; 
         in progress futures have priority over those that have not yet started;
         higher level futures have priority over lower level ones; """
         self.updateQueue()
-        if len(self) < self.lowwatermark:
+        if self.timelen(self) < self.lowwatermark:
             self.requestFuture()
         if len(self.ready) != 0:
             return self.ready.pop()
@@ -234,11 +238,7 @@ class FutureQueue(object):
 
     def requestFuture(self):
         """Request futures from the broker"""
-        for a in range(len(self) + self.pendingRequest, self.lowwatermark):
-            self.socket.sendRequest()
-            self.pendingRequest += 1
         self.socket.sendRequest()
-        self.pendingRequest += 1
     
     def updateQueue(self):
         """Updates the local queue with elements from the broker."""
@@ -260,9 +260,6 @@ class FutureQueue(object):
                         pass
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
-                self.pendingRequest -= 1
-            else:
-                self.pendingRequest -= 1
             self.append(scoop._control.futureDict[future.id])
 
     def remove(self, future):
