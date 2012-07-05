@@ -184,7 +184,6 @@ class FutureQueue(object):
         self.socket = ZMQCommunicator()
         self.lowwatermark  = 1
         self.highwatermark = 1
-        self.pendingRequest = 0
         
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""

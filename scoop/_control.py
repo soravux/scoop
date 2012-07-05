@@ -33,9 +33,19 @@ futureDict = {}
 execQueue = None
 # Statistics of execution
 class _stat(deque):
+    def __init__(self, *args, **kargs):
+        self._sum = 0
+        super(_stat, self).__init__(*args, **kargs)
+
+    def appendleft(self, x):
+        if len(self) >= self.maxlen:
+            self._sum -= self[-1]
+        self._sum += x
+        super(_stat, self).appendleft(x)
+
     def mean(self):
         if len(self) > 3:
-            return sum(self) / len(self)
+            return self._sum / len(self)
         return float("inf")
 statsFIFO = partial(_stat, maxlen=10)
 execStats = defaultdict(statsFIFO)
