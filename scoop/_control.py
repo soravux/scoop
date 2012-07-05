@@ -31,9 +31,14 @@ current = None
 futureDict = {}
 # Queue of futures pending execution
 execQueue = None
-# Statistics of execution 
-mean_fifo = partial(deque, maxlen=10)
-execStats = defaultdict(mean_fifo)      
+# Statistics of execution
+class _stat(deque):
+    def mean(self):
+        if len(self) > 3:
+            return sum(self) / len(self)
+        return float("inf")
+statsFIFO = partial(_stat, maxlen=10)
+execStats = defaultdict(statsFIFO)
 
 if scoop.DEBUG:
     import time
@@ -72,7 +77,6 @@ def runFuture(future):
            'parent': future.parentId
         })
         QueueLength.append((t, len(execQueue)))
-
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if future.parentId.worker == scoop.worker:

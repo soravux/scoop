@@ -18,8 +18,8 @@ import os
 
 __author__ = "Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner", \
     "Yannick Hold-Geoffroy"
-__version__ = "0.5"
-__revision__ = "0.5.0"
+__version__ = "0.6"
+__revision__ = "0.6.0A"
 
 IS_ORIGIN = os.environ.get('IS_ORIGIN', "1") == "1"
 WORKER_NAME = os.environ.get('WORKER_NAME', "origin").encode()
