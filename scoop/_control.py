@@ -35,7 +35,7 @@ execQueue = None
 class _stat(deque):
     def __init__(self, *args, **kargs):
         self._sum = 0
-        super(_stat, self).__init__(*args, **kargs)
+        super(_stat, self).__init__(*args,maxlen = 10, **kargs)
 
     def appendleft(self, x):
         if len(self) >= self.maxlen:
@@ -47,8 +47,8 @@ class _stat(deque):
         if len(self) > 3:
             return self._sum / len(self)
         return float("inf")
-statsFIFO = partial(_stat, maxlen=10)
-execStats = defaultdict(statsFIFO)
+
+execStats = defaultdict(_stat)
 
 if scoop.DEBUG:
     import time
@@ -86,7 +86,7 @@ def runFuture(future):
                 else 'No name',
            'parent': future.parentId
         })
-        QueueLength.append((t, len(execQueue)))
+        QueueLength.append((t, execQueue.timelen(execQueue)))
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if future.parentId.worker == scoop.worker:

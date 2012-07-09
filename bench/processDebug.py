@@ -158,6 +158,7 @@ def plotWorkerQueue(dataQueue, filename):
     ax = fig.add_subplot(111)
 
     for fichier, vals in dataQueue.items():
+        print("Plotting {}".format(fichier))
         ax.plot(*zip(*vals), label=fichier)
     plt.xlabel('time(s)'); plt.ylabel('Queue Length')
     plt.title('Queue length throught time')
