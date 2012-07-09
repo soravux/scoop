@@ -182,8 +182,8 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = deque()
         self.socket = ZMQCommunicator()
-        self.lowwatermark  = 1
-        self.highwatermark = 1
+        self.lowwatermark  = 0.1
+        self.highwatermark = 0.1
         
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
@@ -198,7 +198,7 @@ class FutureQueue(object):
 
     def timelen(self, queue_):
         stats = scoop._control.execStats
-        return sum([stats[f.callable.__name__].mean() for f in queue_])
+        return sum(stats[f.callable.__name__].mean() for f in queue_)
     
     def append(self, future):
         """Append a future to the queue."""

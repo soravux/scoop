@@ -62,15 +62,16 @@ def _startup(rootFuture, *args, **kargs):
     except scoop._comm.Shutdown:
         result = None
     if scoop.DEBUG:
+        import pickle
         try:
             os.makedirs("debug")
         except:
             pass
         with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
-                scoop.BROKER_NAME.decode(), 'w') as f:
-            f.write(str(control.debug_stats))
-        with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'w') as f:
-            f.write(str(control.QueueLength))
+                scoop.BROKER_NAME.decode(), 'wb') as f:
+            pickle.dump(control.debug_stats, f)
+        with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'wb') as f:
+            pickle.dump(control.QueueLength, f)
     return result
 
 def _mapFuture(callable, *iterables, **kargs):
