@@ -85,7 +85,7 @@ class Future(object):
         """Order futures by creation time."""
         return self.creationTime < other.creationTime
     
-    def __str__(self):
+    def __repr__(self):
         """Convert future to string."""
         return "{0}:{1}{2}={3}".format(self.id,
                                        self.callable.__name__,
@@ -182,8 +182,8 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = deque()
         self.socket = ZMQCommunicator()
-        self.lowwatermark  = 0.1
-        self.highwatermark = 0.1
+        self.lowwatermark  = 0.01
+        self.highwatermark = 0.01
         
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
