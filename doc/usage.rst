@@ -50,6 +50,41 @@ thus act as a parallel substitute to the standard |map()|_.
 :meth:`scoop.futures.submit` returns a :class:`scoop.types.Future` instance. 
 This allows a finer control over the Futures, such as out-of-order processing.
 
+.. _examples-reference:
+
+Examples
+~~~~~~~~
+    
+Examples are available in the ``examples/`` directory of scoop. For instance, 
+a Monte-Carlo method of calculating Pi using Scoop to parallelize its 
+computation is found in *examples/piCalc.py*:
+
+.. literalinclude:: ../examples/piCalc.py
+   :lines: 21-
+
+The *examples/fullTree.py* example holds a pretty good wrap-up of available
+functionnalities:
+
+.. literalinclude:: ../examples/fullTree.py
+   :lines: 21-
+    
+Please check our :doc:`api` for any implentation detail of the proposed 
+functions.
+
+Cookbook
+--------
+
+Unordered processing
+~~~~~~~~~~~~~~~~~~~~
+
+You can iterate over desired Futures upon element arrival for unordered 
+processing using :meth:`scoop.futures.as_completed` like so::
+
+    from scoop import futures
+    launches = [futures.submit(func, data) for i in range(10)]
+    # The results will be ordered by execution time
+    # the Future executed the fastest being the first element
+    result = [i.result() for i in futures.as_completed(launches)]
     
 How to launch SCOOP programs
 ----------------------------
@@ -121,44 +156,6 @@ your_program.py     The program to be launched
 .. note::
     
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the ``--broker-hostname`` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the ``-e`` argument for testing purposes.
-    
-
-Cookbook
---------
-
-Unordered processing
-~~~~~~~~~~~~~~~~~~~~
-
-You can iterate over desired Futures upon element arrival for unordered 
-processing using :meth:`scoop.futures.as_completed` like so::
-
-    from scoop import futures
-    launches = [futures.submit(func, data) for i in range(10)]
-    # The results will be ordered by execution time
-    # the Future executed the fastest being the first element
-    result = [i.result() for i in futures.as_completed(launches)]
-
-    
-.. _examples-reference:
-    
-Examples
---------
-    
-Examples are available in the ``examples/`` directory of scoop. For instance, 
-a Monte-Carlo method of calculating Pi using Scoop to parallelize its 
-computation is found in *examples/piCalc.py*:
-
-.. literalinclude:: ../examples/piCalc.py
-   :lines: 21-
-
-The *examples/fullTree.py* example holds a pretty good wrap-up of available
-functionnalities:
-
-.. literalinclude:: ../examples/fullTree.py
-   :lines: 21-
-    
-Please check our :doc:`api` for any implentation detail of the proposed 
-functions.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
