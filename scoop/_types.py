@@ -182,8 +182,12 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = deque()
         self.socket = ZMQCommunicator()
-        self.lowwatermark  = 0.01
-        self.highwatermark = 0.01
+        if scoop.FEDERATION_SIZE == 1:
+            self.lowwatermark = float("inf")
+            self.highwatermark = float("inf")
+        else:
+            self.lowwatermark  = 0.1
+            self.highwatermark = 0.01
         
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
@@ -209,7 +213,7 @@ class FutureQueue(object):
         elif future.greenlet != None:
             self.inprogress.append(future)
         else:
-            if self.timelen(self.movable) > self.highwatermark:
+            if self.timelen(self.movable) > self.highwatermark: 
                 self.socket.sendFuture(future)
             else:
                 self.movable.append(future)
@@ -275,7 +279,7 @@ class FutureQueue(object):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
         future.greenlet = None
-        assert future.done(), "The results are not valid"
+        #assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
 
     def shutdown(self):
