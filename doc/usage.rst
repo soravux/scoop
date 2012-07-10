@@ -1,4 +1,4 @@
-Usage
+
 =====
 
 Nomenclature
@@ -111,7 +111,7 @@ A remote workers example may be as follow::
 Argument            Meaning
 ================    =================================
 -m scoop            **Mandatory** Uses SCOOP to run program.
---hosts [...]       List of hosts to launcher workers on.
+--hosts [...]       List of hosts to launch workers on.
 -vv                 Double verbosity flag
 -n 16               Launch 16 workers
 your_program.py     The program to be launched
@@ -120,7 +120,7 @@ your_program.py     The program to be launched
 
 .. note::
     
-    Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly setted up on your local network or a system hosts file, consider using the ``--broker-hostname`` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the ``-e`` argument for testing purposes.
+    Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the ``--broker-hostname`` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the ``-e`` argument for testing purposes.
     
 
 Cookbook
