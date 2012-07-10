@@ -16,9 +16,9 @@ Our philosophy is based on these ideas:
     * **Simple** is beautiful;
     * **Parallelism** should be easy.
     
-These tenets are translated concretely in a **minimum number of functions** 
-allowing **maximum parallel efficiency** while keeping at **minimum the 
-inner knowledge required** to use them. It is implemented with Python 3 in mind 
+These tenets are translated concretely in a minimum number of functions 
+allowing maximum parallel efficiency while keeping at minimum the 
+inner knowledge required to use them. It is implemented with Python 3 in mind 
 while being compatible with 2.6+ to allow fast prototyping without sacrificing 
 efficiency and speed.
 
