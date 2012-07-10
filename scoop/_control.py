@@ -22,9 +22,6 @@ from ._types import Future, FutureId, FutureQueue
 from functools import partial
 import scoop
 
-# Set module-scope variables about this controller
-# Rank id for next future
-rank = 0
 # Future currently running in greenlet
 current = None
 # Dictionary of existing futures

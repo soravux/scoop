@@ -16,6 +16,7 @@
 #
 from __future__ import print_function
 from collections import namedtuple, deque
+import itertools
 import time
 import greenlet
 import scoop
@@ -63,10 +64,10 @@ class Future(object):
     """This class encapsulates and independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
     other futures."""
-    
+    rank = itertools.count() 
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
-        self.id = FutureId(scoop.worker, scoop._control.rank); scoop._control.rank += 1
+        self.id = FutureId(scoop.worker, next(Future.rank))
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -186,7 +187,7 @@ class FutureQueue(object):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
         else:
-            self.lowwatermark  = 0.1
+            self.lowwatermark  = 0.01
             self.highwatermark = 0.01
         
     def __iter__(self):
