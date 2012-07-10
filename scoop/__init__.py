@@ -21,12 +21,4 @@ __author__ = "Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner", \
 __version__ = "0.6"
 __revision__ = "0.6.0A"
 
-IS_ORIGIN = os.environ.get('IS_ORIGIN', "1") == "1"
-WORKER_NAME = os.environ.get('WORKER_NAME', "origin").encode()
-BROKER_NAME = os.environ.get('BROKER_NAME', "broker").encode()
-BROKER_ADDRESS = os.environ.get('BROKER_ADDRESS', "").encode()
-META_ADDRESS = os.environ.get('META_ADDRESS', "").encode()
-try: FEDERATION_SIZE = int(os.environ.get('FEDERATION_SIZE', -1))
-except ValueError: FEDERATION_SIZE = -1
-DEBUG = os.environ.get('SCOOP_DEBUG', "0") == "1"
-VALID = False
+
