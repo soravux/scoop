@@ -88,7 +88,7 @@ if __name__ == "__main__":
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
    
-    # Startup the program
+    # Start the user program
     from scoop import futures
     futures._startup(functools.partial(runpy.run_path,
                                        executable,
