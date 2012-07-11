@@ -58,6 +58,11 @@ class TimeoutError(Exception):
     """The operation exceeded the given deadline."""
     pass
 
+
+class NotStartedProperly(Exception):
+    """SCOOP was not started properly"""
+    pass
+
     
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
