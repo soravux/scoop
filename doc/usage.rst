@@ -41,6 +41,9 @@ by :pep:`3148`. It primarily defines a :meth:`~scoop.futures.map` and a
 :meth:`~scoop.futures.submit` function allowing asynchroneous computation which 
 SCOOP will propagate to its workers. 
 
+Map
+~~~
+
 A |map()|_ function applies multiple parameters to a single function. For 
 example, if you want to apply the |abs()|_ function to every number of a list::
 
@@ -61,6 +64,7 @@ SCOOP's :meth:`~scoop.futures.map` returns a generator over the results
 in-order. It can thus act as a parallel substitute to the standard |map()|_, for
 instance::
 
+    # Script to be launched with: python -m scoop scriptName.py
     import random
     from scoop import futures
     data = [random.randint(-1000,1000) for r in range(2**16)]
@@ -77,7 +81,11 @@ instance::
 .. |map()| replace:: *map()*
 .. _map(): http://docs.python.org/library/functions.html#map
 
-:meth:`~scoop.futures.submit` returns a :class:`~scoop.types.Future` instance. 
+Submit
+~~~~~~
+
+SCOOP's :meth:`~scoop.futures.submit` returns a :class:`~scoop._types.Future` 
+instance. 
 This allows a finer control over the Futures, such as out-of-order processing.
 
 .. _examples-reference:
@@ -86,8 +94,8 @@ Examples
 ~~~~~~~~
     
 Examples are available in the ``examples/`` directory of scoop. For instance, 
-a Monte-Carlo method of calculating Pi using Scoop to parallelize its 
-computation is found in *examples/piCalc.py*:
+a Monte-Carlo method to calculate Pi using SCOOP to parallelize its computation 
+is found in *examples/piCalc.py*:
 
 .. literalinclude:: ../examples/piCalc.py
    :lines: 21-
