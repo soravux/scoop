@@ -28,6 +28,10 @@ from time import time
 def test(tries):
     return sum(hypot(random(), random()) < 1 for i in range(tries))
 
+
+# Calculates pi with a Monte-Carlo method. This function calls the function
+# test "n" times with an argument of "t". Scoop dispatches these 
+# functions interactively accross the availible ressources.
 def calcPi(n, t):
     bt = time()
     expr = futures.map(test, [t] * n)
