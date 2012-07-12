@@ -198,12 +198,10 @@ Pitfalls
 Program scope
 ~~~~~~~~~~~~~
 
-.. Link to PEP that states this
+As a good Python practice (see :pep:`395#what-s-in-a-name`), you should always 
+wrap the executable part of your program using::
 
-As a good Python practice, you should always wrap the executable part of your 
-program using::
-
-  if __name__ == '__main__':
+    if __name__ == '__main__':
 
 This is mandatory when using parallel frameworks such as multiprocessing and 
 SCOOP. Otherwise, each worker (or equivalent) will try to execute your code 
@@ -223,7 +221,7 @@ your call with a list, such as::
     
     def add(x, y): return x + y
     
-    if __name__ == "__main__":
+    if __name__ == '__main__':
         results = list(futures.map(add, range(8), range(8)))   
 
 Large datasets
