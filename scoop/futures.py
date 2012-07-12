@@ -292,3 +292,13 @@ def shutdown(wait=True):
     
     :param wait: Unapplied parameter."""
     pass
+
+def _scan(func, args):
+    if len(args) == 2:
+        return _join(submit(func, args[0], args[1]))
+    elif len(args) == 3:
+        return _join(submit(func, args[2], _join(submit(func, args[0],
+                                                args[1]))))
+    else:
+        return _join(submit(func, _scan(func, args[0:len(args)//2]),
+            _scan(func, args[len(args)//2:len(args) + 1])))
