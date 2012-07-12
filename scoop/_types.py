@@ -188,7 +188,7 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = deque()
         self.socket = ZMQCommunicator()
-        if scoop.FEDERATION_SIZE == 1:
+        if scoop.SIZE == 1:
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
         else:

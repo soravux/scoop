@@ -163,7 +163,7 @@ class TestScoopCommon(unittest.TestCase):
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.VALID = True
         scoop.DEBUG = False
-        scoop.FEDERATION_SIZE = 2
+        scoop.SIZE = 2
         
     def tearDown(self):
         try: self.w.kill()
