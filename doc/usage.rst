@@ -139,17 +139,14 @@ passed to Python, as such::
 Here is a list of the parameters that can be passed to scoop::
 
     python -m scoop --help
-    usage: /home/oli/Envs/pyth3/bin/python -m scoop [-h]
-                                                    [--hosts [HOSTS [HOSTS ...]] |
-                                                    --hostfile HOSTFILE]
-                                                    [--path PATH] [--nice NICE]
-                                                    [--verbose] [--log LOG] [-n N]
-                                                    [-e]
-                                                    [--broker-hostname BROKER_HOSTNAME]
-                                                    [--python-executable PYTHON_EXECUTABLE]
-                                                    [--pythonpath PYTHONPATH]
-                                                    [--debug]
-                                                    executable ...
+    usage: python -m scoop [-h]
+                           [--hosts [HOSTS [HOSTS ...]] | --hostfile HOSTFILE]
+                           [--path PATH] [--nice NICE]
+                           [--verbose] [--log LOG] [-n N]
+                           [-e] [--broker-hostname BROKER_HOSTNAME]
+                           [--python-executable PYTHON_EXECUTABLE]
+                           [--pythonpath PYTHONPATH] [--debug]
+                           executable ...
 
     Starts a parallel program using SCOOP.
 
