@@ -8,7 +8,7 @@ module allowing concurrent parallel programming on various environments,
 from heterogeneous grids to supercomputers.
 
 Philosophy
-----------
+==========
 
 Our philosophy is based on these ideas:
 
@@ -23,7 +23,7 @@ while being compatible with 2.6+ to allow fast prototyping without sacrificing
 efficiency and speed.
 
 Features
---------
+========
 
 SCOOP features and advantages over 
 `Futures <http://docs.python.org/dev/library/concurrent.futures.html>`_,
@@ -37,7 +37,7 @@ and similar modules are as follows:
     * Efficient load-balancing.
 
 Anatomy of a SCOOPed program
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 SCOOP can handle multiple diversified multi-layered tasks. You can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Contrarly to most multiprocessing frameworks, it allows to launch subtasks within tasks.
 
@@ -49,7 +49,7 @@ Through SCOOP, you can simultaneously execute tasks that are of different
 nature (Discs of different colors) or different by complexity (Discs radiuses). The module will handle the physical considerations of parallelization, such as task distribution over your resources (load balancing), communications, etc.
 
 Applications
-~~~~~~~~~~~~
+------------
 
 The common applications of SCOOP consist of, but is not limited to:
 
@@ -60,7 +60,7 @@ The common applications of SCOOP consist of, but is not limited to:
     * Graph traversal
 
 Manual
-------
+======
 
 .. toctree::
    :maxdepth: 2
