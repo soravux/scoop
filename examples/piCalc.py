@@ -31,7 +31,7 @@ def test(tries):
 
 # Calculates pi with a Monte-Carlo method. This function calls the function
 # test "n" times with an argument of "t". Scoop dispatches these 
-# functions interactively accross the availible ressources.
+# functions interactively accross the available ressources.
 def calcPi(n, t):
     bt = time()
     expr = futures.map(test, [t] * n)
