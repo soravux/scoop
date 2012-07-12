@@ -1,4 +1,4 @@
-
+Usage
 =====
 
 Nomenclature
@@ -37,19 +37,47 @@ How to use SCOOP in your code
 -----------------------------
 
 The philosophy of SCOOP is loosely built around the *futures* module proposed 
-by :pep:`3148`. It primarily defines a :meth:`scoop.futures.map` and a 
-:meth:`scoop.futures.submit` function allowing asynchroneous computation which 
+by :pep:`3148`. It primarily defines a :meth:`~scoop.futures.map` and a 
+:meth:`~scoop.futures.submit` function allowing asynchroneous computation which 
 SCOOP will propagate to its workers. 
 
-:meth:`scoop.futures.map` returns a generator over the results in-order. It can 
-thus act as a parallel substitute to the standard |map()|_, for instance::
+A |map()|_ function applies multiple parameters to a single function. For 
+example, if you want to apply the |abs()|_ function to every number of a list::
 
+    import random
+    data = [random.randint(-1000,1000) for r in range(10000)]
+    
+    # Without Map
+    for i in range(len(data)):
+      data[i] = abs(data[i])
 
+    # Using a Map
+    data = map(abs, data)
+
+.. |abs()| replace:: *abs()*
+.. _abs(): http://docs.python.org/library/functions.html#abs
+
+SCOOP's :meth:`~scoop.futures.map` returns a generator over the results 
+in-order. It can thus act as a parallel substitute to the standard |map()|_, for
+instance::
+
+    import random
+    from scoop import futures
+    data = [random.randint(-1000,1000) for r in range(2**16)]
+
+    if __name__ == '__main__':
+        # Python's standard serial function
+        dataSerial = map(abs, data)
+
+        # SCOOP's parallel function
+        dataParallel = list(futures.map(abs, data))
+
+        assert dataSerial == dataParallel
 
 .. |map()| replace:: *map()*
 .. _map(): http://docs.python.org/library/functions.html#map
 
-:meth:`scoop.futures.submit` returns a :class:`scoop.types.Future` instance. 
+:meth:`~scoop.futures.submit` returns a :class:`~scoop.types.Future` instance. 
 This allows a finer control over the Futures, such as out-of-order processing.
 
 .. _examples-reference:
@@ -80,7 +108,7 @@ Unordered processing
 ~~~~~~~~~~~~~~~~~~~~
 
 You can iterate over desired Futures upon element arrival for unordered 
-processing using :meth:`scoop.futures.as_completed` like so::
+processing using :meth:`~scoop.futures.as_completed` like so::
 
     from scoop import futures
     launches = [futures.submit(func, data) for i in range(10)]
@@ -175,10 +203,9 @@ are available in the ``examples/submitFiles`` directory.
 Torque (Moab & Maui)
 ~~~~~~~~~~~~~~~~~~~~
 
-Here is an example of submit file for Torque::
+Here is an example of submit file for Torque:
 
 .. literalinclude:: ../examples/submitFiles/Torque.sh
-
 
 Sun Grid Engine (SGE)
 ~~~~~~~~~~~~~~~~~~~~~
@@ -210,7 +237,7 @@ serially.
 Evaluation laziness
 ~~~~~~~~~~~~~~~~~~~
 
-The :meth:`scoop.futures.map` and :meth:`scoop.futures.submit` functions are 
+The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` functions are 
 lazy, meaning that it won't start computing locally until you access the 
 generator it returned. However, these function can start executing on remote 
 worker the moment they are submited. Events that will trigger evaluation are 
@@ -227,11 +254,12 @@ your call with a list, such as::
 Large datasets
 ~~~~~~~~~~~~~~
 
-Every parameter sent to a function by a :meth:`scoop.futures.map` or 
-:meth:`scoop.futures.submit` gets serialized and sent within the Future to its
+Every parameter sent to a function by a :meth:`~coop.futures.map` or 
+:meth:`~scoop.futures.submit` gets serialized and sent within the Future to its
 worker. Consider using a global variable in your module scope for passing large
 elements; it will then be loaded on launch by every worker and won't overload
 your network.
+
 Incorrect::
 
     from scoop import futures
