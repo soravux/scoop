@@ -31,13 +31,13 @@ def func0(n):
 def func1(n):
     # This call results in a generator function
     result = futures.map(func2, [i+1 for i in range(n)])
-    # The results get evaluated here when they are accessed here
+    # The results get evaluated here when they are accessed.
     return sum(result)
 
 def func2(n):
     launches = [futures.submit(func3, i + 1) for i in range(n)]
     # Spawn a generator for each completion, unordered
-    result = [a.result() for a in futures.as_completed(launches)]
+    result = (a.result() for a in futures.as_completed(launches))
     return sum(result)
 
 def func3(n):

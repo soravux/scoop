@@ -134,18 +134,22 @@ Programs using SCOOP need to be launched with the ``-m scoop`` parameter
 passed to Python, as such::
     
     cd scoop/examples/
-    python -m scoop -n 2 fullTree.py
+    python -m scoop fullTree.py
     
 Here is a list of the parameters that can be passed to scoop::
 
     python -m scoop --help
-    usage: python -m scoop [-h] [--hosts [HOSTS [HOSTS ...]]]
-                           [--path PATH] [--nice NICE] [--verbose]
-                           [--log LOG] [-n N] [-e]
-                           [--broker-hostname BROKER_HOSTNAME]
-                           [--python-executable PYTHON_EXECUTABLE]
-                           [--pythonpath PYTHONPATH] [--debug]
-                           executable ...
+    usage: /home/oli/Envs/pyth3/bin/python -m scoop [-h]
+                                                    [--hosts [HOSTS [HOSTS ...]] |
+                                                    --hostfile HOSTFILE]
+                                                    [--path PATH] [--nice NICE]
+                                                    [--verbose] [--log LOG] [-n N]
+                                                    [-e]
+                                                    [--broker-hostname BROKER_HOSTNAME]
+                                                    [--python-executable PYTHON_EXECUTABLE]
+                                                    [--pythonpath PYTHONPATH]
+                                                    [--debug]
+                                                    executable ...
 
     Starts a parallel program using SCOOP.
 
@@ -158,6 +162,7 @@ Here is a list of the parameters that can be passed to scoop::
       --hosts [HOSTS [HOSTS ...]], --host [HOSTS [HOSTS ...]]
                             The list of hosts. The first host will execute the
                             origin.
+      --hostfile HOSTFILE   The hostfile name
       --path PATH, -p PATH  The path to the executable on remote hosts
       --nice NICE           *nix niceness level (-20 to 19) to run the executable
       --verbose, -v         Verbosity level of this launch script (-vv for more)
@@ -176,6 +181,7 @@ Here is a list of the parameters that can be passed to scoop::
                             The PYTHONPATH environment variable
       --debug               Turn on the debuging
 
+
 A remote workers example may be as follow::
 
     python -m scoop --hosts 127.0.0.1 remotemachinedns 192.168.1.101 192.168.1.102 192.168.1.103 -vv -n 16 your_program.py [your arguments]
@@ -190,6 +196,14 @@ Argument            Meaning
 your_program.py     The program to be launched
 [your arguments]    The arguments that needs to be passed to your program
 ================    =================================
+
+Instead of passing a list of host as in the above example, you can also 
+create a hostfile and pass it to SCOOP using the ``--hostfile`` argument.
+The hostfile should use the following syntax::
+
+    hostname       slots=4
+    other_hostname slots=5
+    third_hostname slots=2
 
 .. note::
     
