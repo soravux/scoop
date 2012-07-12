@@ -93,14 +93,14 @@ This allows a finer control over the Futures, such as out-of-order processing.
 Examples
 ~~~~~~~~
     
-Examples are available in the ``examples/`` directory of scoop. For instance, 
+Examples are available in the :file:`examples/` directory of scoop. For instance, 
 a Monte-Carlo method to calculate Pi using SCOOP to parallelize its computation 
-is found in *examples/piCalc.py*:
+is found in :file:`examples/piCalc.py`:
 
 .. literalinclude:: ../examples/piCalc.py
    :lines: 21-
 
-The *examples/fullTree.py* example holds a pretty good wrap-up of available
+The :file:`examples/fullTree.py` example holds a pretty good wrap-up of available
 functionnalities:
 
 .. literalinclude:: ../examples/fullTree.py
@@ -128,9 +128,9 @@ How to launch SCOOP programs
 ----------------------------
 
 The scoop module spawns the needed broker and workers on a given list of 
-computers, including remote ones via ``ssh``.
+computers, including remote ones via :program:`ssh`.
 
-Programs using SCOOP need to be launched with the ``-m scoop`` parameter 
+Programs using SCOOP need to be launched with the :option:`-m scoop` parameter 
 passed to Python, as such::
     
     cd scoop/examples/
@@ -194,8 +194,7 @@ your_program.py     The program to be launched
 [your arguments]    The arguments that needs to be passed to your program
 ================    =================================
 
-Instead of passing a list of host as in the above example, you can also 
-create a hostfile and pass it to SCOOP using the ``--hostfile`` argument.
+You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
 The hostfile should use the following syntax::
 
     hostname       slots=4
@@ -204,14 +203,14 @@ The hostfile should use the following syntax::
 
 .. note::
     
-    Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the ``--broker-hostname`` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the ``-e`` argument for testing purposes.
+    Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the :option:`--broker-hostname` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the :option:`-e` argument for testing purposes.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
 
 You must provide a startup script on systems using a scheduler. Here is 
 provided some example startup scripts using different grid task managers. They
-are available in the ``examples/submitFiles`` directory.
+are available in the :file:`examples/submitFiles` directory.
 
 .. note::
 
