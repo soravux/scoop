@@ -66,7 +66,7 @@ class NotStartedProperly(Exception):
     
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
-    """This class encapsulates and independent future that can be executed in parallel.
+    """This class encapsulates an independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
     other futures."""
     rank = itertools.count() 
