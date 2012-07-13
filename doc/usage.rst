@@ -281,7 +281,7 @@ your call with a list, such as::
 Large datasets
 ~~~~~~~~~~~~~~
 
-Every parameter sent to a function by a :meth:`~coop.futures.map` or 
+Every parameter sent to a function by a :meth:`~scoop.futures.map` or 
 :meth:`~scoop.futures.submit` gets serialized and sent within the Future to its
 worker. Consider using a global variable in your module scope for passing large
 elements; it will then be loaded on launch by every worker and won't overload
