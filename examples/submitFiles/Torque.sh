@@ -19,4 +19,4 @@ export PATH=$HOME/python/bin:$PATH
 hosts=$(cat $PBS_NODEFILE | sed ':a;N;$!ba;s/\n/ /g')
 
 # Launch SCOOP using the hosts
-time scooprun.py --hosts $hosts -vv -N 16 fullTree.py
+time python -m scoop --hosts $hosts -vv -N 16 fullTree.py
