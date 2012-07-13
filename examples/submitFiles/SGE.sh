@@ -20,4 +20,4 @@ export PATH=$HOME/python/bin:$PATH
 hosts=$(cat $PE_HOSTFILE | awk '{printf "%s ", $1}')
 
 # Launch the remotes workers
-time python -m scoop --hosts $hosts -vv -N 16 test-scoop.py
+python -m scoop --hosts $hosts -vv -N 16 test-scoop.py
