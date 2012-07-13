@@ -91,11 +91,19 @@ This allows a finer control over the Futures, such as out-of-order processing.
 .. _examples-reference:
 
 Examples
-~~~~~~~~
+--------
     
-Examples are available in the |exampleDirectory| directory of scoop. For instance, 
-a Monte-Carlo method to calculate Pi using SCOOP to parallelize its computation 
-is found in |piCalcFile|_:
+Examples are available in the |exampleDirectory|_ directory of scoop. 
+
+Computation of :math:`\pi`
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A `Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ to 
+calculate :math:`\pi` using SCOOP to parallelize its computation is found in 
+|piCalcFile|_.
+You should familiarize yourself with 
+`Monte-Carlo methods <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ before
+going forth with this example. 
 
 .. |exampleDirectory| replace:: :file:`examples/`
 .. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
@@ -103,8 +111,59 @@ is found in |piCalcFile|_:
 .. |piCalcFile| replace:: :file:`examples/piCalc.py`
 .. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/piCalc.py
 
-.. literalinclude:: ../examples/piCalc.py
-   :lines: 21-
+First, we need to import the needed functions as such:
+
+.. literalinclude:: ../examples/piCalcDoc.py
+   :lines: 22-24
+   :linenos:
+
+The `Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ is
+then defined. It first spawns two pseudo-random numbers that are fed to the 
+`Pythagorean equation <http://en.wikipedia.org/wiki/Pythagorean_theorem>`_ 
+(:math:`\sqrt{x^2+y^2}`) to evaluate if the randomly generated point is inside 
+or outside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_. 
+If it is inside, a value of one is produced, otherwise the value is zero.
+The `hypot <http://docs.python.org/library/math.html#math.hypot>`_ function
+simply calculates the hypotenuse of its parameters and is a standard Python 
+function that computes the 
+`Pythagorean equation <http://en.wikipedia.org/wiki/Pythagorean_theorem>`_.
+
+.. TODO: don't restart line numbering
+
+.. literalinclude:: ../examples/piCalcDoc.py
+   :lines: 26-27
+   :linenos:
+
+One way to obtain a more precise result with a 
+`Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ is to
+perform the method multiple times. The following function executes multiple 
+calls to the previous function in order to achieve more precision.
+These different calls are handled by SCOOP using it's ::`~scoop.futures.map` 
+function.
+The results, that is, the number of times a random distribution over a 1x1 
+square hits the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_, are then
+summed and divided by the number of tries.
+Since we only covered a single quadrant of the
+`unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_, the upper right part
+when both parameters are positive in a cartesian map, we must multiply the 
+result by 4 to get the relation between area and circumference, namely 
+:math:`\pi`.
+
+.. literalinclude:: ../examples/piCalcDoc.py
+   :lines: 29-31
+   :linenos:
+
+You **must** wrap your code with a test for the __main__ name, otherwise every
+worker will try to run their own instance of the program. This ensures that 
+every worker waits for parallelized tasks spawned by the origin worker.
+You can now run your code using the command :program:`python -m scoop`.
+
+.. literalinclude:: ../examples/piCalcDoc.py
+   :lines: 33-34
+   :linenos:
+
+Synthetic example
+~~~~~~~~~~~~~~~~~
 
 The |fullTreeFile| example holds a pretty good wrap-up of available
 functionnalities:
