@@ -93,18 +93,27 @@ This allows a finer control over the Futures, such as out-of-order processing.
 Examples
 ~~~~~~~~
     
-Examples are available in the :file:`examples/` directory of scoop. For instance, 
+Examples are available in the |exampleDirectory| directory of scoop. For instance, 
 a Monte-Carlo method to calculate Pi using SCOOP to parallelize its computation 
-is found in :file:`examples/piCalc.py`:
+is found in |piCalcFile|_:
+
+.. |exampleDirectory| replace:: :file:`examples/`
+.. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
+
+.. |piCalcFile| replace:: :file:`examples/piCalc.py`
+.. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/piCalc.py
 
 .. literalinclude:: ../examples/piCalc.py
    :lines: 21-
 
-The :file:`examples/fullTree.py` example holds a pretty good wrap-up of available
+The |fullTreeFile| example holds a pretty good wrap-up of available
 functionnalities:
 
 .. literalinclude:: ../examples/fullTree.py
    :lines: 21-
+
+.. |fullTreeFile| replace:: :file:`examples/fullTree.py`
+.. _fullTreeFile: https://code.google.com/p/scoop/source/browse/examples/fullTree.py
     
 Please check our :doc:`api` for any implentation detail of the proposed 
 functions.

@@ -25,15 +25,15 @@ efficiency and speed.
 Features
 ========
 
-SCOOP features and advantages over 
+SCOOP has many features and advantages over 
 `Futures <http://docs.python.org/dev/library/concurrent.futures.html>`_,
-`multiprocessing <http://docs.python.org/dev/library/multiprocessing.html>`_ 
-and similar modules are as follows:
+`multiprocessing <http://docs.python.org/dev/library/multiprocessing.html>`_
+and similar modules, such as:
 
     * Harness the power of **multiple computers** over network;
     * Ability to spawn subtasks within tasks;
     * API compatible with :pep:`3148`;
-    * Parallelizing serial code with only minor modifications;
+    * Parallelizing serial programs with only minor modifications;
     * Efficient load-balancing.
 
 Anatomy of a SCOOPed program

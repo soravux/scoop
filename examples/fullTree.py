@@ -21,17 +21,13 @@ techniques using SCOOP.
 from __future__ import print_function
 from scoop import futures
 
-def func0(n):
-    # Task submission is asynchronous; It will return immediately.
-    task = futures.submit(func1, n)
-    # The call blocks here until it gets the result
-    result = task.result()
+def func4(n):
+    result = n*n
     return result
 
-def func1(n):
-    # This call results in a generator function
-    result = futures.map(func2, [i+1 for i in range(n)])
-    # The results get evaluated here when they are accessed.
+def func3(n):
+    # To force an immediate evaluation, you can wrap your map in a list such as:
+    result = list(futures.map(func4, [i+1 for i in range(n)]))
     return sum(result)
 
 def func2(n):
@@ -40,13 +36,17 @@ def func2(n):
     result = (a.result() for a in futures.as_completed(launches))
     return sum(result)
 
-def func3(n):
-    # To force an immediate evaluation, you can wrap your map in a list such as:
-    result = list(futures.map(func4, [i+1 for i in range(n)]))
+def func1(n):
+    # This call results in a generator function
+    result = futures.map(func2, [i+1 for i in range(n)])
+    # The results get evaluated here when they are accessed.
     return sum(result)
 
-def func4(n):
-    result = n*n
+def func0(n):
+    # Task submission is asynchronous; It will return immediately.
+    task = futures.submit(func1, n)
+    # The call blocks here until it gets the result
+    result = task.result()
     return result
 
 def main():

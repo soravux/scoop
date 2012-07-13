@@ -116,7 +116,7 @@ class Future(object):
         return False
 
     def cancelled(self):
-        """True if the call was successfully cancelled, else otherwise."""
+        """True if the call was successfully cancelled, False otherwise."""
         return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
@@ -125,7 +125,8 @@ class Future(object):
         return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
-        """True if the call was successfully cancelled or finished running."""
+        """True if the call was successfully cancelled or finished running, 
+           False otherwise."""
         return self.resultValue != None or self.exceptionValue != None
 
     def result(self, timeout=None):
