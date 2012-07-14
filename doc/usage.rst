@@ -118,15 +118,23 @@ First, we need to import the needed functions as such:
    :linenos:
 
 The `Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ is
-then defined. It first spawns two pseudo-random numbers that are fed to the 
-`Pythagorean equation <http://en.wikipedia.org/wiki/Pythagorean_theorem>`_ 
-(:math:`\sqrt{x^2+y^2}`) to evaluate if the randomly generated point is inside 
-or outside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_. 
-If it is inside, a value of one is produced, otherwise the value is zero.
-The `hypot <http://docs.python.org/library/math.html#math.hypot>`_ function
-simply calculates the hypotenuse of its parameters and is a standard Python 
-function that computes the 
-`Pythagorean equation <http://en.wikipedia.org/wiki/Pythagorean_theorem>`_.
+then defined. It spawns two pseudo-random numbers that are fed to the 
+`hypot <http://docs.python.org/library/math.html#math.hypot>`_ function which 
+calculates the hypotenuse of its parameters.
+This step computes the 
+`Pythagorean equation <http://en.wikipedia.org/wiki/Pythagorean_theorem>`_
+(:math:`\sqrt{x^2+y^2}`) of the given parameters to find the distance from the 
+origin (0,0) to the randomly placed point (which X and Y values were generated 
+from the two pseudo-random values).
+Then, the result is compared to one to evaluate if this point is inside or 
+outside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_.
+If it is inside (have a distance from the origin lesser than one), a value of 
+one is produced, otherwise the value is zero.
+The experiment is repeated ``tries`` number of times with new random values.
+
+The function returns the number times a pseudo-randomly generated point felt 
+inside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ for a given
+number of tries.
 
 .. TODO: don't restart line numbering
 
@@ -136,24 +144,24 @@ function that computes the
 
 One way to obtain a more precise result with a 
 `Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ is to
-perform the method multiple times. The following function executes multiple 
-calls to the previous function in order to achieve more precision.
-These different calls are handled by SCOOP using it's ::`~scoop.futures.map` 
+perform the method multiple times. The following function executes repeatedly
+the previous function to gain more precision.
+These calls are handled by SCOOP using it's :meth:`~scoop.futures.map` 
 function.
-The results, that is, the number of times a random distribution over a 1x1 
-square hits the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_, are then
-summed and divided by the number of tries.
-Since we only covered a single quadrant of the
-`unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_, the upper right part
-when both parameters are positive in a cartesian map, we must multiply the 
-result by 4 to get the relation between area and circumference, namely 
+The results, that is the number of times a random distribution over a 1x1 
+square hits the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ over a 
+given number of tries, are then summed and divided by the total of tries.
+Since we only covered the upper right quadrant of the
+`unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ because both parameters
+are positive in a cartesian map, the result must be multiplied by 4 to get the 
+relation between area and circumference, namely 
 :math:`\pi`.
 
 .. literalinclude:: ../examples/piCalcDoc.py
    :lines: 29-31
    :linenos:
 
-You **must** wrap your code with a test for the __main__ name, otherwise every
+You `must` wrap your code with a test for the __main__ name, otherwise every
 worker will try to run their own instance of the program. This ensures that 
 every worker waits for parallelized tasks spawned by the origin worker.
 You can now run your code using the command :program:`python -m scoop`.
