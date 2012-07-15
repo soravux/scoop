@@ -85,10 +85,10 @@ instance::
 
 .. note::
 
-    You `must` wrap your code with a test for the __main__ name, otherwise every
-    worker will try to run their own instance of the program. This ensures that 
-    every worker waits for parallelized tasks spawned by the origin worker.
-
+    You *must* wrap your code with a test for the __main__ name as show above.
+    Failure to do so will result in every worker trying to run their own 
+    instance of the program. This ensures that every worker waits for 
+    parallelized tasks spawned by the origin worker.
 
 Submit
 ~~~~~~
@@ -170,9 +170,7 @@ relation between area and circumference, namely
    :lines: 29-31
    :linenos:
 
-.. TODO: link to _test-for-main-mandatory
-
-As stated above, you `must` wrap your code with a test for the __main__ name.
+As :ref:`stated above <test-for-main-mandatory>`, you `must` wrap your code with a test for the __main__ name.
 You can now run your code using the command :program:`python -m scoop`.
 
 .. literalinclude:: ../examples/piCalcDoc.py
