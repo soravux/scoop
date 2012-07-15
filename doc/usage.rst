@@ -81,6 +81,15 @@ instance::
 .. |map()| replace:: *map()*
 .. _map(): http://docs.python.org/library/functions.html#map
 
+.. _test-for-main-mandatory:
+
+.. note::
+
+    You `must` wrap your code with a test for the __main__ name, otherwise every
+    worker will try to run their own instance of the program. This ensures that 
+    every worker waits for parallelized tasks spawned by the origin worker.
+
+
 Submit
 ~~~~~~
 
@@ -95,6 +104,9 @@ Examples
     
 Examples are available in the |exampleDirectory|_ directory of scoop. 
 
+.. |exampleDirectory| replace:: :file:`examples/`
+.. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
+
 Computation of :math:`\pi`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -104,9 +116,6 @@ calculate :math:`\pi` using SCOOP to parallelize its computation is found in
 You should familiarize yourself with 
 `Monte-Carlo methods <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ before
 going forth with this example. 
-
-.. |exampleDirectory| replace:: :file:`examples/`
-.. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
 
 .. |piCalcFile| replace:: :file:`examples/piCalc.py`
 .. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/piCalc.py
@@ -161,23 +170,23 @@ relation between area and circumference, namely
    :lines: 29-31
    :linenos:
 
-You `must` wrap your code with a test for the __main__ name, otherwise every
-worker will try to run their own instance of the program. This ensures that 
-every worker waits for parallelized tasks spawned by the origin worker.
+.. TODO: link to _test-for-main-mandatory
+
+As stated above, you `must` wrap your code with a test for the __main__ name.
 You can now run your code using the command :program:`python -m scoop`.
 
 .. literalinclude:: ../examples/piCalcDoc.py
    :lines: 33-34
    :linenos:
 
-Synthetic example
-~~~~~~~~~~~~~~~~~
+Overall example
+~~~~~~~~~~~~~~~
 
 The |fullTreeFile| example holds a pretty good wrap-up of available
 functionnalities:
 
 .. literalinclude:: ../examples/fullTree.py
-   :lines: 21-
+   :lines: 22-
 
 .. |fullTreeFile| replace:: :file:`examples/fullTree.py`
 .. _fullTreeFile: https://code.google.com/p/scoop/source/browse/examples/fullTree.py

@@ -18,16 +18,18 @@
 A simple example showing how to resolve a full balanced tree with multiples
 techniques using SCOOP.
 """
-from __future__ import print_function
+
 from scoop import futures
 
 def func4(n):
+    # Example of calculus you may want to perform
     result = n*n
     return result
 
 def func3(n):
-    # To force an immediate evaluation, you can wrap your map in a list such as:
-    result = list(futures.map(func4, [i+1 for i in range(n)]))
+    # This call results in a generator function
+    result = futures.map(func4, [i+1 for i in range(n)])
+    # The results are evaluated here when they are accessed.
     return sum(result)
 
 def func2(n):
@@ -37,9 +39,8 @@ def func2(n):
     return sum(result)
 
 def func1(n):
-    # This call results in a generator function
-    result = futures.map(func2, [i+1 for i in range(n)])
-    # The results get evaluated here when they are accessed.
+    # To force an immediate evaluation, you can wrap your map in a list such as:
+    result = list(futures.map(func2, [i+1 for i in range(n)]))
     return sum(result)
 
 def func0(n):
