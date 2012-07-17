@@ -128,7 +128,7 @@ def map(func, *iterables, **kargs):
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
-        control.futureDict.pop(future.id)
+        del control.futureDict[future.id]
         yield future.resultValue
 
 def submit(func, *args, **kargs):
@@ -265,7 +265,7 @@ def _join(child):
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
     for future in _waitAny(child):
-        control.futureDict.pop(future.id)
+        del control.futureDict[future.id]
         return future.resultValue
 
 def _joinAll(*children):
