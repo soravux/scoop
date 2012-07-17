@@ -104,7 +104,7 @@ class Future(object):
            the call will be cancelled and the method will return True."""
         if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
-            scoop._control.futureDict.pop(self.id)
+            del scoop._control.futureDict[self.id]
             scoop._control.execQueue.remove(self)
             return True
         return False
@@ -281,6 +281,7 @@ class FutureQueue(object):
         future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
+        del scoop._control.futureDict[future.id]
 
     def shutdown(self):
         """Shutdown the ressources used by the queue"""
