@@ -9,7 +9,7 @@ Nomenclature
 =========== =======================================================================================================================================
   Keyword   Description
 =========== =======================================================================================================================================
-Future(s)   The Future class encapsulates the asynchronous execution of a callable.
+Future(s)   The Future class encapsulates the asynchronous execution of a callable (Previously referred to as `task`).
 Broker      Dispatch Futures.
 Worker      Process executing Futures.
 Origin      The worker executing the user program.
@@ -51,11 +51,12 @@ example, if you want to apply the |abs()|_ function to every number of a list::
     data = [random.randint(-1000,1000) for r in range(10000)]
     
     # Without Map
+    result = []
     for i in range(len(data)):
-      data[i] = abs(data[i])
+      result.append(abs(data[i]))
 
     # Using a Map
-    data = map(abs, data)
+    result = map(abs, data)
 
 .. |abs()| replace:: *abs()*
 .. _abs(): http://docs.python.org/library/functions.html#abs
@@ -180,33 +181,18 @@ You can now run your code using the command :program:`python -m scoop`.
 Overall example
 ~~~~~~~~~~~~~~~
 
-The |fullTreeFile| example holds a pretty good wrap-up of available
+The |fullTreeFile|_ example holds a pretty good wrap-up of available
 functionnalities:
-
-.. literalinclude:: ../examples/fullTree.py
-   :lines: 22-
 
 .. |fullTreeFile| replace:: :file:`examples/fullTree.py`
 .. _fullTreeFile: https://code.google.com/p/scoop/source/browse/examples/fullTree.py
+
+.. literalinclude:: ../examples/fullTree.py
+   :lines: 22-
     
-Please check our :doc:`api` for any implentation detail of the proposed 
+Please check the :doc:`api` for any implentation detail of the proposed 
 functions.
 
-Cookbook
---------
-
-Unordered processing
-~~~~~~~~~~~~~~~~~~~~
-
-You can iterate over desired Futures upon element arrival for unordered 
-processing using :meth:`~scoop.futures.as_completed` like so::
-
-    from scoop import futures
-    launches = [futures.submit(func, data) for i in range(10)]
-    # The results will be ordered by execution time
-    # the Future executed the fastest being the first element
-    result = [i.result() for i in futures.as_completed(launches)]
-    
 How to launch SCOOP programs
 ----------------------------
 
@@ -272,7 +258,7 @@ Argument            Meaning
 -m scoop            **Mandatory** Uses SCOOP to run program.
 --hosts [...]       List of hosts to launch workers on.
 -vv                 Double verbosity flag
--n 16               Launch 16 workers
+-n 16               Launch a total of 16 workers
 your_program.py     The program to be launched
 [your arguments]    The arguments that needs to be passed to your program
 ================    =================================
@@ -293,7 +279,10 @@ Startup scripts (supercomputer or grid)
 
 You must provide a startup script on systems using a scheduler. Here is 
 provided some example startup scripts using different grid task managers. They
-are available in the :file:`examples/submitFiles` directory.
+are available in the |submitFilesPath|_ directory.
+
+.. |submitFilesPath| replace:: :file:`examples/submitFiles`
+.. _submitFilesPath: https://code.google.com/p/scoop/source/browse/examples/submitFiles/
 
 .. note::
 
@@ -315,7 +304,7 @@ Here is an example of submit file for SGE:
 
 .. literalinclude:: ../examples/submitFiles/SGE.sh
 
-.. TODO Condor & autres
+.. TODO Condor, Amazon EC2 using Boto & others
         ~~~~~~
 
 Pitfalls
@@ -378,7 +367,7 @@ Better::
       return sum(data[inIndex])
     
     if __name__ == '__main__':
-        results = list(futures.map(sum, range(8)))
+        results = list(futures.map(mySum, range(8)))
    
 SCOOP and greenlets
 ~~~~~~~~~~~~~~~~~~~
