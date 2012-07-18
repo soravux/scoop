@@ -14,16 +14,20 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
+
 from __future__ import print_function
+import scoop
+scoop.DEBUG = False
+
 from scoop import futures
 from scoop import _control
-import scoop
 import unittest
 import subprocess
 import time
 import copy
 import os
 import sys
+import operator
     
 def func0(n):
     task = futures.submit(func1, n)
@@ -102,6 +106,10 @@ def funcSub(n):
     f = futures.submit(func4, n)
     return f.result()
 
+def funcScan(l):
+    return futures._scan(operator.add, l)
+
+
 def main(n):
     task = futures.submit(func0, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
@@ -123,31 +131,21 @@ def port_ready(port, socket):
     else:
         socket.shutdown(2)
         return True
-        
-    
+
 class TestScoopCommon(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        #self.default_highwatermark = Task.execQueue.highwatermark
         # Parent initialization
         super(TestScoopCommon, self).__init__(*args, **kwargs)
         
     def multiworker_set(self):
-        #Backupenv = os.environ.copy()
-        #os.environ.update({'WORKER_NAME': 'worker',
-        #               'BROKER_NAME':'broker',
-        #               'IS_ORIGIN': '0',
-        #               'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
-        #               'META_ADDRESS': 'tcp://127.0.0.1:5556'})   
         worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
         "--workerName", "worker", "--brokerName", "broker", "--brokerAddress",
         "tcp://127.0.0.1:5555", "--metaAddress", "tcp://127.0.0.1:5556", "tests.py"])
         #os.environ = Backupenv
         return worker
-
         
     def setUp(self):
         # Start the server
-        #from scoop.broker import Broker
         self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker",
         "--tPort", "5555", "--mPort", "5556"])
         import socket, datetime, time
@@ -164,19 +162,9 @@ class TestScoopCommon(unittest.TestCase):
         scoop.META_ADDRESS = 'tcp://127.0.0.1:5556'
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.VALID = True
+        scoop.DEBUG = False
+        scoop.SIZE = 2
         
-        #os.environ.update({'WORKER_NAME': 'origin', # this is the default name
-        #               'BROKER_NAME':'broker',
-        #               'IS_ORIGIN': '1',
-        #               'BROKER_ADDRESS': 'tcp://127.0.0.1:5555',
-        #               'META_ADDRESS': 'tcp://127.0.0.1:5556'})
-        #try:
-        #    reload(scoop)
-        #except:
-        #    import imp
-        #    imp.reload(scoop)
-        
-    
     def tearDown(self):
         try: self.w.kill()
         except: pass
@@ -313,6 +301,20 @@ class TestApi(TestScoopCommon):
 
     def test_callback(self):
         self.assertTrue(futures._startup(funcCallback))
+
+    def test_scan_single(self):
+        l = [i for i in range(1111)]
+        result = futures._startup(funcScan, l)
+        self.assertEqual(result, sum(l))
+
+    def test_scan_multi(self):
+        self.w = self.multiworker_set()
+        l = [i for i in range(1111)]
+        result = futures._startup(funcScan, l)
+        self.assertEqual(result, sum(l))
+
+
+
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
