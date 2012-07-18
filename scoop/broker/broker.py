@@ -116,7 +116,10 @@ class Broker(object):
         return (self.tSockPort, self.infoSockPort)
 
     def shutdown(self):
-        self.infoSocket.send(SHUTDOWN)
+        try:
+            self.infoSocket.send(SHUTDOWN)
+        except:
+            pass
         # out of infinite loop: do some housekeeping
         time.sleep (0.3)
         
@@ -126,10 +129,10 @@ class Broker(object):
         
         # write down statistics about this run if asked
         if self.debug:
-            import os
+            import os, pickle
             try:
                 os.mkdir('debug')
             except:
                 pass
-            with open("debug/broker-broker", 'w') as f:
-                f.write(str(self.stats))
+            with open("debug/broker-broker", 'wb') as f:
+                pickle.dump(self.stats, f)

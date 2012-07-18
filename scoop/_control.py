@@ -15,50 +15,75 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
-from collections import deque
+from collections import deque, defaultdict
 import greenlet
 import os
 from ._types import Future, FutureId, FutureQueue
+from functools import partial
 import scoop
 
-# Set module-scope variables about this controller
-rank = 0                                        # rank id for next future
-current = None                                  # future currently running in greenlet
-futureDict = {}                                 # dictionary of existing futures
-execQueue = None                                # queue of futures pending execution
+# Future currently running in greenlet
+current = None
+# Dictionary of existing futures
+futureDict = {}
+# Queue of futures pending execution
+execQueue = None
+# Statistics of execution
+class _stat(deque):
+    def __init__(self, *args, **kargs):
+        self._sum = 0
+        super(_stat, self).__init__(*args,maxlen = 10, **kargs)
 
+    def appendleft(self, x):
+        if len(self) >= self.maxlen:
+            self._sum -= self[-1]
+        self._sum += x
+        super(_stat, self).appendleft(x)
+
+    def mean(self):
+        if len(self) > 3:
+            return self._sum / len(self)
+        return float("inf")
+
+execStats = defaultdict(_stat)
 
 if scoop.DEBUG:
     import time
-    stats = {}
+    list_defaultdict = partial(defaultdict, list)
+    debug_stats = defaultdict(list_defaultdict)
     QueueLength = []
-
-# This is the callable greenlet for running futures.
+    
+# This is the callable greenlet for running tasks.
 def runFuture(future):
     if scoop.DEBUG:
-        stats.setdefault(future.id, {}).setdefault('start_time', []).append(time.time())
+        debug_stats[future.id]['start_time'].append(time.time())
     future.waitTime = future.stopWatch.get()
     future.stopWatch.reset()
     try:
-        future.resultValue = future.callable(*future.args, **future.kargs)    
+        future.resultValue = future.callable(*future.args, **future.kargs)
     except Exception as err:
         future.exceptionValue = err
     future.executionTime = future.stopWatch.get()
     assert future.done(), "callable must return a value!"
-    
+
+    # Update the worker inner work statistics
+    if future.executionTime != 0. and hasattr(future.callable, '__name__'):
+        execStats[future.callable.__name__].appendleft(future.executionTime)
+
     # Set debugging informations if needed
     if scoop.DEBUG:
         t = time.time()
-        stats[future.id].setdefault('end_time', []).append(t)
-        stats[future.id].update({'executionTime': future.executionTime,
-                               'worker': scoop.worker,
-                               'creationTime': future.creationTime,
-                               'callable': str(future.callable.__name__)
-                                    if hasattr(future.callable, '__name__')
-                                    else 'No name',
-                               'parent': future.parentId})
-        QueueLength.append((t, len(execQueue)))
-
+        debug_stats[future.id]['end_time'].append(t)
+        debug_stats[future.id].update({
+            'executionTime': future.executionTime,
+            'worker': scoop.worker,
+            'creationTime': future.creationTime,
+            'callable': str(future.callable.__name__)
+                if hasattr(future.callable, '__name__')
+                else 'No name',
+           'parent': future.parentId
+        })
+        QueueLength.append((t, execQueue.timelen(execQueue)))
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if future.parentId.worker == scoop.worker:
@@ -66,7 +91,7 @@ def runFuture(future):
             try: callback(future)
             except: pass # Ignored callback exception as stated in PEP 3148
     return future
-
+    
 # This is the callable greenlet that implements the controller logic.
 def runController(callable, *args, **kargs):
     global execQueue

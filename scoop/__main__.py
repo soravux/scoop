@@ -23,6 +23,7 @@ import socket
 import subprocess
 import time
 import logging
+import multiprocessing
 from threading import Thread
 
 class launchScoop(object):
@@ -229,6 +230,10 @@ def getHosts(filename):
     f.close()
     return [(h[0], h[1].split("=")[1]) for h in hosts]
 
+try:
+    numberOfCPUs = multiprocessing.cpu_count()
+except NotImplementedError:
+    numberOfCPUs = 1
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
                                              "SCOOP.",
                                  prog="{0} -m scoop".format(sys.executable))
@@ -257,7 +262,7 @@ parser.add_argument('--log',
 parser.add_argument('-n',
                     help="Number of process to launch the executable with",
                     type=int,
-                    default=1)
+                    default=numberOfCPUs)
 parser.add_argument('-e',
                     help="Activate ssh tunnels to route toward the broker "
                          "sockets over remote connections (may eliminate "
