@@ -235,12 +235,13 @@ parser = argparse.ArgumentParser(description="Starts a parallel program using "
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--hosts', '--host',
                     help="The list of hosts. The first host will execute the "
-                         "origin.",
+                         "origin. (default is 127.0.0.1)",
                     nargs='*',
                     default=["127.0.0.1"])
 group.add_argument('--hostfile', help="The hostfile name")
 parser.add_argument('--path', '-p',
-                    help="The path to the executable on remote hosts",
+                    help="The path to the executable on remote hosts  (default "
+                         "is local directory)",
                     default=os.getcwd())
 parser.add_argument('--nice',
                     type=int,
@@ -252,10 +253,13 @@ parser.add_argument('--verbose', '-v',
                            "more)",
                     default = 0)
 parser.add_argument('--log',
-                    help = "The file to log the output (default is stdout)",
+                    help = "The file to log the output. (default is stdout)",
                     default = None)
 parser.add_argument('-n',
-                    help="Number of process to launch the executable with",
+                    help="Total number of workers to launch on the hosts. "
+                         "Workers are spawned sequentially over the hosts. "
+                         "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
+                         "first host and 1 on the second.) (default: 1)",
                     type=int,
                     default=1)
 parser.add_argument('-e',
@@ -276,7 +280,8 @@ parser.add_argument('--python-executable',
                     default=[sys.executable])
 parser.add_argument('--pythonpath',
                     nargs=1,
-                    help="The PYTHONPATH environment variable",
+                    help="The PYTHONPATH environment variable (default is "
+                         "current PYTHONPATH)",
                     default=[os.environ.get('PYTHONPATH', '')])
 parser.add_argument('--debug', help="Turn on the debuging", action='store_true')
 parser.add_argument('executable',
