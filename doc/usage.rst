@@ -239,7 +239,8 @@ Here is a list of the parameters that can be passed to scoop::
       -n N                  Total number of workers to launch on the hosts.
                             Workers are spawned sequentially over the hosts.
                             (ie. -n 3 with 2 hosts will spawn 2 workers on the
-                            first host and 1 on the second.) (default: 1)
+                            first host and 1 on the second.) (default: Number of
+                            CPUs on current machine)
       -e                    Activate ssh tunnels to route toward the broker
                             sockets over remote connections (may eliminate routing
                             problems and activate encryption but slows down
@@ -270,8 +271,12 @@ your_program.py     The program to be launched.
 [your arguments]    The arguments that needs to be passed to your program.
 ================    =================================
 
+You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
+The hostfile should use the following syntax::
+    hostname       slots=4
+    other_hostname slots=5
+    third_hostname slots=2
 .. note::
-    
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the :option:`--broker-hostname` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the :option:`-e` argument for testing purposes.
 
 Hostfile format

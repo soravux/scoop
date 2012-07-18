@@ -62,7 +62,7 @@ if __name__ == "__main__":
     scoop.BROKER_NAME     = args.brokerName.encode()
     scoop.BROKER_ADDRESS  = args.brokerAddress.encode()
     scoop.META_ADDRESS    = args.metaAddress.encode()
-    scoop.FEDERATION_SIZE = args.size
+    scoop.SIZE            = args.size
     scoop.DEBUG           = args.debug
     scoop.IS_ORIGIN       = args.origin
     scoop.worker          = (scoop.WORKER_NAME, scoop.BROKER_NAME)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
    
-    # Startup the program
+    # Start the user program
     from scoop import futures
     futures._startup(functools.partial(runpy.run_path,
                                        executable,

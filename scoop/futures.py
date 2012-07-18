@@ -18,7 +18,7 @@ from __future__ import print_function
 import os
 from collections import namedtuple
 import scoop
-from scoop._types import Future
+from scoop._types import Future, NotStartedProperly
 from scoop import _control as control
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
@@ -62,16 +62,16 @@ def _startup(rootFuture, *args, **kargs):
     except scoop._comm.Shutdown:
         result = None
     if scoop.DEBUG:
-        #if not os.path.exists("debug"):
+        import pickle
         try:
             os.makedirs("debug")
         except:
             pass
         with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
-                scoop.BROKER_NAME.decode(), 'w') as f:
-            f.write(str(control.stats))
-        with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'w') as f:
-            f.write(str(control.QueueLength))
+                scoop.BROKER_NAME.decode(), 'wb') as f:
+            pickle.dump(control.debug_stats, f)
+        with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'wb') as f:
+            pickle.dump(control.QueueLength, f)
     return result
 
 def _mapFuture(callable, *iterables, **kargs):
@@ -148,7 +148,13 @@ def submit(func, *args, **kargs):
     transfered remotely depending on load or on remote distributed workers. You
     may carry on with any further computations while the Future completes. Result
     retrieval is made via the ``result()`` function on the Future."""
-    child = Future(control.current.id, func, *args, **kargs)
+    try:
+        child = Future(control.current.id, func, *args, **kargs)
+    except AttributeError:
+        raise NotStartedProperly("SCOOP was not started properly.\n"
+                                 "Be sure to start your program with the "
+                                 "'-m scoop' parameter. You can find further "
+                                 "information in the documentation.")
     control.execQueue.append(child)
     return child
 
@@ -286,3 +292,13 @@ def shutdown(wait=True):
     
     :param wait: Unapplied parameter."""
     pass
+
+def _scan(func, args):
+    if len(args) == 2:
+        return _join(submit(func, args[0], args[1]))
+    elif len(args) == 3:
+        return _join(submit(func, args[2], _join(submit(func, args[0],
+                                                args[1]))))
+    else:
+        return _join(submit(func, _scan(func, args[0:len(args)//2]),
+            _scan(func, args[len(args)//2:len(args) + 1])))
