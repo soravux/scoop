@@ -184,6 +184,8 @@ Overall example
 The |fullTreeFile|_ example holds a pretty good wrap-up of available
 functionnalities:
 
+.. TODO: Document it like piCalc.
+
 .. |fullTreeFile| replace:: :file:`examples/fullTree.py`
 .. _fullTreeFile: https://code.google.com/p/scoop/source/browse/examples/fullTree.py
 
@@ -227,13 +229,17 @@ Here is a list of the parameters that can be passed to scoop::
       -h, --help            show this help message and exit
       --hosts [HOSTS [HOSTS ...]], --host [HOSTS [HOSTS ...]]
                             The list of hosts. The first host will execute the
-                            origin.
+                            origin. (default is 127.0.0.1)
       --hostfile HOSTFILE   The hostfile name
-      --path PATH, -p PATH  The path to the executable on remote hosts
+      --path PATH, -p PATH  The path to the executable on remote hosts (default 
+                            is local directory)
       --nice NICE           *nix niceness level (-20 to 19) to run the executable
       --verbose, -v         Verbosity level of this launch script (-vv for more)
       --log LOG             The file to log the output (default is stdout)
-      -n N                  Number of process to launch the executable with
+      -n N                  Total number of workers to launch on the hosts.
+                            Workers are spawned sequentially over the hosts.
+                            (ie. -n 3 with 2 hosts will spawn 2 workers on the
+                            first host and 1 on the second.) (default: 1)
       -e                    Activate ssh tunnels to route toward the broker
                             sockets over remote connections (may eliminate routing
                             problems and activate encryption but slows down
@@ -244,23 +250,25 @@ Here is a list of the parameters that can be passed to scoop::
       --python-executable PYTHON_EXECUTABLE
                             The python executable with which to execute the script
       --pythonpath PYTHONPATH
-                            The PYTHONPATH environment variable
+                            The PYTHONPATH environment variable (default is 
+                            current PYTHONPATH)
+
       --debug               Turn on the debuging
 
 
 A remote workers example may be as follow::
 
-    python -m scoop --hosts 127.0.0.1 remotemachinedns 192.168.1.101 192.168.1.102 192.168.1.103 -vv -n 16 your_program.py [your arguments]
+    python -m scoop --hosts 127.0.0.1 remotemachinedns 192.168.1.101 192.168.1.102 -vv -n 18 your_program.py [your arguments]
 
 ================    =================================
 Argument            Meaning
 ================    =================================
 -m scoop            **Mandatory** Uses SCOOP to run program.
 --hosts [...]       List of hosts to launch workers on.
--vv                 Double verbosity flag
--n 16               Launch a total of 16 workers
-your_program.py     The program to be launched
-[your arguments]    The arguments that needs to be passed to your program
+-vv                 Double verbosity flag.
+-n 16               Launch a total of 16 workers (5 on ``127.0.0.1`` and ``remotemachinedns``, 4 on ``192.168.1.101`` and ``192.168.1.102``)
+your_program.py     The program to be launched.
+[your arguments]    The arguments that needs to be passed to your program.
 ================    =================================
 
 .. note::
