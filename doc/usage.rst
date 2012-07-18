@@ -263,13 +263,6 @@ your_program.py     The program to be launched
 [your arguments]    The arguments that needs to be passed to your program
 ================    =================================
 
-You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
-The hostfile should use the following syntax::
-
-    hostname       slots=4
-    other_hostname slots=5
-    third_hostname slots=2
-
 .. note::
     
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the :option:`--broker-hostname` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the :option:`-e` argument for testing purposes.
@@ -327,19 +320,12 @@ serially.
 Evaluation laziness
 ~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` functions are 
-lazy, meaning that it won't start computing locally until you access the 
-generator it returned. However, these function can start executing on remote 
-worker the moment they are submited. Events that will trigger evaluation are 
-element access such as iteration. To force immediate evaluation, you can wrap 
-your call with a list, such as::
-
-    from scoop import futures
-    
-    def add(x, y): return x + y
-    
-    if __name__ == '__main__':
-        results = list(futures.map(add, range(8), range(8)))   
+The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will distribute
+their Futures both locally and remotely.
+Futures executed locally will be computed upon access (iteration for the 
+:meth:`~scoop.futures.map` and :meth:`~scoop._types.Future.result` for 
+:meth:`~scoop.futures.submit`).
+Futures distributed remotely will be executed right away.
 
 Large datasets
 ~~~~~~~~~~~~~~
