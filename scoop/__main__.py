@@ -220,7 +220,7 @@ class launchScoop(object):
 
 def getHosts(filename):
     """Parse the hostfile to get number of slots. The hostfile must have
-    the following structure : 
+    the following structure :
     hostname  slots=X
     hostname2 slots=X
     """
