@@ -23,6 +23,7 @@ import socket
 import subprocess
 import time
 import logging
+import multiprocessing
 from threading import Thread
 
 class launchScoop(object):
@@ -229,6 +230,10 @@ def getHosts(filename):
     f.close()
     return [(h[0], h[1].split("=")[1]) for h in hosts]
 
+try:
+    numberOfCPUs = multiprocessing.cpu_count()
+except NotImplementedError:
+    numberOfCPUs = 1
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
                                              "SCOOP.",
                                  prog="{0} -m scoop".format(sys.executable))
@@ -259,9 +264,10 @@ parser.add_argument('-n',
                     help="Total number of workers to launch on the hosts. "
                          "Workers are spawned sequentially over the hosts. "
                          "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
-                         "first host and 1 on the second.) (default: 1)",
+                         "first host and 1 on the second.) (default: Number of"
+                         "CPUs on current machine)",
                     type=int,
-                    default=1)
+                    default=numberOfCPUs)
 parser.add_argument('-e',
                     help="Activate ssh tunnels to route toward the broker "
                          "sockets over remote connections (may eliminate "
