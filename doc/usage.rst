@@ -255,7 +255,6 @@ Here is a list of the parameters that can be passed to scoop::
 
       --debug               Turn on the debuging
 
-
 A remote workers example may be as follow::
 
     python -m scoop --hosts 127.0.0.1 remotemachinedns 192.168.1.101 192.168.1.102 -vv -n 18 your_program.py [your arguments]
@@ -274,6 +273,18 @@ your_program.py     The program to be launched.
 .. note::
     
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the :option:`--broker-hostname` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the :option:`-e` argument for testing purposes.
+
+Hostfile format
+~~~~~~~~~~~~~~~
+
+.. TODO: slots inevitable?
+
+You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
+The hostfile should use the following syntax::
+
+    hostname       slots=4
+    other_hostname slots=5
+    third_hostname slots=2
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
