@@ -271,11 +271,6 @@ your_program.py     The program to be launched.
 [your arguments]    The arguments that needs to be passed to your program.
 ================    =================================
 
-You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
-The hostfile should use the following syntax::
-    hostname       slots=4
-    other_hostname slots=5
-    third_hostname slots=2
 .. note::
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the :option:`--broker-hostname` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the :option:`-e` argument for testing purposes.
 
@@ -287,9 +282,9 @@ Hostfile format
 You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
 The hostfile should use the following syntax::
 
-    hostname       slots=4
-    other_hostname slots=5
-    third_hostname slots=2
+    hostname       workers=4
+    other_hostname workers=5
+    third_hostname workers=2
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
