@@ -70,7 +70,6 @@ class launchScoop(object):
 
    
 
-    @property
     def launchLocal(self):
         c = [self.python_executable,
                         "-m", "scoop.bootstrap",
@@ -93,7 +92,6 @@ class launchScoop(object):
         c.extend(self.args)
         return c
 
-    @property
     def launchForeign(self):
         return ("cd {remotePath} && {nice} {pythonExecutable} -m "
                 "scoop.bootstrap --workerName worker{workersLeft} "
@@ -175,10 +173,10 @@ class launchScoop(object):
                 if host in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     self.createdSubprocesses.append(
-                        subprocess.Popen(self.launchLocal))
+                        subprocess.Popen(self.launchLocal()))
                 else:
                     # If the host is remote, connect with ssh
-                    command.append(self.launchForeign)
+                    command.append(self.launchForeign())
                 self.workersLeft -= 1
             # Launch every remote hosts in the same time 
             if len(command) != 0 :
