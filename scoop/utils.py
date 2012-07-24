@@ -53,7 +53,7 @@ def getHostsFromFile(filename):
     """
     with open(filename) as f:
         hosts = (line.split() for line in f)
-    return [(h[0], h[1].split("=")[1]) for h in hosts]
+        return [(h[0], int(h[1].split("=")[1])) for h in hosts]
 
 def getHostsFromList(hostlist):
     return [i for i in Counter(hostlist).items()]
@@ -66,7 +66,7 @@ def getHostsFromPBS():
     
 def getHostsFromSGE():
     with open(os.environ["PE_HOSTFILE"], 'r') as hosts:
-        return [(host.split()[0], host.split()[1]) for host in hosts]
+        return [(host.split()[0], int(host.split()[1])) for host in hosts]
         
 def getWorkerQte(hosts):
     if "PBS_NP" in os.environ:
