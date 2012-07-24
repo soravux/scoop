@@ -15,8 +15,5 @@ export PATH=$HOME/python/bin:$PATH
 # Or use VirtualEnv via virtualenvwrapper here:
 #workon yourenvironment
 
-# Torque sets the list of nodes allocated to our task in a file referenced by the environment variable PBS_NODEFILE.
-hosts=$(cat $PBS_NODEFILE | sed ':a;N;$!ba;s/\n/ /g')
-
 # Launch SCOOP using the hosts
-python -m scoop --hosts $hosts -vv -n 16 fullTree.py
+python -m scoop fullTree.py
