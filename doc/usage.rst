@@ -258,13 +258,13 @@ Here is a list of the parameters that can be passed to scoop::
 
 A remote workers example may be as follow::
 
-    python -m scoop --hostfile -vv -n 6 your_program.py [your arguments]
+    python -m scoop --hostfile hosts -vv -n 6 your_program.py [your arguments]
 
 ================    =================================
 Argument            Meaning
 ================    =================================
 -m scoop            **Mandatory** Uses SCOOP to run program.
---hostfile          A file containing a list of host to launch scoop
+--hostfile          hosts is a file containing a list of host to launch scoop
 -vv                 Double verbosity flag.
 -n 6                Launch a total of 6 workers.
 your_program.py     The program to be launched.
