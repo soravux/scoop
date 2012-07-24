@@ -68,12 +68,12 @@ def getHostsFromSGE():
     with open(os.environ["PE_HOSTFILE"], 'r') as hosts:
         return [(host.split()[0], host.split()[1]) for host in hosts]
         
-def getWorkerQte():
+def getWorkerQte(hosts):
     if "PBS_NP" in os.environ:
-        return os.environ["PBS_NP"]
-    elif "N_SLOTS" in os.environ:
-        return os.environ["N_SLOTS"]
+        return int(os.environ["PBS_NP"])
+    elif "NSLOTS" in os.environ:
+        return int(os.environ["NSLOTS"])
     else:
-        return 0
+        return sum(host[1] for host in hosts)
         
         
