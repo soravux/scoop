@@ -253,8 +253,7 @@ parser.add_argument('-n',
                          "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
                          "first host and 1 on the second.) (default: Number of"
                          "CPUs on current machine)",
-                    type=int,
-                    default=utils.getCPUcount())
+                    type=int)
 parser.add_argument('-e',
                     help="Activate ssh tunnels to route toward the broker "
                          "sockets over remote connections (may eliminate "
@@ -296,7 +295,9 @@ if __name__ == "__main__":
     if args.n:
         n = args.n
     else:
-        n = getWorkerQte()
+        n = utils.getWorkerQte(hosts)
+    assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
+                   "Use the '-n' flag to set it manually.") 
     scoopLaunching = launchScoop(hosts, n, args.verbose,
             args.python_executable, args.broker_hostname, args.executable,
             args.args, args.e, args.log, args.path, args.debug, args.nice,
