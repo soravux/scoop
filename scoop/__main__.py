@@ -23,12 +23,12 @@ import socket
 import subprocess
 import time
 import logging
-import multiprocessing
+from scoop import utils
 from threading import Thread
 
 class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, e, log, path, debug, nice):
+            executable, arguments, e, log, path, debug, nice, env):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], "You should at least specify one host."
         hosts.reverse()
@@ -55,6 +55,9 @@ class launchScoop(object):
         logging.basicConfig(filename=log,
                             level=verbose_levels[self.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s %(message)s')
+                            
+        if env in ["PBS", "SGE"]:
+            logging.info("Detected {0} environment.".format(env))
         logging.info("Deploying {0} workers over {1} "
                      "host(s).".format(n,
                                        len(hosts)))
@@ -73,7 +76,7 @@ class launchScoop(object):
     def launchLocal(self):
         c = [self.python_executable,
                         "-m", "scoop.bootstrap",
-                        "--workerName", "worker{}".format(self.workersLeft),
+                        "--workerName", "worker{0}".format(self.workersLeft),
                         "--brokerName", "broker",
                         "--brokerAddress",
                         "tcp://{0}:{1}".format(self.brokerHostname,
@@ -99,7 +102,7 @@ class launchScoop(object):
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
                 "{infoPort} --size {n} {origin} {debug} {executable} "
                 "{arguments}").format(remotePath = self.path, 
-                    nice = 'nice - n {}'.format(self.nice) if self.nice != None else '',
+                    nice = 'nice - n {0}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workersLeft == 1 else '',
                     debug = '--debug' if self.debug == 1 else '',
                     pythonExecutable = self.python_executable,
@@ -217,21 +220,7 @@ class launchScoop(object):
                 pass
         logging.info('Finished destroying spawned subprocesses.')
 
-def getHosts(filename):
-    """Parse the hostfile to get number of slots. The hostfile must have
-    the following structure :
-    hostname  slots=X
-    hostname2 slots=X
-    """
-    f = open(filename)
-    hosts = [line.split() for line in f]
-    f.close()
-    return [(h[0], h[1].split("=")[1]) for h in hosts]
 
-try:
-    numberOfCPUs = multiprocessing.cpu_count()
-except NotImplementedError:
-    numberOfCPUs = 1
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
                                              "SCOOP.",
                                  prog="{0} -m scoop".format(sys.executable))
@@ -265,7 +254,7 @@ parser.add_argument('-n',
                          "first host and 1 on the second.) (default: Number of"
                          "CPUs on current machine)",
                     type=int,
-                    default=numberOfCPUs)
+                    default=utils.getCPUcount())
 parser.add_argument('-e',
                     help="Activate ssh tunnels to route toward the broker "
                          "sockets over remote connections (may eliminate "
@@ -296,15 +285,22 @@ parser.add_argument('args',
                     help='The arguments to pass to the executable',
                     default=[])                   
 args = parser.parse_args()
+   
+
+
         
 if __name__ == "__main__":
-    if args.hostfile:
-        hosts = getHosts(args.hostfile)
+    hosts = utils.getHosts(args.hostfile, args.hosts)
+    if len(hosts) == 1 and hosts[0][0] == "127.0.0.1":
+        hosts = [("127.0.0.1", utils.getCPUcount())]
+    if args.n:
+        n = args.n
     else:
-        hosts = args.hosts
-    scoopLaunching = launchScoop(hosts, args.n, args.verbose,
+        n = getWorkerQte()
+    scoopLaunching = launchScoop(hosts, n, args.verbose,
             args.python_executable, args.broker_hostname, args.executable,
-            args.args, args.e, args.log, args.path, args.debug, args.nice)
+            args.args, args.e, args.log, args.path, args.debug, args.nice,
+            utils.getEnv())
     try:
         scoopLaunching.run()
     finally:
