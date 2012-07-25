@@ -116,38 +116,29 @@ class launchScoop(object):
 
     def divideHosts(self, hosts):
         """ Separe the workers accross hosts. """
-        self.maximum_workers = {}
-        if type(hosts[0]) == tuple:
-            self.hosts = set(host[0] for host in hosts)
-        else:
-            self.hosts = set(hosts)
-        if type(hosts[0]) == tuple:
-            logging.debug("Using the hostfile to set the number of workers.")
-            for host in hosts:
-                self.maximum_workers[host[0]] = int(host[1])
-        elif len(hosts) != len(self.hosts):
-            logging.debug("Using amount of duplicates in self.hosts entry to "
-                          "set the number of workers.")
-            for host in hosts:
-                self.maximum_workers[host] = hosts.count(host)
-        else :
-            # No duplicate entries in self.hosts found, division of workers 
-            # pseudo-equally upon the self.hosts
-            logging.debug('Dividing workers pseudo-equally over hosts')
-            
-            for index, host in enumerate(reversed(hosts)):
-                self.maximum_workers[host] = (self.n // (len(self.hosts)) \
-                    + int((self.n % len(self.hosts)) > index))
+        maximumWorkers = sum(host[1] for host in hosts)
+        if self.n > maximumWorkers:
+            logging.info("The -n flag is set at {0} workers, which is higher than\n"
+                         "the maximum number of workers ({1}) specified by the hostfile.\n"
+                         "This behaviour may degrade the performances of scoop for cpu-bound"
+                         " operations.".format(self.n, sum(host[1] for host in hosts)))
+        index = 0
+        while self.n > maximumWorkers:
+            hosts[index] = (hosts[index][0], hosts[index][1] + 1)
+            index = (index + 1) % len(hosts)
+            maximumWorkers += 1
+
+        self.hosts = hosts
 
         # Show worker distribution
         if self.verbose > 1:
             logging.info('Worker distribution: ')
-            for worker, number in self.maximum_workers.items():
+            for worker, number in self.hosts:
                 logging.info('   {0}:\t{1} {2}'.format(
                     worker,
-                    number - 1 if worker == hosts[-1] else str(number),
-                    "+ origin" if worker == hosts[-1] else ""))
-
+                    number - 1 if worker == hosts[0][0] else str(number),
+                    "+ origin" if worker == hosts[0][0] else ""))
+#
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
         from scoop.broker import Broker
@@ -167,13 +158,13 @@ class launchScoop(object):
         # Launch the workers
         for host in self.hosts:
             command = []
-            for n in range(min(self.maximum_workers[host], self.workersLeft)):
+            for n in range(min(host[1], self.workersLeft)):
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
-                    "local" if host in ["127.0.0.1", "localhost"] else "remote",
+                    "local" if host[0] in ["127.0.0.1", "localhost"] else "remote",
                     " origin" if self.workersLeft == 1 else "",
                     self.workersLeft,
-                    host))
-                if host in ["127.0.0.1", "localhost"]:
+                    host[0]))
+                if host[0] in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     self.createdSubprocesses.append(
                         subprocess.Popen(self.launchLocal()))
@@ -189,7 +180,7 @@ class launchScoop(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.brokerPort),
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
-                    host,
+                    host[0],
                     "bash -c '{0}; wait'".format(" & ".join(command))])
                 self.createdSubprocesses.append(shell)
                 command = []
@@ -294,6 +285,7 @@ if __name__ == "__main__":
         hosts = [("127.0.0.1", utils.getCPUcount())]
     if args.n:
         n = args.n
+        print("setting n to args.n")
     else:
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
