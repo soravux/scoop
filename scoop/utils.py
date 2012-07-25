@@ -18,6 +18,7 @@
 from multiprocessing import cpu_count
 from collections import Counter
 import os
+import re
 
 def getCPUcount():
     try:
@@ -45,15 +46,37 @@ def getHosts(filename = None, hostlist = None):
             return getHostsFromList(hostlist)
 
             
+#def getHostsFromFile(filename):
+#    """Parse the hostfile to get number of slots. The hostfile must have
+#    the following structure :
+#    hostname  slots=X
+#    hostname2 slots=X
+#    """
+#    with open(filename) as f:
+#        hosts = (line.split() for line in f)
+#        return [(h[0], int(h[1].split("=")[1])) for h in hosts]
+#
+
 def getHostsFromFile(filename):
-    """Parse the hostfile to get number of slots. The hostfile must have
-    the following structure :
-    hostname  slots=X
-    hostname2 slots=X
-    """
+    ValidHostname = r"[^ /\t:=\n]*" # TODO This won't work with ipv6 address
+                                  # TODO find a better regex that works with
+                                  # all valid hostnames   
+    workers = r"\d+"
+    hn = re.compile(ValidHostname)
+    w = re.compile(workers)
+    hosts = []
     with open(filename) as f:
-        hosts = (line.split() for line in f)
-        return [(h[0], int(h[1].split("=")[1])) for h in hosts]
+        for line in f:
+            host = hn.search(line)
+            if host:
+                hostname = host.group()
+                n = w.search(line[host.end():])
+                if n:
+                    n = n.group()
+                else:
+                    n = 1
+                hosts.append((hostname, int(n)))
+    return hosts
 
 def getHostsFromList(hostlist):
     return [i for i in Counter(hostlist).items()]
@@ -76,4 +99,5 @@ def getWorkerQte(hosts):
     else:
         return sum(host[1] for host in hosts)
         
-        
+if __name__ == "__main__":
+    print(_getHostsFromFile("hosts"))
