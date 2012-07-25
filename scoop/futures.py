@@ -157,7 +157,7 @@ def _waitAny(*children):
     for index, future in enumerate(children):
         if future.exceptionValue != None:
             raise future.exceptionValue
-        if future.resultValue:
+        if future.resultValue != None:
             yield future
             n -= 1
         else:
