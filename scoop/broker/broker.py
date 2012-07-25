@@ -85,7 +85,7 @@ class Broker(object):
                     returnAddress = msg[0]
                     task = msg[2]
                     try:
-                        address = self.available_workers.popleft()
+                        address = self.available_workers.pop()
                         self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.unassigned_tasks.append(task)
@@ -94,7 +94,7 @@ class Broker(object):
                 elif msg_type == REQUEST:
                     address = msg[0]
                     try:
-                        task = self.unassigned_tasks.pop()
+                        task = self.unassigned_tasks.popleft()
                         self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.available_workers.append(address)
