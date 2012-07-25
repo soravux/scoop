@@ -72,8 +72,8 @@ class launchScoop(object):
     @property
     def launchLocal(self):
         c = [self.python_executable,
-                        "-m", "scoop.bootstrap",
-                        "--workerName", "worker{}".format(self.workersLeft),
+                        "-m", "scoop.bootstrap.__main__",
+                        "--workerName", "worker{0}".format(self.workersLeft),
                         "--brokerName", "broker",
                         "--brokerAddress",
                         "tcp://{0}:{1}".format(self.brokerHostname,
@@ -95,12 +95,12 @@ class launchScoop(object):
     @property
     def launchForeign(self):
         return ("cd {remotePath} && {nice} {pythonExecutable} -m "
-                "scoop.bootstrap --workerName worker{workersLeft} "
+                "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
                 "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
                 "{infoPort} --size {n} {origin} {debug} {executable} "
                 "{arguments}").format(remotePath = self.path, 
-                    nice = 'nice - n {}'.format(self.nice) if self.nice != None else '',
+                    nice = 'nice - n {0}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workersLeft == 1 else '',
                     debug = '--debug' if self.debug == 1 else '',
                     pythonExecutable = self.python_executable,

@@ -17,8 +17,11 @@
 #
 
 from __future__ import print_function
-import runpy
 import sys
+if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+    import backportRunpy as runpy
+else:
+    import runpy
 import os
 import functools
 import argparse
