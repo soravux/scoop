@@ -75,8 +75,8 @@ class Future(object):
         self.creationTime = time.ctime()  # future creation time
         self.stopWatch = StopWatch()      # stop watch for measuring time
         self.greenlet = None              # cooperative thread for running future 
-        self.resultValue = None          # future result
-        self.exceptionValue = None             # exception raised by callable
+        self.resultValue = None           # future result
+        self.exceptionValue = None        # exception raised by callable
         self.callback = []                # set callback
         # insert future into global dictionary
         scoop._control.futureDict[self.id] = self
