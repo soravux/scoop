@@ -75,7 +75,7 @@ class launchScoop(object):
 
     def launchLocal(self):
         c = [self.python_executable,
-                        "-m", "scoop.bootstrap",
+                        "-m", "scoop.bootstrap.__main__",
                         "--workerName", "worker{0}".format(self.workersLeft),
                         "--brokerName", "broker",
                         "--brokerAddress",
@@ -97,7 +97,7 @@ class launchScoop(object):
 
     def launchForeign(self):
         return ("cd {remotePath} && {nice} {pythonExecutable} -m "
-                "scoop.bootstrap --workerName worker{workersLeft} "
+                "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
                 "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
                 "{infoPort} --size {n} {origin} {debug} {executable} "
