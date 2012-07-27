@@ -16,6 +16,7 @@
 #
 from __future__ import print_function
 from collections import namedtuple, deque
+import itertools
 import time
 import greenlet
 import scoop
@@ -57,16 +58,21 @@ class TimeoutError(Exception):
     """The operation exceeded the given deadline."""
     pass
 
+
+class NotStartedProperly(Exception):
+    """SCOOP was not started properly"""
+    pass
+
     
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 class Future(object):
-    """This class encapsulates and independent future that can be executed in parallel.
+    """This class encapsulates an independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
     other futures."""
-    
+    rank = itertools.count()     
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
-        self.id = FutureId(scoop.worker, scoop._control.rank); scoop._control.rank += 1
+        self.id = FutureId(scoop.worker, next(Future.rank))
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -85,9 +91,9 @@ class Future(object):
         """Order futures by creation time."""
         return self.creationTime < other.creationTime
     
-    def __str__(self):
+    def __repr__(self):
         """Convert future to string."""
-        return "{0}:{1}{2}={3}".format(self.id,
+        return "{0}:{1}({2})={3}".format(self.id,
                                        self.callable.__name__,
                                        self.args,
                                        self.resultValue)
@@ -110,7 +116,7 @@ class Future(object):
         return False
 
     def cancelled(self):
-        """True if the call was successfully cancelled, else otherwise."""
+        """True if the call was successfully cancelled, False otherwise."""
         return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
@@ -119,7 +125,8 @@ class Future(object):
         return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
-        """True if the call was successfully cancelled or finished running."""
+        """True if the call was successfully cancelled or finished running,
+           False otherwise."""
         return self.resultValue != None or self.exceptionValue != None
 
     def result(self, timeout=None):

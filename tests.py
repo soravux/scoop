@@ -147,7 +147,6 @@ class TestScoopCommon(unittest.TestCase):
         
     def setUp(self):
         # Start the server
-        #from scoop.broker import Broker
         self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker",
         "--tPort", "5555", "--mPort", "5556"])
         import socket, datetime, time
@@ -164,6 +163,8 @@ class TestScoopCommon(unittest.TestCase):
         scoop.META_ADDRESS = 'tcp://127.0.0.1:5556'
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.VALID = True
+        scoop.DEBUG = False
+        scoop.SIZE = 2
         
         #os.environ.update({'WORKER_NAME': 'origin', # this is the default name
         #               'BROKER_NAME':'broker',

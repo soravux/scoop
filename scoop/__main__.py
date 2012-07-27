@@ -23,11 +23,12 @@ import socket
 import subprocess
 import time
 import logging
+from scoop import utils
 from threading import Thread
 
 class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, e, log, path, debug, nice):
+            executable, arguments, e, log, path, debug, nice, env):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], "You should at least specify one host."
         hosts.reverse()
@@ -54,6 +55,9 @@ class launchScoop(object):
         logging.basicConfig(filename=log,
                             level=verbose_levels[self.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s %(message)s')
+                            
+        if env in ["PBS", "SGE"]:
+            logging.info("Detected {0} environment.".format(env))
         logging.info("Deploying {0} workers over {1} "
                      "host(s).".format(n,
                                        len(hosts)))
@@ -69,7 +73,6 @@ class launchScoop(object):
 
    
 
-    @property
     def launchLocal(self):
         c = [self.python_executable,
                         "-m", "scoop.bootstrap.__main__",
@@ -92,7 +95,6 @@ class launchScoop(object):
         c.extend(self.args)
         return c
 
-    @property
     def launchForeign(self):
         return ("cd {remotePath} && {nice} {pythonExecutable} -m "
                 "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
@@ -114,38 +116,29 @@ class launchScoop(object):
 
     def divideHosts(self, hosts):
         """ Separe the workers accross hosts. """
-        self.maximum_workers = {}
-        if type(hosts[0]) == tuple:
-            self.hosts = set(host[0] for host in hosts)
-        else:
-            self.hosts = set(hosts)
-        if type(hosts[0]) == tuple:
-            logging.debug("Using the hostfile to set the number of workers.")
-            for host in hosts:
-                self.maximum_workers[host[0]] = int(host[1])
-        elif len(hosts) != len(self.hosts):
-            logging.debug("Using amount of duplicates in self.hosts entry to "
-                          "set the number of workers.")
-            for host in hosts:
-                self.maximum_workers[host] = hosts.count(host)
-        else :
-            # No duplicate entries in self.hosts found, division of workers 
-            # pseudo-equally upon the self.hosts
-            logging.debug('Dividing workers pseudo-equally over hosts')
-            
-            for index, host in enumerate(reversed(hosts)):
-                self.maximum_workers[host] = (self.n // (len(self.hosts)) \
-                    + int((self.n % len(self.hosts)) > index))
+        maximumWorkers = sum(host[1] for host in hosts)
+        if self.n > maximumWorkers:
+            logging.info("The -n flag is set at {0} workers, which is higher than\n"
+                         "the maximum number of workers ({1}) specified by the hostfile.\n"
+                         "This behaviour may degrade the performances of scoop for cpu-bound"
+                         " operations.".format(self.n, sum(host[1] for host in hosts)))
+        index = 0
+        while self.n > maximumWorkers:
+            hosts[index] = (hosts[index][0], hosts[index][1] + 1)
+            index = (index + 1) % len(hosts)
+            maximumWorkers += 1
+
+        self.hosts = hosts
 
         # Show worker distribution
         if self.verbose > 1:
             logging.info('Worker distribution: ')
-            for worker, number in self.maximum_workers.items():
+            for worker, number in self.hosts:
                 logging.info('   {0}:\t{1} {2}'.format(
                     worker,
-                    number - 1 if worker == hosts[-1] else str(number),
-                    "+ origin" if worker == hosts[-1] else ""))
-
+                    number - 1 if worker == hosts[0][0] else str(number),
+                    "+ origin" if worker == hosts[0][0] else ""))
+#
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
         from scoop.broker import Broker
@@ -165,19 +158,19 @@ class launchScoop(object):
         # Launch the workers
         for host in self.hosts:
             command = []
-            for n in range(min(self.maximum_workers[host], self.workersLeft)):
+            for n in range(min(host[1], self.workersLeft)):
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
-                    "local" if host in ["127.0.0.1", "localhost"] else "remote",
+                    "local" if host[0] in ["127.0.0.1", "localhost"] else "remote",
                     " origin" if self.workersLeft == 1 else "",
                     self.workersLeft,
-                    host))
-                if host in ["127.0.0.1", "localhost"]:
+                    host[0]))
+                if host[0] in ["127.0.0.1", "localhost"]:
                     # Launching the workers
                     self.createdSubprocesses.append(
-                        subprocess.Popen(self.launchLocal))
+                        subprocess.Popen(self.launchLocal()))
                 else:
                     # If the host is remote, connect with ssh
-                    command.append(self.launchForeign)
+                    command.append(self.launchForeign())
                 self.workersLeft -= 1
             # Launch every remote hosts in the same time 
             if len(command) != 0 :
@@ -187,7 +180,7 @@ class launchScoop(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.brokerPort),
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
-                    host,
+                    host[0],
                     "bash -c '{0}; wait'".format(" & ".join(command))])
                 self.createdSubprocesses.append(shell)
                 command = []
@@ -218,16 +211,6 @@ class launchScoop(object):
                 pass
         logging.info('Finished destroying spawned subprocesses.')
 
-def getHosts(filename):
-    """Parse the hostfile to get number of slots. The hostfile must have
-    the following structure :
-    hostname  slots=X
-    hostname2 slots=X
-    """
-    f = open(filename)
-    hosts = [line.split() for line in f]
-    f.close()
-    return [(h[0], h[1].split("=")[1]) for h in hosts]
 
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
                                              "SCOOP.",
@@ -259,9 +242,9 @@ parser.add_argument('-n',
                     help="Total number of workers to launch on the hosts. "
                          "Workers are spawned sequentially over the hosts. "
                          "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
-                         "first host and 1 on the second.) (default: 1)",
-                    type=int,
-                    default=1)
+                         "first host and 1 on the second.) (default: Number of"
+                         "CPUs on current machine)",
+                    type=int)
 parser.add_argument('-e',
                     help="Activate ssh tunnels to route toward the broker "
                          "sockets over remote connections (may eliminate "
@@ -292,15 +275,25 @@ parser.add_argument('args',
                     help='The arguments to pass to the executable',
                     default=[])                   
 args = parser.parse_args()
+   
+
+
         
 if __name__ == "__main__":
-    if args.hostfile:
-        hosts = getHosts(args.hostfile)
+    hosts = utils.getHosts(args.hostfile, args.hosts)
+    if len(hosts) == 1 and hosts[0][0] == "127.0.0.1":
+        hosts = [("127.0.0.1", utils.getCPUcount())]
+    if args.n:
+        n = args.n
+        print("setting n to args.n")
     else:
-        hosts = args.hosts
-    scoopLaunching = launchScoop(hosts, args.n, args.verbose,
+        n = utils.getWorkerQte(hosts)
+    assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
+                   "Use the '-n' flag to set it manually.") 
+    scoopLaunching = launchScoop(hosts, n, args.verbose,
             args.python_executable, args.broker_hostname, args.executable,
-            args.args, args.e, args.log, args.path, args.debug, args.nice)
+            args.args, args.e, args.log, args.path, args.debug, args.nice,
+            utils.getEnv())
     try:
         scoopLaunching.run()
     finally:
