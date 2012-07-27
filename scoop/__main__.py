@@ -28,7 +28,7 @@ from threading import Thread
 
 class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, e, log, path, debug, nice, env):
+            executable, arguments, e, log, path, debug, nice, env, profile):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], "You should at least specify one host."
         hosts.reverse()
@@ -45,6 +45,7 @@ class launchScoop(object):
         self.path = path
         self.debug = debug
         self.nice = nice
+        self.profile = profile
 
         # Logging configuration
         if self.verbose > 2:
@@ -89,8 +90,11 @@ class launchScoop(object):
         if self.workersLeft == 1:
             c.append("--origin")
         if self.debug == True:
-            logging.debug('Set debug on')
+            logging.info('Setting debug on')
             c.append("--debug")
+        if self.profile == True:
+            logging.info('Setting profile on')
+            c.append("--profile")
         c.append(self.executable)
         c.extend(self.args)
         return c
@@ -100,11 +104,12 @@ class launchScoop(object):
                 "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
                 "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
-                "{infoPort} --size {n} {origin} {debug} {executable} "
+                "{infoPort} --size {n} {origin} {debug} {profile} {executable} "
                 "{arguments}").format(remotePath = self.path, 
                     nice = 'nice - n {0}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workersLeft == 1 else '',
                     debug = '--debug' if self.debug == 1 else '',
+                    profile = '--profile' if self.profile == True else '',
                     pythonExecutable = self.python_executable,
                     workersLeft = self.workersLeft,
                     brokerHostname = self.brokerHostname,
@@ -267,6 +272,7 @@ parser.add_argument('--pythonpath',
                          "current PYTHONPATH)",
                     default=[os.environ.get('PYTHONPATH', '')])
 parser.add_argument('--debug', help="Turn on the debuging", action='store_true')
+parser.add_argument('--profile', help="Turn on the profiling",action='store_true')
 parser.add_argument('executable',
                     nargs=1,
                     help='The executable to start with SCOOP')
@@ -293,7 +299,7 @@ if __name__ == "__main__":
     scoopLaunching = launchScoop(hosts, n, args.verbose,
             args.python_executable, args.broker_hostname, args.executable,
             args.args, args.e, args.log, args.path, args.debug, args.nice,
-            utils.getEnv())
+            utils.getEnv(), args.profile)
     try:
         scoopLaunching.run()
     finally:
