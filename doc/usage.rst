@@ -282,7 +282,7 @@ Hostfile format
 You should create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
 The hostfile should use the following syntax::
 
-    hostname       workers=4
+    hostname_or_ip workers=4
     other_hostname workers=5
     third_hostname workers=2
 

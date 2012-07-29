@@ -118,7 +118,7 @@ class Broker(object):
     def shutdown(self):
         try:
             self.infoSocket.send(SHUTDOWN)
-        except:
+        except zmq.core.error.ZMQError:
             pass
         # out of infinite loop: do some housekeeping
         time.sleep (0.3)

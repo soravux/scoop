@@ -93,7 +93,7 @@ class Future(object):
     
     def __repr__(self):
         """Convert future to string."""
-        return "{0}:{1}{2}={3}".format(self.id,
+        return "{0}:{1}({2})={3}".format(self.id,
                                        self.callable.__name__,
                                        self.args,
                                        self.resultValue)
