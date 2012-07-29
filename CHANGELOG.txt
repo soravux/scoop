@@ -5,6 +5,7 @@
 + Improved grid scheduler support (SGE and Torque)
 + Improved hostfile support
 + Added: Python 2.6 support (see documentation)
++ Added: Default number of workers is now the number of local CPUs
 + Fixed: Bug on some Future return value
 + Fixed: Memory leak on a specific Future usage
 
