@@ -26,13 +26,6 @@ broker to mediate their communications.
 .. image:: images/architecture.png
    :align: center
 
-.. note:
-    
-    The only available architecture of SCOOP 0.5 is the Broker pattern, but 
-    subsequent versions of SCOOP has been forecasted to support multiple 
-    architectures.
-    
-
 How to use SCOOP in your code
 -----------------------------
 
@@ -85,7 +78,6 @@ instance::
 .. _test-for-main-mandatory:
 
 .. note::
-
     You *must* wrap your code with a test for the __main__ name as show above.
     Failure to do so will result in every worker trying to run their own 
     instance of the program. This ensures that every worker waits for 
@@ -206,6 +198,11 @@ passed to Python, as such::
     
     cd scoop/examples/
     python -m scoop fullTree.py
+
+.. note::
+  If you are using a Python version prior to 2.7, must start SCOOP using 
+  :option:`-m scoop.__main__`. You should also consider using an up-to-date 
+  version of Python.
     
 Here is a list of the parameters that can be passed to scoop::
 
@@ -316,7 +313,6 @@ are available in the |submitFilesPath|_ directory.
 .. _submitFilesPath: https://code.google.com/p/scoop/source/browse/examples/submitFiles/
 
 .. note::
-
     **Please note that these are only examples**. Refer to the documentation of 
     your scheduler for the list of arguments needed to run the task on your 
     grid.
