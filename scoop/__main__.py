@@ -285,7 +285,6 @@ if __name__ == "__main__":
         hosts = [("127.0.0.1", utils.getCPUcount())]
     if args.n:
         n = args.n
-        print("setting n to args.n")
     else:
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
