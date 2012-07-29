@@ -56,7 +56,7 @@ example, if you want to apply the |abs()|_ function to every number of a list::
       result.append(abs(data[i]))
 
     # Using a Map
-    result = map(abs, data)
+    result = list(map(abs, data))
 
 .. |abs()| replace:: *abs()*
 .. _abs(): http://docs.python.org/library/functions.html#abs
@@ -72,7 +72,7 @@ instance::
 
     if __name__ == '__main__':
         # Python's standard serial function
-        dataSerial = map(abs, data)
+        dataSerial = list(map(abs, data))
 
         # SCOOP's parallel function
         dataParallel = list(futures.map(abs, data))
@@ -142,7 +142,7 @@ If it is inside (have a distance from the origin lesser than one), a value of
 one is produced, otherwise the value is zero.
 The experiment is repeated ``tries`` number of times with new random values.
 
-The function returns the number times a pseudo-randomly generated point felt 
+The function returns the number times a pseudo-randomly generated point fell
 inside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ for a given
 number of tries.
 
@@ -239,7 +239,8 @@ Here is a list of the parameters that can be passed to scoop::
       -n N                  Total number of workers to launch on the hosts.
                             Workers are spawned sequentially over the hosts.
                             (ie. -n 3 with 2 hosts will spawn 2 workers on the
-                            first host and 1 on the second.) (default: 1)
+                            first host and 1 on the second.) (default: Number of
+                            CPUs on current machine)
       -e                    Activate ssh tunnels to route toward the broker
                             sockets over remote connections (may eliminate routing
                             problems and activate encryption but slows down
@@ -252,36 +253,57 @@ Here is a list of the parameters that can be passed to scoop::
       --pythonpath PYTHONPATH
                             The PYTHONPATH environment variable (default is 
                             current PYTHONPATH)
+
       --debug               Turn on the debuging
 
 A remote workers example may be as follow::
 
-    python -m scoop --hosts 127.0.0.1 remotemachinedns 192.168.1.101 192.168.1.102 -vv -n 18 your_program.py [your arguments]
+    python -m scoop --hostfile hosts -vv -n 6 your_program.py [your arguments]
 
 ================    =================================
 Argument            Meaning
 ================    =================================
 -m scoop            **Mandatory** Uses SCOOP to run program.
---hosts [...]       List of hosts to launch workers on.
+--hostfile          hosts is a file containing a list of host to launch scoop
 -vv                 Double verbosity flag.
--n 16               Launch a total of 16 workers (5 on ``127.0.0.1`` and ``remotemachinedns``, 4 on ``192.168.1.101`` and ``192.168.1.102``)
+-n 6                Launch a total of 6 workers.
 your_program.py     The program to be launched.
 [your arguments]    The arguments that needs to be passed to your program.
 ================    =================================
 
 .. note::
-    
     Your local hostname must be externally routable for remote hosts to be able to connect to it. If you don't have a DNS properly set up on your local network or a system hosts file, consider using the :option:`--broker-hostname` argument to provide your externally routable IP or DNS name to SCOOP. You may as well be interested in the :option:`-e` argument for testing purposes.
 
 Hostfile format
 ~~~~~~~~~~~~~~~
 
-You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
+.. TODO: slots inevitable?
+
+You should create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
 The hostfile should use the following syntax::
 
-    hostname       slots=4
-    other_hostname slots=5
-    third_hostname slots=2
+    hostname_or_ip workers=4
+    other_hostname workers=5
+    third_hostname workers=2
+
+Using a list of host
+~~~~~~~~~~~~~~~~~~~~
+
+You can also use a list of host with the :option:`--host [...]` flag. In this
+case, you must put every host separated by a space the number of time you wish
+to have a worker on each of the node. For example::
+
+    python -m scoop --host machine_a machine_a machine_b machine_b your_program.py
+
+This example would start two workers on :option:`machine_a` and two workers on :option:`machine_b`.
+
+Choosing the number of workers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The number of workers started should be equal to the number of cores you have 
+on each machine. The easiest way to specify the number of workers started is
+by making a hostfile. If you wish to start less worker than specified in your
+hostfile or in your hostlist, you can use the flag :option:`-n`.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
@@ -363,7 +385,8 @@ Better::
 
     from scoop import futures
 
-    data = ([range(8)])*(2**16)
+    data = [[i for i in range(x, x + 1000)] for x in range(0, 8001, 1000)]
+
 
     def mySum(inIndex):
       return sum(data[inIndex])
