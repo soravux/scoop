@@ -1,5 +1,16 @@
+0.5.1 (2012/07/29)
+------------------
+
++ Substantially improved documentation
++ Improved grid scheduler support (SGE and Torque)
++ Improved hostfile support
++ Added: Python 2.6 support (see documentation)
++ Fixed: Bug on some Future return value
++ Fixed: Memory leak on a specific Future usage
+
+
 0.5.0 (Alpha) (2012/05/11)
------------------------------------
+--------------------------
 
 + Greenlet based task handling
 + ZeroMQ based networking

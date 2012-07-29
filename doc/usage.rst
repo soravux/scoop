@@ -252,7 +252,6 @@ Here is a list of the parameters that can be passed to scoop::
       --pythonpath PYTHONPATH
                             The PYTHONPATH environment variable (default is 
                             current PYTHONPATH)
-
       --debug               Turn on the debuging
 
 A remote workers example may be as follow::
@@ -276,8 +275,6 @@ your_program.py     The program to be launched.
 
 Hostfile format
 ~~~~~~~~~~~~~~~
-
-.. TODO: slots inevitable?
 
 You can also create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
 The hostfile should use the following syntax::
