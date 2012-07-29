@@ -100,7 +100,7 @@ def runController(callable, *args, **kargs):
     
     # initialise queue
     if execQueue == None:
-        execQueue = deque() if len(scoop.BROKER_ADDRESS) == 0  else FutureQueue()
+        execQueue = FutureQueue()
     
     # launch future if origin or try to pickup a future if slave worker
     if scoop.IS_ORIGIN == True:
