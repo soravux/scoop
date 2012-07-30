@@ -122,6 +122,7 @@ def port_ready(port, socket):
         return False
     else:
         socket.shutdown(2)
+        socket.close()
         return True
         
     
