@@ -119,6 +119,10 @@ def map(func, *iterables, **kargs):
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
         del control.futureDict[future.id]
+        try:
+            control.execQueue.inprogress.remove(future)
+        except ValueError:
+            pass
         yield future.resultValue
 
 def submit(func, *args, **kargs):
