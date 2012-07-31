@@ -93,8 +93,14 @@ class Future(object):
     
     def __repr__(self):
         """Convert future to string."""
-        return "{0}:{1}({2})={3}".format(self.id,
+        try:
+            return "{0}:{1}{2}={3}".format(self.id,
                                        self.callable.__name__,
+                                       self.args,
+                                       self.resultValue)
+        except AttributeError:
+            return "{0}:{1}{2}={3}".format(self.id,
+                                       "partial",
                                        self.args,
                                        self.resultValue)
     
@@ -216,7 +222,10 @@ class FutureQueue(object):
             self.movable.append(future)
         # Send oldest futures to the broker
         while len(self.movable) > self.highwatermark:
-            self.socket.sendFuture(self.movable.pop())
+            out = self.movable.pop()
+            if scoop.worker != out.id.worker:
+                del scoop._control.futureDict[out.id]
+            self.socket.sendFuture(out)
         
     def pop(self):
         """Pop the next future from the queue; 
@@ -285,7 +294,7 @@ class FutureQueue(object):
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
-        future.greenlet = None
+        #future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
         del scoop._control.futureDict[future.id]
