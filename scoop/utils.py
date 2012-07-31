@@ -101,4 +101,4 @@ def getWorkerQte(hosts):
        
 
 def KeyboardInterruptHandler(signum, frame):
-    raise KeyboardInterrupt(signum, frame)
+    raise KeyboardInterrupt("Shutting down!")

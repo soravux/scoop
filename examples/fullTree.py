@@ -50,7 +50,7 @@ def func4(n):
     return result
 
 def main():
-    task = futures.submit(func0, 40)
+    task = futures.submit(func0, 20)
     # You can wait for a result before continuing computing
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()

@@ -35,4 +35,3 @@ def calcPi(n, t):
 
 if __name__ == "__main__":
     dataPi = calcPi(3000, 5000)
-
