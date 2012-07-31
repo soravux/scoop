@@ -294,7 +294,7 @@ class FutureQueue(object):
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
-        #future.greenlet = None
+        future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
         del scoop._control.futureDict[future.id]
