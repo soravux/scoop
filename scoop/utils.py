@@ -98,6 +98,7 @@ def getWorkerQte(hosts):
         return int(os.environ["NSLOTS"])
     else:
         return sum(host[1] for host in hosts)
-        
-if __name__ == "__main__":
-    print(_getHostsFromFile("hosts"))
+       
+
+def KeyboardInterruptHandler(signum, frame):
+    raise KeyboardInterrupt(signum, frame)
