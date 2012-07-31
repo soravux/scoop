@@ -25,6 +25,9 @@ import time
 import logging
 from scoop import utils
 from threading import Thread
+import signal
+
+signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
 
 class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
