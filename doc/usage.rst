@@ -200,7 +200,7 @@ passed to Python, as such::
     python -m scoop fullTree.py
 
 .. note::
-  If you are using a Python version prior to 2.7, must start SCOOP using 
+  If you are using a Python version prior to 2.7, you must start SCOOP using 
   :option:`-m scoop.__main__`. You should also consider using an up-to-date 
   version of Python.
     
@@ -299,8 +299,10 @@ Choosing the number of workers
 
 The number of workers started should be equal to the number of cores you have 
 on each machine. The easiest way to specify the number of workers started is
-by making a hostfile. If you wish to start less worker than specified in your
+by making a hostfile. If you wish to start more or less worker than specified in your
 hostfile or in your hostlist, you can use the flag :option:`-n`.
+You should be carefull not to start to much worker as this can cause performances limitation.
+The default value of one worker by physical core is generaly a good value.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
