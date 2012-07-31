@@ -16,8 +16,5 @@ export PATH=$HOME/python/bin:$PATH
 # Or use VirtualEnv via virtualenvwrapper here:
 #workon yourenvironment
 
-# Get a list of the (routable name) hosts assigned to our task
-hosts=$(cat $PE_HOSTFILE | awk '{printf "%s ", $1}')
-
 # Launch the remotes workers
-python -m scoop --hosts $hosts -vv -n 16 fullTree.py
+python -m scoop fullTree.py
