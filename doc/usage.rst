@@ -95,7 +95,7 @@ This allows a finer control over the Futures, such as out-of-order processing.
 Examples
 --------
     
-Examples are available in the |exampleDirectory|_ directory of scoop. 
+Examples are available in the |exampleDirectory|_ directory of SCOOP. 
 
 .. |exampleDirectory| replace:: :file:`examples/`
 .. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
@@ -204,7 +204,7 @@ passed to Python, as such::
   :option:`-m scoop.__main__`. You should also consider using an up-to-date 
   version of Python.
     
-Here is a list of the parameters that can be passed to scoop::
+Here is a list of the parameters that can be passed to SCOOP::
 
     python -m scoop --help
     usage: python -m scoop [-h]
@@ -261,7 +261,7 @@ A remote workers example may be as follow::
 Argument            Meaning
 ================    =================================
 -m scoop            **Mandatory** Uses SCOOP to run program.
---hostfile          hosts is a file containing a list of host to launch scoop
+--hostfile          hosts is a file containing a list of host to launch SCOOP 
 -vv                 Double verbosity flag.
 -n 6                Launch a total of 6 workers.
 your_program.py     The program to be launched.
