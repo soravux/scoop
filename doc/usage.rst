@@ -200,7 +200,7 @@ passed to Python, as such::
     python -m scoop fullTree.py
 
 .. note::
-  If you are using a Python version prior to 2.7, must start SCOOP using 
+  If you are using a Python version prior to 2.7, you must start SCOOP using 
   :option:`-m scoop.__main__`. You should also consider using an up-to-date 
   version of Python.
     
