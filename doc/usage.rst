@@ -299,8 +299,10 @@ Choosing the number of workers
 
 The number of workers started should be equal to the number of cores you have 
 on each machine. The easiest way to specify the number of workers started is
-by making a hostfile. If you wish to start less worker than specified in your
+by making a hostfile. If you wish to start more or less worker than specified in your
 hostfile or in your hostlist, you can use the flag :option:`-n`.
+It is recommended not to start more workers than you have cores on your 
+machine as it can impact performances.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
