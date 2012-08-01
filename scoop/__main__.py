@@ -284,8 +284,8 @@ args = parser.parse_args()
         
 if __name__ == "__main__":
     hosts = utils.getHosts(args.hostfile, args.hosts)
-    if len(hosts) == 1 and hosts[0][0] == "127.0.0.1":
-        hosts = [("127.0.0.1", utils.getCPUcount())]
+    #if len(hosts) == 1 and hosts[0][0] == "127.0.0.1":
+    #    hosts = [("127.0.0.1", utils.getCPUcount())]
     if args.n:
         n = args.n
     else:

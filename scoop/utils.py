@@ -19,6 +19,7 @@ from multiprocessing import cpu_count
 from collections import Counter
 import os
 import re
+import socket
 
 def getCPUcount():
     try:
@@ -44,23 +45,13 @@ def getHosts(filename = None, hostlist = None):
             return getHostsFromFile(filename)
         elif hostlist:
             return getHostsFromList(hostlist)
-
-            
-#def getHostsFromFile(filename):
-#    """Parse the hostfile to get number of slots. The hostfile must have
-#    the following structure :
-#    hostname  slots=X
-#    hostname2 slots=X
-#    """
-#    with open(filename) as f:
-#        hosts = (line.split() for line in f)
-#        return [(h[0], int(h[1].split("=")[1])) for h in hosts]
-#
+        else:
+            return getDefaultHosts()
 
 def getHostsFromFile(filename):
     ValidHostname = r"[^ /\t:=\n]*" # TODO This won't work with ipv6 address
-                                  # TODO find a better regex that works with
-                                  # all valid hostnames   
+                                    # TODO find a better regex that works 
+                                    # with all valid hostnames   
     workers = r"\d+"
     hn = re.compile(ValidHostname)
     w = re.compile(workers)
@@ -102,3 +93,10 @@ def getWorkerQte(hosts):
 
 def KeyboardInterruptHandler(signum, frame):
     raise KeyboardInterrupt("Shutting down!")
+
+def getDefaultHosts():
+    return [(socket.gethostbyname(socket.getfqnd()), getCPUcount())]
+
+
+if __name__ == "__main__":
+    print(getHosts())
