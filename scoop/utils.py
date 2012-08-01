@@ -95,7 +95,7 @@ def KeyboardInterruptHandler(signum, frame):
     raise KeyboardInterrupt("Shutting down!")
 
 def getDefaultHosts():
-    return [(socket.gethostbyname(socket.getfqnd()), getCPUcount())]
+    return [('127.0.0.1', getCPUcount())]
 
 
 if __name__ == "__main__":
