@@ -28,6 +28,7 @@ import copy
 import os
 import sys
 import operator
+from tests_parser import TestUtils
     
 def func0(n):
     task = futures.submit(func1, n)
@@ -130,6 +131,7 @@ def port_ready(port, socket):
         return False
     else:
         socket.shutdown(2)
+        socket.close()
         return True
 
 class TestScoopCommon(unittest.TestCase):
@@ -320,6 +322,7 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
     complex = unittest.TestLoader().loadTestsFromTestCase(TestMultiFunction)
     api = unittest.TestLoader().loadTestsFromTestCase(TestApi)
+    utils = unittest.TestLoader().loadTestsFromTestCase(TestUtils)
     if len(sys.argv) > 1:
         if sys.argv[1] == "simple":
             unittest.TextTestRunner(verbosity=2).run(simple)
@@ -327,6 +330,8 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
             unittest.TextTestRunner(verbosity=2).run(complex)
         elif sys.argv[1] == "api":
             unittest.TextTestRunner(verbosity=2).run(api)
+        elif sys.argv[1] == "utils":
+            unittest.TextTestRunner(verbosity=2).run(utils)
     else:
         unittest.main()
 elif __name__ == '__main__':
