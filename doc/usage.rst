@@ -298,11 +298,12 @@ Choosing the number of workers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The number of workers started should be equal to the number of cores you have 
-on each machine. The easiest way to specify the number of workers started is
-by making a hostfile. If you wish to start more or less worker than specified in your
-hostfile or in your hostlist, you can use the flag :option:`-n`.
-You should be carefull not to start to much worker as this can cause performances limitation.
-The default value of one worker by physical core is generaly a good value.
+on each machine. If you wish to start more or less worker than specified in your
+hostfile or in your hostlist, you can use the :option:`-n` parameter.
+
+Be aware that tinkering with this parameter may hinder performances.
+The default value choosen by SCOOP (one worker by physical core) is generaly a
+good value.
 
 Startup scripts (supercomputer or grid)
 ---------------------------------------
