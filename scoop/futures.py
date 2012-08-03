@@ -119,6 +119,10 @@ def map(func, *iterables, **kargs):
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
         del control.futureDict[future.id]
+        try:
+            control.execQueue.inprogress.remove(future)
+        except ValueError:
+            pass
         yield future.resultValue
 
 def submit(func, *args, **kargs):
@@ -163,6 +167,7 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, future in enumerate(children):
         if future.exceptionValue != None:
+            del scoop._control.futureDict[future.id]
             raise future.exceptionValue
         if future.resultValue != None:
             yield future
@@ -176,6 +181,7 @@ def _waitAny(*children):
         childFuture = _controller.switch(future)
         future.stopWatch.resume()
         if childFuture.exceptionValue:
+            del scoop._control.futureDict[future.id]
             raise childFuture.exceptionValue
         yield childFuture
         n -= 1
@@ -262,6 +268,10 @@ def _join(child):
     corresponding result as soon as it becomes available."""
     for future in _waitAny(child):
         del control.futureDict[future.id]
+        try:
+            control.execQueue.inprogress.remove(future)
+        except ValueError:
+            pass
         return future.resultValue
 
 def _joinAll(*children):

@@ -110,7 +110,6 @@ def funcSub(n):
 def funcScan(l):
     return futures._scan(operator.add, l)
 
-
 def main(n):
     task = futures.submit(func0, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
@@ -245,6 +244,14 @@ class TestMultiFunction(TestScoopCommon):
         self.assertEqual(result, self.small_result)
         time.sleep(0.5)
         os.environ = Backupenv
+
+    def test_execQueue(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(func0, 20)
+        time.sleep(0.5)
+        self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
+        self.assertEqual(len(scoop._control.execQueue.ready), 0)
+        self.assertEqual(len(scoop._control.execQueue.movable), 0)
 
 class TestSingleFunction(TestMultiFunction):
     def __init__(self, *args, **kwargs):
