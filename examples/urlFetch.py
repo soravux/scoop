@@ -42,8 +42,8 @@ def getSize(string):
 if __name__ == "__main__":
     # The pageurl variable contains a link to a list of web sites. It is
     # commented for security's sake.
-    pageurl = "http://httparchive.org/lists/Fortune%20500.txt"
-    #pageurl  = "http://www.example.com"
+    #pageurl = "http://httparchive.org/lists/Fortune%20500.txt"
+    pageurl  = "http://www.example.com"
     with urllib.request.urlopen(pageurl) as pagelist:
         pages = [page.decode() for page in pagelist][:30]
 
