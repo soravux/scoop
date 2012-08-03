@@ -93,10 +93,17 @@ class Future(object):
     
     def __repr__(self):
         """Convert future to string."""
-        return "{0}:{1}({2})={3}".format(self.id,
+        try:
+            return "{0}:{1}({2})={3}".format(self.id,
                                        self.callable.__name__,
                                        self.args,
                                        self.resultValue)
+        except AttributeError:
+            return "{0}:{1}({2})={3}".format(self.id,
+                                       "root",
+                                       self.args,
+                                       self.resultValue)
+
     
     def _switch(self, future):
         """Switch greenlet."""
@@ -147,6 +154,7 @@ class Future(object):
             return scoop.futures._join(self)
         if self.exceptionValue != None:
             raise self.exceptionValue
+        del scoop._control.futureDict[self.id]
         return self.resultValue
 
     def exception(self, timeout=None):
@@ -220,7 +228,9 @@ class FutureQueue(object):
         elif future.greenlet != None:
             self.inprogress.append(future)
         else:
-            if self.timelen(self.movable) > self.highwatermark: 
+            if self.timelen(self.movable) > self.highwatermark:
+                if future.id.worker != scoop.worker:
+                    del scoop._control.futureDict[future.id]
                 self.socket.sendFuture(future)
             else:
                 self.movable.append(future)
