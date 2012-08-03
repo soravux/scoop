@@ -167,6 +167,7 @@ class TestScoopCommon(unittest.TestCase):
         scoop.SIZE = 2
         
     def tearDown(self):
+        scoop._control.futureDict.clear()
         try: self.w.kill()
         except: pass
         # Destroy the server
