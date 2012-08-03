@@ -74,6 +74,8 @@ if __name__ == "__main__":
     scoop.worker          = (scoop.WORKER_NAME, scoop.BROKER_NAME)
     scoop.VALID           = True
 
+    profile = True if args.profile else False
+
     # get the module path in the Python path
     sys.path.append(os.path.join(os.getcwd(), os.path.dirname(args.executable[0])))
         
@@ -94,7 +96,7 @@ if __name__ == "__main__":
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
    
-    if not args.profile:
+    if not profile:
         # Start the user program
         from scoop import futures
         futures._startup(functools.partial(runpy.run_path,
