@@ -66,7 +66,7 @@ class launchScoop(object):
         self.divideHosts(hosts)
      
         # Handling Broker Hostname
-        self.brokerHostname = '127.0.0.1' if self.e else brokerHostname[0]
+        self.brokerHostname = '127.0.0.1' if self.e else brokerHostname
         logging.debug('Using hostname/ip: "{0}" as external broker reference.'\
             .format(self.brokerHostname))
         logging.info('The python executable to execute the program with is: {0}.'\
@@ -259,8 +259,7 @@ parser.add_argument('-e',
 parser.add_argument('--broker-hostname',
                     nargs=1,
                     help="The externally routable broker hostname / ip "
-                         "(defaults to the local hostname)",
-                    default=[socket.getfqdn().split(".")[0]])
+                         "(defaults to the local hostname)")
 parser.add_argument('--python-executable',
                     nargs=1,
                     help="The python executable with which to execute the "
@@ -294,9 +293,14 @@ if __name__ == "__main__":
     else:
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
-                   "Use the '-n' flag to set it manually.") 
+                   "Use the '-n' flag to set it manually.")
+    if args.broker_hostname:
+        broker_hostname = args.broker_hostname
+    else:
+        broker_hostname = utils.broker_hostname(hosts)
+
     scoopLaunching = launchScoop(hosts, n, args.verbose,
-            args.python_executable, args.broker_hostname, args.executable,
+            args.python_executable, broker_hostname, args.executable,
             args.args, args.e, args.log, args.path, args.debug, args.nice,
             utils.getEnv(), args.profile)
     try:
