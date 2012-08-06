@@ -46,6 +46,7 @@ class launchScoop(object):
         self.debug = debug
         self.nice = nice
         self.profile = profile
+        self.errors  = None
         try:
             self.pythonpath = os.environ["PYTHONPATH"]
         except KeyError:
@@ -207,7 +208,7 @@ class launchScoop(object):
                     .format(this_subprocess))
         
         # wait for the origin
-        self.createdSubprocesses[-1].wait()
+        self.errors = self.createdSubprocesses[-1].wait()
 
     def close(self):
         # Ensure everything is cleaned up on exit
@@ -222,6 +223,7 @@ class launchScoop(object):
             except OSError:
                 pass
         logging.info('Finished destroying spawned subprocesses.')
+        exit(self.errors)
 
 
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
