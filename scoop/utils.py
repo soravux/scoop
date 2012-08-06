@@ -19,6 +19,17 @@ from multiprocessing import cpu_count
 from collections import Counter
 import os
 import re
+import socket
+
+def broker_hostname(hosts):
+    hostname = hosts[0][0]
+    if hostname != "127.0.0.1":
+        return hostname
+    else:
+        if len(hosts) == 1:
+            return hostname
+        else:
+            return socket.getfqdn().split('.')[0]
 
 def getCPUcount():
     try:
@@ -39,23 +50,10 @@ def getHosts(filename = None, hostlist = None):
         return getHostsFromPBS()
     elif "PE_HOSTFILE" in os.environ:
         return getHostsFromSGE()
-    else:
-        if filename:
-            return getHostsFromFile(filename)
-        elif hostlist:
-            return getHostsFromList(hostlist)
-
-            
-#def getHostsFromFile(filename):
-#    """Parse the hostfile to get number of slots. The hostfile must have
-#    the following structure :
-#    hostname  slots=X
-#    hostname2 slots=X
-#    """
-#    with open(filename) as f:
-#        hosts = (line.split() for line in f)
-#        return [(h[0], int(h[1].split("=")[1])) for h in hosts]
-#
+    elif filename:
+        return getHostsFromFile(filename)
+    elif hostlist:
+        return getHostsFromList(hostlist)
 
 def getHostsFromFile(filename):
     ValidHostname = r"[^ /\t:=\n]*" # TODO This won't work with ipv6 address
@@ -80,17 +78,17 @@ def getHostsFromFile(filename):
 
 def getHostsFromList(hostlist):
     return [i for i in Counter(hostlist).items()]
-    
-    
+
+
 def getHostsFromPBS():
     with open(os.environ["PBS_NODEFILE"], 'r') as hosts:
         return [i for i in Counter(hosts.read().split()).items()]
-    
-    
+
+
 def getHostsFromSGE():
     with open(os.environ["PE_HOSTFILE"], 'r') as hosts:
         return [(host.split()[0], int(host.split()[1])) for host in hosts]
-        
+
 def getWorkerQte(hosts):
     if "PBS_NP" in os.environ:
         return int(os.environ["PBS_NP"])
@@ -98,6 +96,3 @@ def getWorkerQte(hosts):
         return int(os.environ["NSLOTS"])
     else:
         return sum(host[1] for host in hosts)
-        
-if __name__ == "__main__":
-    print(_getHostsFromFile("hosts"))
