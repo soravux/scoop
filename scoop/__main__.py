@@ -46,6 +46,11 @@ class launchScoop(object):
         self.debug = debug
         self.nice = nice
         self.profile = profile
+        try:
+            self.pythonpath = os.environ["PYTHONPATH"]
+        except KeyError:
+            self.pythonpaht = None
+
 
         # Logging configuration
         if self.verbose > 2:
@@ -100,12 +105,14 @@ class launchScoop(object):
         return c
 
     def launchForeign(self):
-        return ("cd {remotePath} && {nice} {pythonExecutable} -m "
+        pythonpath = "export PYTHONPATH={0} &&".format(self.pythonpath) if self.pythonpath else ''
+        return ("{pythonpath} cd {remotePath} && {nice} {pythonExecutable} -m "
                 "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
                 "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
                 "{infoPort} --size {n} {origin} {debug} {profile} {executable} "
                 "{arguments}").format(remotePath = self.path, 
+                    pythonpath = pythonpath,
                     nice = 'nice - n {0}'.format(self.nice) if self.nice != None else '',
                     origin = '--origin' if self.workersLeft == 1 else '',
                     debug = '--debug' if self.debug == 1 else '',
