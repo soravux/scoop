@@ -302,7 +302,7 @@ if __name__ == "__main__":
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
                    "Use the '-n' flag to set it manually.")
     if args.broker_hostname:
-        broker_hostname = args.broker_hostname
+        broker_hostname = args.broker_hostname[0]
     else:
         broker_hostname = utils.broker_hostname(hosts)
 
