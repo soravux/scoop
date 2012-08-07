@@ -39,7 +39,7 @@ and similar modules, such as:
 Anatomy of a SCOOPed program
 ----------------------------
 
-SCOOP can handle multiple diversified multi-layered tasks. You can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Contrarly to most multiprocessing frameworks, it allows to launch subtasks within tasks.
+SCOOP can handle multiple diversified multi-layered tasks. You can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Contrary to most multiprocessing frameworks, it allows to launch subtasks within tasks.
 
 .. image:: images/introductory_tree.png
    :align: center
