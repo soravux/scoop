@@ -31,6 +31,9 @@ def broker_hostname(hosts):
         else:
             return socket.getfqdn().split('.')[0]
 
+def local_hostname():
+    return ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
+
 def getCPUcount():
     try:
         return cpu_count()

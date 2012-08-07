@@ -50,7 +50,7 @@ class launchScoop(object):
         try:
             self.pythonpath = os.environ["PYTHONPATH"]
         except KeyError:
-            self.pythonpaht = None
+            self.pythonpath = None
 
 
         # Logging configuration
@@ -154,21 +154,39 @@ class launchScoop(object):
 #
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
-        from scoop.broker import Broker
-        self.localBroker = Broker(debug=True if self.debug == True else False)
-        self.brokerPort, self.infoPort = self.localBroker.getPorts()
-        self.localBrokerProcess = Thread(target=self.localBroker.run)
-        self.localBrokerProcess.daemon = True
-        self.localBrokerProcess.start()
+        logging.debug("Starting the broker on host {0}".format(self.brokerHostname))
+        if self.brokerHostname in utils.local_hostname(): #self.brokerHostname == "127.0.0.1" or self.brokerHostname == utils.local_hostname():
+            from scoop.broker import Broker
+            self.localBroker = Broker(debug=True if self.debug == True else False)
+            self.brokerPort, self.infoPort = self.localBroker.getPorts()
+            self.localBrokerProcess = Thread(target=self.localBroker.run)
+            self.localBrokerProcess.daemon = True
+            self.localBrokerProcess.start()
+            logging.debug("Local broker launched on ports {0}, {1}"
+                          ".".format(self.brokerPort, self.infoPort))
+        else:
+            brokerString = ("{pythonExec} -m scoop.broker.__main__ --tPort {brokerPort}"
+                            " --mPort {infoPort}")
+            for i in range(5000,10000,2):
+                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+                broker = subprocess.Popen(ssh_command + [self.brokerHostname] +
+                        [brokerString.format(brokerPort = i, infoPort =i+1,
+                            pythonExec = self.python_executable)])
+                if broker.poll() is not None:
+                    continue
+                else:
+                    self.brokerPort, self.infoPort = i, i+1
+                    self.createdSubprocesses.append(broker)
+                    break
+            logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
+                          ".".format(self.brokerPort, self.infoPort,
+                              self.brokerHostname))
 
     def run(self):
         # Launching the local broker, repeat until it works
-        logging.debug("Initialising local broker.")
         self.startBroker()
-        logging.debug("Local broker launched on ports {0}, {1}"
-                      ".".format(self.brokerPort, self.infoPort))
-        
         # Launch the workers
+
         for host in self.hosts:
             command = []
             for n in range(min(host[1], self.workersLeft)):
