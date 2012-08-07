@@ -142,7 +142,6 @@ class TestScoopCommon(unittest.TestCase):
         worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
         "--workerName", "worker", "--brokerName", "broker", "--brokerAddress",
         "tcp://127.0.0.1:5555", "--metaAddress", "tcp://127.0.0.1:5556", "tests.py"])
-        #os.environ = Backupenv
         return worker
         
     def setUp(self):
