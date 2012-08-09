@@ -9,7 +9,7 @@ Nomenclature
 =========== =======================================================================================================================================
   Keyword   Description
 =========== =======================================================================================================================================
-Future(s)   The Future class encapsulates the asynchronous execution of a callable (Previously referred to as `task`).
+Future(s)   The Future class encapsulates the asynchronous execution of a callable.
 Broker      Dispatch Futures.
 Worker      Process executing Futures.
 Origin      The worker executing the user program.
@@ -18,7 +18,7 @@ Origin      The worker executing the user program.
 Architecture diagram
 --------------------
 
-The future(s) distribution over workers is done by a 
+The future(s) distribution over workers is done by a variation of the 
 `Broker pattern <http://zguide.zeromq.org/page:all#A-Request-Reply-Broker>`_. 
 In such pattern, workers act as independant elements which interacts with a 
 broker to mediate their communications.
@@ -41,12 +41,12 @@ A |map()|_ function applies multiple parameters to a single function. For
 example, if you want to apply the |abs()|_ function to every number of a list::
 
     import random
-    data = [random.randint(-1000,1000) for r in range(10000)]
+    data = [random.randint(-1000,1000) for r in range(1000)]
     
     # Without Map
     result = []
-    for i in range(len(data)):
-      result.append(abs(data[i]))
+    for i in data:
+      result.append(abs(i))
 
     # Using a Map
     result = list(map(abs, data))
@@ -61,7 +61,7 @@ instance::
     # Script to be launched with: python -m scoop scriptName.py
     import random
     from scoop import futures
-    data = [random.randint(-1000,1000) for r in range(2**16)]
+    data = [random.randint(-1000,1000) for r in range(1000)]
 
     if __name__ == '__main__':
         # Python's standard serial function

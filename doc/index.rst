@@ -58,6 +58,7 @@ The common applications of SCOOP consist of, but is not limited to:
     * Data mining
     * Data processing
     * Graph traversal
+    * Web i/o
 
 Manual
 ======
