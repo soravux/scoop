@@ -25,7 +25,7 @@ To install SCOOP and its other dependencies, use
 	If you don't already have `libzmq <http://www.zeromq.org/>`_ installed in a
 	default library location, please visit the 
 	`PyZMQ installation page <http://www.zeromq.org/bindings:python/>`_ for 
-	further assistance.
+	assistance.
 
 Remote usage
 ~~~~~~~~~~~~
@@ -44,5 +44,4 @@ you can do as such::
 
     If your remote hosts needs special configuration (non-default port, some 
     specified username, etc.), you should do it in your ssh client 
-    configuration file (by default ``~/.ssh/config``). Please  as to how 
-    to configure and personalize your hosts connections.
+    configuration file (by default ``~/.ssh/config``).
