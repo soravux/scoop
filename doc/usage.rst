@@ -92,6 +92,11 @@ This allows a finer control over the Futures, such as out-of-order processing.
 
 .. _examples-reference:
 
+.. note::
+    Functions submited to scoop must return a value. Keep in mind that objects
+    are not shared between workers and that changes made to an object in a
+    function are not made in every workers.
+
 Examples
 --------
     
