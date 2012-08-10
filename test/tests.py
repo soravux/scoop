@@ -175,7 +175,6 @@ class TestScoopCommon(unittest.TestCase):
             except: pass
             
 
-
 class TestMultiFunction(TestScoopCommon):
     def __init__(self, *args, **kwargs):
         # Parent initialization
@@ -310,20 +309,6 @@ class TestApi(TestScoopCommon):
 
     def test_callback(self):
         self.assertTrue(futures._startup(funcCallback))
-
-    def test_scan_single(self):
-        l = [i for i in range(1111)]
-        result = futures._startup(funcScan, l)
-        self.assertEqual(result, sum(l))
-
-    def test_scan_multi(self):
-        self.w = self.multiworker_set()
-        l = [i for i in range(1111)]
-        result = futures._startup(funcScan, l)
-        self.assertEqual(result, sum(l))
-
-
-
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
