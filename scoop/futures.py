@@ -102,10 +102,10 @@ def map(func, *iterables, **kargs):
     specified or None then there is no limit to the wait time. If a call raises
     an exception then that exception will be raised when its value is retrieved
     from the iterator.
-    
+
     :param func: Any callable object (function or class object with *__call__*
         method); this object will be called to execute the Futures. The
-        callable must return a value. 
+        callable must return a value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
@@ -120,10 +120,8 @@ def map(func, *iterables, **kargs):
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
         del control.futureDict[future.id]
-        try:
-            control.execQueue.inprogress.remove(future)
-        except ValueError:
-            pass
+        if future.id in control.execQueue.inprogress:
+            del control.execQueue.inprogress[future.id]
         yield future.resultValue
 
 def submit(func, *args, **kargs):
@@ -169,6 +167,7 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, future in enumerate(children):
         if future.exceptionValue != None:
+            del scoop._control.futureDict[future.id]
             raise future.exceptionValue
         if future.resultValue != None:
             yield future
@@ -182,6 +181,7 @@ def _waitAny(*children):
         childFuture = _controller.switch(future)
         future.stopWatch.resume()
         if childFuture.exceptionValue:
+            del scoop._control.futureDict[future.id]
             raise childFuture.exceptionValue
         yield childFuture
         n -= 1
@@ -268,10 +268,8 @@ def _join(child):
     corresponding result as soon as it becomes available."""
     for future in _waitAny(child):
         del control.futureDict[future.id]
-        try:
-            control.execQueue.inprogress.remove(future)
-        except ValueError:
-            pass
+        if future.id in control.execQueue.inprogress:
+            del control.execQueue.inprogress[future.id]
 
         return future.resultValue
 
@@ -293,3 +291,13 @@ def shutdown(wait=True):
     
     :param wait: Unapplied parameter."""
     pass
+
+def _scan(func, args):
+    if len(args) == 2:
+        return _join(submit(func, args[0], args[1]))
+    elif len(args) == 3:
+        return _join(submit(func, args[2], _join(submit(func, args[0],
+                                                args[1]))))
+    else:
+        return _join(submit(func, _scan(func, args[0:len(args)//2]),
+            _scan(func, args[len(args)//2:len(args) + 1])))

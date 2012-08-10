@@ -49,6 +49,9 @@ parser.add_argument('--size',
 parser.add_argument('--debug',
                     help="Activate the debug",
                     action='store_true')
+parser.add_argument('--profile',
+                     help="Activate the profiler",
+                     action='store_true')
 parser.add_argument('executable',
                     nargs=1,
                     help='The executable to start with scoop')
@@ -71,6 +74,8 @@ if __name__ == "__main__":
     scoop.worker          = (scoop.WORKER_NAME, scoop.BROKER_NAME)
     scoop.VALID           = True
 
+    profile = True if args.profile else False
+
     # get the module path in the Python path
     sys.path.append(os.path.join(os.getcwd(), os.path.dirname(args.executable[0])))
         
@@ -91,9 +96,19 @@ if __name__ == "__main__":
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
    
-    # Startup the program
-    from scoop import futures
-    futures._startup(functools.partial(runpy.run_path,
+    if not profile:
+        # Start the user program
+        from scoop import futures
+        futures._startup(functools.partial(runpy.run_path,
                                        executable,
                                        init_globals=globals(),
                                        run_name="__main__"))
+    else:
+        from scoop import futures
+        import cProfile
+        cProfile.run("""futures._startup(functools.partial(runpy.run_path,
+                                       executable,
+                                       init_globals=globals(),
+                                       run_name="__main__"))""",
+                                       scoop.WORKER_NAME)
+
