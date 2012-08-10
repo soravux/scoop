@@ -234,12 +234,6 @@ class FutureQueue(object):
                 self.socket.sendFuture(future)
             else:
                 self.movable.append(future)
-        # Send oldest futures to the broker
-        while len(self.movable) > self.highwatermark:
-            out = self.movable.pop()
-            if scoop.worker != out.id.worker:
-                del scoop._control.futureDict[out.id]
-            self.socket.sendFuture(out)
         
     def pop(self):
         """Pop the next future from the queue; 
