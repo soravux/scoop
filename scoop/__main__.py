@@ -28,7 +28,8 @@ from threading import Thread
 
 class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, e, log, path, debug, nice, env, profile):
+            executable, arguments, e, log, path, debug, nice, env, profile,
+            python_path):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], "You should at least specify one host."
         hosts.reverse()
@@ -37,6 +38,7 @@ class launchScoop(object):
 
         # launch information
         self.python_executable = python_executable[0]
+        self.pythonpath = python_path
         self.n = n
         self.e = e
         self.executable = executable[0]
@@ -47,10 +49,6 @@ class launchScoop(object):
         self.nice = nice
         self.profile = profile
         self.errors  = None
-        try:
-            self.pythonpath = os.environ["PYTHONPATH"]
-        except KeyError:
-            self.pythonpath = None
 
 
         # Logging configuration
@@ -329,7 +327,7 @@ if __name__ == "__main__":
     scoopLaunching = launchScoop(hosts, n, args.verbose,
             args.python_executable, broker_hostname, args.executable,
             args.args, args.e, args.log, args.path, args.debug, args.nice,
-            utils.getEnv(), args.profile)
+            utils.getEnv(), args.profile, args.pythonpath)
     try:
         scoopLaunching.run()
     finally:
