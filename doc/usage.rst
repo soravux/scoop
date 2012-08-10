@@ -266,7 +266,7 @@ A remote workers example may be as follow::
 Argument            Meaning
 ================    =================================
 -m scoop            **Mandatory** Uses SCOOP to run program.
---hostfile          hosts is a file containing a list of host to launch SCOOP 
+--hostfile          hosts is a file containing a list of host to launch SCOOP
 -vv                 Double verbosity flag.
 -n 6                Launch a total of 6 workers.
 your_program.py     The program to be launched.

@@ -21,6 +21,19 @@ import os
 import re
 import socket
 
+def broker_hostname(hosts):
+    hostname = hosts[0][0]
+    if hostname not in local_hostname():
+        return hostname
+    else:
+        if len(hosts) == 1:
+            return hostname
+        else:
+            return socket.getfqdn().split('.')[0]
+
+def local_hostname():
+    return ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
+
 def getCPUcount():
     try:
         return cpu_count()
@@ -47,7 +60,6 @@ def getHosts(filename = None, hostlist = None):
             return getHostsFromList(hostlist)
         else:
             return getDefaultHosts()
-
 def getHostsFromFile(filename):
     ValidHostname = r"[^ /\t:=\n]*" # TODO This won't work with ipv6 address
                                     # TODO find a better regex that works 
@@ -71,17 +83,17 @@ def getHostsFromFile(filename):
 
 def getHostsFromList(hostlist):
     return [i for i in Counter(hostlist).items()]
-    
-    
+
+
 def getHostsFromPBS():
     with open(os.environ["PBS_NODEFILE"], 'r') as hosts:
         return [i for i in Counter(hosts.read().split()).items()]
-    
-    
+
+
 def getHostsFromSGE():
     with open(os.environ["PE_HOSTFILE"], 'r') as hosts:
         return [(host.split()[0], int(host.split()[1])) for host in hosts]
-        
+
 def getWorkerQte(hosts):
     if "PBS_NP" in os.environ:
         return int(os.environ["PBS_NP"])
@@ -89,7 +101,7 @@ def getWorkerQte(hosts):
         return int(os.environ["NSLOTS"])
     else:
         return sum(host[1] for host in hosts)
-       
+
 
 def KeyboardInterruptHandler(signum, frame):
     raise KeyboardInterrupt("Shutting down!")
@@ -97,6 +109,3 @@ def KeyboardInterruptHandler(signum, frame):
 def getDefaultHosts():
     return [('127.0.0.1', getCPUcount())]
 
-
-if __name__ == "__main__":
-    print(getHosts())

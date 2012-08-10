@@ -2,7 +2,7 @@
 from Tree import *
 import sys
 import time
-from scoop import futures, FEDERATION_SIZE
+from scoop import futures, SIZE
 
 def main():
     return executeTree()
@@ -14,4 +14,4 @@ if __name__=="__main__":
     bt = time.time()
     main()
     totalTime = time.time() - bt
-    print("total time : {}\ncores : {}".format(totalTime, FEDERATION_SIZE))
+    print("total time : {}\ncores : {}".format(totalTime, SIZE))

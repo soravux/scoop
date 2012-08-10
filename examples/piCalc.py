@@ -21,16 +21,24 @@ Calculation of Pi using a Monte Carlo method.
 from math import hypot
 from random import random
 from scoop import futures
+from time import time
 
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
 def test(tries):
     return sum(hypot(random(), random()) < 1 for i in range(tries))
 
+
+# Calculates pi with a Monte-Carlo method. This function calls the function
+# test "n" times with an argument of "t". Scoop dispatches these 
+# functions interactively accross the available ressources.
 def calcPi(n, t):
+    bt = time()
     expr = futures.map(test, [t] * n)
-    pi_value = 4. * sum(expr) / float(n*t)
+    pi_value = 4. * sum(expr) / float(n * t)
+    totalTime = time() - bt
     print("pi = " + str(pi_value))
+    print("total time {}".format(totalTime))
     return pi_value
 
 if __name__ == "__main__":

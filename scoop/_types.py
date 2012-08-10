@@ -69,7 +69,7 @@ class Future(object):
     """This class encapsulates an independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
     other futures."""
-    rank = itertools.count()     
+    rank = itertools.count() 
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
         self.id = FutureId(scoop.worker, next(Future.rank))
@@ -103,6 +103,7 @@ class Future(object):
                                        "partial",
                                        self.args,
                                        self.resultValue)
+
     
     def _switch(self, future):
         """Switch greenlet."""
@@ -131,7 +132,7 @@ class Future(object):
         return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
-        """True if the call was successfully cancelled or finished running,
+        """True if the call was successfully cancelled or finished running, 
            False otherwise."""
         return self.resultValue != None or self.exceptionValue != None
 
@@ -153,6 +154,7 @@ class Future(object):
             return scoop.futures._join(self)
         if self.exceptionValue != None:
             raise self.exceptionValue
+        del scoop._control.futureDict[self.id]
         return self.resultValue
 
     def exception(self, timeout=None):
@@ -193,11 +195,14 @@ class FutureQueue(object):
         object."""
         self.movable = deque()
         self.ready = deque()
-        self.inprogress = deque()
+        self.inprogress = {}
         self.socket = ZMQCommunicator()
-        self.lowwatermark  = 1
-        self.highwatermark = 1
-        self.pendingRequest = 0
+        if scoop.SIZE == 1:
+            self.lowwatermark = float("inf")
+            self.highwatermark = float("inf")
+        else:
+            self.lowwatermark  = 0.01
+            self.highwatermark = 0.01
         
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
@@ -209,17 +214,26 @@ class FutureQueue(object):
         """Returns the length of the queue, meaning the sum of it's elements
         lengths."""
         return len(self.movable) + len(self.ready)
+
+    def timelen(self, queue_):
+        stats = scoop._control.execStats
+        return sum(stats[f.callable.__name__].mean() for f in queue_)
     
     def append(self, future):
         """Append a future to the queue."""
         if future.done() and future.index == None:
-            self.inprogress.append(future)
+            self.inprogress[future.id] = future
         elif future.done() and future.index != None:
             self.ready.append(future)
         elif future.greenlet != None:
             self.inprogress.append(future)
         else:
-            self.movable.append(future)
+            if self.timelen(self.movable) > self.highwatermark:
+                if future.id.worker != scoop.worker:
+                    del scoop._control.futureDict[future.id]
+                self.socket.sendFuture(future)
+            else:
+                self.movable.append(future)
         # Send oldest futures to the broker
         while len(self.movable) > self.highwatermark:
             out = self.movable.pop()
@@ -232,7 +246,7 @@ class FutureQueue(object):
         in progress futures have priority over those that have not yet started;
         higher level futures have priority over lower level ones; """
         self.updateQueue()
-        if len(self) < self.lowwatermark:
+        if self.timelen(self) < self.lowwatermark:
             self.requestFuture()
         if len(self.ready) != 0:
             return self.ready.pop()
@@ -250,21 +264,17 @@ class FutureQueue(object):
 
     def requestFuture(self):
         """Request futures from the broker"""
-        for a in range(len(self) + self.pendingRequest, self.lowwatermark):
-            self.socket.sendRequest()
-            self.pendingRequest += 1
         self.socket.sendRequest()
-        self.pendingRequest += 1
     
     def updateQueue(self):
         """Updates the local queue with elements from the broker."""
         to_remove = []
-        for future in self.inprogress:
+        for future in self.inprogress.values():
             if future.index != None:
                 self.ready.append(future)
                 to_remove.append(future)
         for future in to_remove:
-            self.inprogress.remove(future)
+            del self.inprogress[future.id]
         for future in self.socket.recvFuture():
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
@@ -276,9 +286,6 @@ class FutureQueue(object):
                         pass
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
-                self.pendingRequest -= 1
-            else:
-                self.pendingRequest -= 1
             self.append(scoop._control.futureDict[future.id])
 
     def remove(self, future):
@@ -295,7 +302,7 @@ class FutureQueue(object):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
         future.greenlet = None
-        assert future.done(), "The results are not valid"
+        #assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
         del scoop._control.futureDict[future.id]
 

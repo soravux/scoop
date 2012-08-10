@@ -1,0 +1,4 @@
+host1 8 host1 UNDEFINED
+host2 4 host2 UNDEFINED
+host3 2 host3 UNDEFINED
+host4 2 host4 UNDEFINED
