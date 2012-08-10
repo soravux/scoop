@@ -23,7 +23,7 @@ import socket
 
 def broker_hostname(hosts):
     hostname = hosts[0][0]
-    if hostname != "127.0.0.1":
+    if hostname not in local_hostname():
         return hostname
     else:
         if len(hosts) == 1:
