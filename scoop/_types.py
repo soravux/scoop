@@ -194,7 +194,7 @@ class FutureQueue(object):
         object."""
         self.movable = deque()
         self.ready = deque()
-        self.inprogress = deque()
+        self.inprogress = {}
         self.socket = ZMQCommunicator()
         self.lowwatermark  = 1
         self.highwatermark = 1
@@ -214,7 +214,7 @@ class FutureQueue(object):
     def append(self, future):
         """Append a future to the queue."""
         if future.done() and future.index == None:
-            self.inprogress.append(future)
+            self.inprogress[future.id] = future
         elif future.done() and future.index != None:
             self.ready.append(future)
         elif future.greenlet != None:
@@ -260,12 +260,12 @@ class FutureQueue(object):
     def updateQueue(self):
         """Updates the local queue with elements from the broker."""
         to_remove = []
-        for future in self.inprogress:
+        for future in self.inprogress.values():
             if future.index != None:
                 self.ready.append(future)
                 to_remove.append(future)
         for future in to_remove:
-            self.inprogress.remove(future)
+            del self.inprogress[future.id]
         for future in self.socket.recvFuture():
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
