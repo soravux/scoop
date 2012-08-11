@@ -169,6 +169,7 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, future in enumerate(children):
         if future.exceptionValue != None:
+            del scoop._control.futureDict[future.id]
             raise future.exceptionValue
         if future.resultValue != None:
             yield future
@@ -182,6 +183,7 @@ def _waitAny(*children):
         childFuture = _controller.switch(future)
         future.stopWatch.resume()
         if childFuture.exceptionValue:
+            del scoop._control.futureDict[future.id]
             raise childFuture.exceptionValue
         yield childFuture
         n -= 1
