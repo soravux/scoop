@@ -268,11 +268,8 @@ def _join(child):
     corresponding result as soon as it becomes available."""
     for future in _waitAny(child):
         del control.futureDict[future.id]
-        try:
-            control.execQueue.inprogress.remove(future)
-        except ValueError:
-            pass
-
+        if future.id in control.execQueue.inprogress:
+            del control.execQueue.inprogress[future.id]
         return future.resultValue
 
 def _joinAll(*children):
