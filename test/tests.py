@@ -252,6 +252,14 @@ class TestMultiFunction(TestScoopCommon):
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
 
+    def test_execQueue(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(func0, 20)
+        time.sleep(0.5)
+        self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
+        self.assertEqual(len(scoop._control.execQueue.ready), 0)
+        self.assertEqual(len(scoop._control.execQueue.movable), 0)
+
 class TestSingleFunction(TestMultiFunction):
     def __init__(self, *args, **kwargs):
         # Parent initialization

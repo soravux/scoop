@@ -115,4 +115,6 @@ def runController(callable, *args, **kargs):
     execQueue.shutdown()
     if future.exceptionValue:
         raise future.exceptionValue
+    # We delete the initial future from the futureDict
+    del futureDict[future.id]
     return future.resultValue

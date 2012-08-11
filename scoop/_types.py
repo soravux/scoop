@@ -153,6 +153,7 @@ class Future(object):
             return scoop.futures._join(self)
         if self.exceptionValue != None:
             raise self.exceptionValue
+        del scoop._control.futureDict[self.id]
         return self.resultValue
 
     def exception(self, timeout=None):
