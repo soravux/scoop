@@ -68,14 +68,14 @@ class launchScoop(object):
                      "host(s).".format(n,
                                        len(hosts)))
 
-        self.divideHosts(hosts)
-
         # Handling Broker Hostname
         self.brokerHostname = '127.0.0.1' if self.e else brokerHostname[0]
         logging.debug('Using hostname/ip: "{0}" as external broker '
                       'reference.'.format(self.brokerHostname))
         logging.info('The python executable to execute the program with is: '
                      '{0}.'.format(self.python_executable))
+
+        self.divideHosts(hosts)
 
     def launchLocal(self):
         c = [self.python_executable,
@@ -133,6 +133,15 @@ class launchScoop(object):
             hosts[index] = (hosts[index][0], hosts[index][1] + 1)
             index = (index + 1) % len(hosts)
             maximumWorkers += 1
+
+        if self.brokerHostname in ["127.0.0.1", "localhost"] and \
+                len(hosts) > 1 and \
+                self.e is not True:
+            raise Exception("\n"
+                            "Could not find route from external worker to the "
+                            "broker: Unresolvable hostname or IP address.\n "
+                            "Please specify your externally routable hostname "
+                            "or IP using the --broker-hostname parameter.")
 
         self.hosts = hosts
 
@@ -261,7 +270,7 @@ parser.add_argument('--broker-hostname',
                     nargs=1,
                     help="The externally routable broker hostname / ip "
                          "(defaults to the local hostname)",
-                    default=[socket.getfqdn().split(".")[0]])
+                    default=[utils.getCurrentHostname()])
 parser.add_argument('--python-executable',
                     nargs=1,
                     help="The python executable with which to execute the "
