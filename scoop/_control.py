@@ -44,6 +44,8 @@ def runFuture(future):
     future.executionTime = future.stopWatch.get()
     assert future.done(), "callable must return a value!"
     
+    future._delete()
+
     # Set debugging informations if needed
     if scoop.DEBUG:
         t = time.time()
@@ -113,7 +115,4 @@ def runController(callable, *args, **kargs):
     execQueue.shutdown()
     if future.exceptionValue:
         raise future.exceptionValue
-    # We delete the initial future from the futureDict
-    if future.id in futureDict:
-        del futureDict[future.id]
     return future.resultValue
