@@ -119,9 +119,6 @@ def map(func, *iterables, **kargs):
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
-        del control.futureDict[future.id]
-        if future.id in control.execQueue.inprogress:
-            del control.execQueue.inprogress[future.id]
         yield future.resultValue
 
 def submit(func, *args, **kargs):
@@ -149,6 +146,7 @@ def submit(func, *args, **kargs):
                                  "Be sure to start your program with the "
                                  "'-m scoop' parameter. You can find further "
                                  "information in the documentation.")
+    control.futureDict[control.current.id].children.append(child)
     control.execQueue.append(child)
     return child
 
@@ -167,7 +165,6 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, future in enumerate(children):
         if future.exceptionValue != None:
-            del scoop._control.futureDict[future.id]
             raise future.exceptionValue
         if future.resultValue != None:
             yield future
@@ -181,7 +178,6 @@ def _waitAny(*children):
         childFuture = _controller.switch(future)
         future.stopWatch.resume()
         if childFuture.exceptionValue:
-            del scoop._control.futureDict[future.id]
             raise childFuture.exceptionValue
         yield childFuture
         n -= 1
@@ -267,9 +263,6 @@ def _join(child):
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
     for future in _waitAny(child):
-        del control.futureDict[future.id]
-        if future.id in control.execQueue.inprogress:
-            del control.execQueue.inprogress[future.id]
         return future.resultValue
 
 def _joinAll(*children):
