@@ -26,7 +26,6 @@ current = None                                  # future currently running in gr
 futureDict = {}                                 # dictionary of existing futures
 execQueue = None                                # queue of futures pending execution
 
-
 if scoop.DEBUG:
     import time
     stats = {}
@@ -57,7 +56,6 @@ def runFuture(future):
                                     else 'No name',
                                'parent': future.parentId})
         QueueLength.append((t, len(execQueue)))
-
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     if future.parentId.worker == scoop.worker:
@@ -116,5 +114,6 @@ def runController(callable, *args, **kargs):
     if future.exceptionValue:
         raise future.exceptionValue
     # We delete the initial future from the futureDict
-    del futureDict[future.id]
+    if future.id in futureDict:
+        del futureDict[future.id]
     return future.resultValue

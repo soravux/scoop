@@ -30,7 +30,6 @@ def func0(n):
     return result
 
 def func1(n):
-    
     try:
         # The map alone doesn't throw the exception. The exception is raised
         # in the sum which calls the map generator.
