@@ -200,7 +200,7 @@ def _waitAll(*children):
     order, the generator may have to wait for the last result to become
     available before it can produce an output. See waitAny for an alternative
     option."""
-    for index, future in enumerate(children):
+    for future in children:
         for f in _waitAny(future):
             yield f
 
