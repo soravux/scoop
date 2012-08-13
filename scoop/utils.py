@@ -105,7 +105,13 @@ def getDefaultHosts():
 
 
 def getCurrentHostname():
-    return socket.getfqdn().split(".")[0]
+    """Ensure current hostname is routable, else return 127.0.0.1"""
+    hostname = socket.getfqdn().split(".")[0]
+    try:
+        socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        hostname = "127.0.0.1"
+    return hostname
 
 if __name__ == "__main__":
     print(getHosts())
