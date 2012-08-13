@@ -23,42 +23,37 @@ import scoop
 from scoop._comm import ZMQCommunicator, Shutdown
 
 
+# This class encapsulates a stopwatch that returns elapse time in seconds. 
 class StopWatch(object):
-    """This class encapsulates a stopwatch that returns elapse time in
-       seconds."""
+    # initialize stopwatch.
     def __init__(self):
-        """initialize stopwatch"""
         self.totalTime = 0
         self.startTime = time.time()
         self.halted = False
-
+    # return elapse time.
     def get(self):
-        """Return elapsed time"""
         if self.halted:
             return self.totalTime
         else:
             return self.totalTime + time.time() - self.startTime
-
+    # halt stopWatch.
     def halt(self):
-        """Halt stopWatch"""
         self.halted = True
         self.totalTime += time.time() - self.startTime
-
+    # resume stopwatch.
     def resume(self):
-        """Resume stopwatch"""
         self.halted = False
         self.startTime = time.time()
-
+    # set stopwatch to zero.
     def reset(self):
-        """Set stopwatch to zero"""
         self.__init__()
 
-
+        
 class CancelledError(Exception):
     """The Future was cancelled."""
     pass
-
-
+    
+    
 class TimeoutError(Exception):
     """The operation exceeded the given deadline."""
     pass
@@ -68,14 +63,13 @@ class NotStartedProperly(Exception):
     """SCOOP was not started properly"""
     pass
 
+    
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
-
-
 class Future(object):
-    """This class encapsulates an independent future that can be executed in
-       parallel.
-       A future can spawn other parallel futures which themselves can
-       recursively spawn other futures."""
+    """This class encapsulates an independent future that can be executed in parallel.
+    A future can spawn other parallel futures which themselves can recursively spawn
+    other futures."""
+    rank = itertools.count()
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
         self.id = FutureId(scoop.worker, next(Future.rank))
@@ -86,35 +80,35 @@ class Future(object):
         self.kargs = kargs                # key arguments of callable
         self.creationTime = time.ctime()  # future creation time
         self.stopWatch = StopWatch()      # stop watch for measuring time
-        self.greenlet = None              # cooperative thread running future
+        self.greenlet = None              # cooperative thread for running future 
         self.resultValue = None           # future result
         self.exceptionValue = None        # exception raised by callable
         self.callback = []                # set callback
+        self.children = []                # set children list of the callable
         # insert future into global dictionary
         scoop._control.futureDict[self.id] = self
 
     def __lt__(self, other):
         """Order futures by creation time."""
         return self.creationTime < other.creationTime
-
+    
     def __repr__(self):
         """Convert future to string."""
         try:
             return "{0}:{1}{2}={3}".format(self.id,
-                                           self.callable.__name__,
-                                           self.args,
-                                           self.resultValue)
+                                       self.callable.__name__,
+                                       self.args,
+                                       self.resultValue)
         except AttributeError:
             return "{0}:{1}{2}={3}".format(self.id,
-                                           "partial",
-                                           self.args,
-                                           self.resultValue)
-
+                                       "partial",
+                                       self.args,
+                                       self.resultValue)
+    
     def _switch(self, future):
         """Switch greenlet."""
         scoop._control.current = self
-        assert self.greenlet is not None, ("No greenlet to switch "
-                                           "to:\n%s" % self.__dict__)
+        assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(future)
 
     def cancel(self):
@@ -133,48 +127,47 @@ class Future(object):
         return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
-        """True if the call is currently being executed and cannot be
+        """True if the call is currently being executed and cannot be 
            cancelled."""
         return not self.done() and self not in scoop._control.execQueue
-
+        
     def done(self):
         """True if the call was successfully cancelled or finished running,
            False otherwise."""
-        return self.resultValue is not None or self.exceptionValue is not None
+        return self.resultValue != None or self.exceptionValue != None
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
-        completed then this method will wait up to ''timeout'' seconds [To be
-        done in future version of SCOOP]. If the call hasn't completed in
-        timeout seconds then a TimeoutError will be raised. If timeout is not
+        completed then this method will wait up to ''timeout'' seconds [To be 
+        done in future version of SCOOP]. If the call hasn't completed in 
+        timeout seconds then a TimeoutError will be raised. If timeout is not 
         specified or None then there is no limit to the wait time.
-
+        
         If the future is cancelled before completing then CancelledError will
         be raised.
 
         If the call raised an exception then this method will raise the same
         exception.
-
+        
         :returns: The value returned by the call."""
         if not self.done():
             return scoop.futures._join(self)
-        if self.exceptionValue is not None:
+        if self.exceptionValue != None:
             raise self.exceptionValue
-        del scoop._control.futureDict[self.id]
         return self.resultValue
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
-        completed then this method will wait up to timeout seconds [To be done
-        in future version of SCOOP]. If the call hasn't completed in timeout
-        seconds then a TimeoutError will be raised. If timeout is not specified
+        completed then this method will wait up to timeout seconds [To be done 
+        in future version of SCOOP]. If the call hasn't completed in timeout 
+        seconds then a TimeoutError will be raised. If timeout is not specified 
         or None then there is no limit to the wait time.
 
-        If the future is cancelled before completing then CancelledError will
-        be raised.
+        If the future is cancelled before completing then CancelledError will be
+        raised.
 
         If the call completed without raising then None is returned.
-
+        
         :returns: The exception raised by the call."""
         return self.exceptionValue
 
@@ -188,11 +181,24 @@ class Future(object):
         the callable raises an Exception then it will be logged and ignored. If
         the callable raises another BaseException then behavior is not defined.
 
-        If the future has already completed or been cancelled then callable
-        will be called immediately."""
+        If the future has already completed or been cancelled then callable will
+        be called immediately."""
         self.callback.append(callable)
 
-    rank = itertools.count()
+    def _delete(self):
+        try:
+            del scoop._control.futureDict[self.id]
+        except KeyError:
+            pass
+        if self.id in scoop._control.execQueue.inprogress:
+            del scoop._control.execQueue.inprogress[self.id]
+        try:
+            if self in scoop._control.futureDict[self.parentId].children:
+                scoop._control.futureDict[self.parentId].children.remove(self)
+        except KeyError:
+            pass
+        for child in self.children:
+            child.exceptionValue = CancelledError()
 
 
 class FutureQueue(object):
@@ -205,10 +211,10 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = {}
         self.socket = ZMQCommunicator()
-        self.lowwatermark = 1
+        self.lowwatermark  = 1
         self.highwatermark = 1
         self.pendingRequest = 0
-
+        
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
         for it in (self.movable, self.ready):
@@ -219,14 +225,14 @@ class FutureQueue(object):
         """Returns the length of the queue, meaning the sum of it's elements
         lengths."""
         return len(self.movable) + len(self.ready)
-
+    
     def append(self, future):
         """Append a future to the queue."""
-        if future.done() and future.index is None:
+        if future.done() and future.index == None:
             self.inprogress[future.id] = future
-        elif future.done() and future.index is not None:
+        elif future.done() and future.index != None:
             self.ready.append(future)
-        elif future.greenlet is not None:
+        elif future.greenlet != None:
             self.inprogress.append(future)
         else:
             self.movable.append(future)
@@ -234,13 +240,13 @@ class FutureQueue(object):
         while len(self.movable) > self.highwatermark:
             out = self.movable.pop()
             if scoop.worker != out.id.worker:
-                del scoop._control.futureDict[out.id]
+                out._delete()
             self.socket.sendFuture(out)
-
+        
     def pop(self):
-        """Pop the next future from the queue;
+        """Pop the next future from the queue; 
         in progress futures have priority over those that have not yet started;
-        higher level futures have priority over lower level ones;"""
+        higher level futures have priority over lower level ones; """
         self.updateQueue()
         if len(self) < self.lowwatermark:
             self.requestFuture()
@@ -265,41 +271,43 @@ class FutureQueue(object):
             self.pendingRequest += 1
         self.socket.sendRequest()
         self.pendingRequest += 1
-
+    
     def updateQueue(self):
         """Updates the local queue with elements from the broker."""
         to_remove = []
         for future in self.inprogress.values():
-            if future.index is not None:
+            if future.index != None:
                 self.ready.append(future)
                 to_remove.append(future)
         for future in to_remove:
             del self.inprogress[future.id]
         for future in self.socket.recvFuture():
             if future.done():
-                element = scoop._control.futureDict[future.id]
-                element.resultValue = future.resultValue
-                element.exceptionValue = future.exceptionValue
+                scoop._control.futureDict[future.id].resultValue = future.resultValue
+                scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
                 for callback in scoop._control.futureDict[future.id].callback:
                     try:
                         callback.future(scoop._control.futureDict[future.id])
                     except:
                         pass
+                self.append(scoop._control.futureDict[future.id])
+                future._delete()
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
                 self.pendingRequest -= 1
+                self.append(scoop._control.futureDict[future.id])
             else:
                 self.pendingRequest -= 1
-            self.append(scoop._control.futureDict[future.id])
+                self.append(scoop._control.futureDict[future.id])
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
         this method will raised a ValueError."""
         self.movable.remove(future)
-
+    
     def select(self, duration):
-        """Return a list of movable futures that have an estimated total
-        runtime of at most "duration" seconds."""
+        """Return a list of movable futures that have an estimated total runtime
+        of at most "duration" seconds."""
         pass
 
     def sendResult(self, future):
@@ -308,7 +316,6 @@ class FutureQueue(object):
         future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
-        del scoop._control.futureDict[future.id]
 
     def shutdown(self):
         """Shutdown the ressources used by the queue"""
