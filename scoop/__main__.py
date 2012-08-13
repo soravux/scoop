@@ -211,7 +211,7 @@ class launchScoop(object):
                                 .format(this_subprocess))
 
         # wait for the origin
-        self.createdSubprocesses[-1].wait()
+        return self.createdSubprocesses[-1].wait()
 
     def close(self):
         # Ensure everything is cleaned up on exit
@@ -307,6 +307,7 @@ if __name__ == "__main__":
                                  args.path, args.debug, args.nice,
                                  utils.getEnv())
     try:
-        scoopLaunching.run()
+        code = scoopLaunching.run()
     finally:
         scoopLaunching.close()
+    exit(code)
