@@ -117,6 +117,8 @@ class Broker(object):
         return (self.tSockPort, self.infoSockPort)
 
     def shutdown(self):
+        # This send may raise an ZMQError
+        # Looping over it until it gets through
         for i in range(100):
             try:
                 self.infoSocket.send(SHUTDOWN)
