@@ -19,6 +19,7 @@ from __future__ import print_function
 from scoop.broker.broker import Broker
 import argparse
 
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Starts the broker on the current computer')
     parser.add_argument('--tPort', help='The port of the task socket',
@@ -28,10 +29,10 @@ if __name__=="__main__":
     parser.add_argument('--debug', help="Activate the debug", action='store_true')
 
     args = parser.parse_args()
-    this_broker = Broker("tcp://*:" + args.tPort,
+    thisBroker = Broker("tcp://*:" + args.tPort,
                          "tcp://*:" + args.mPort,
                          debug=True if args.debug == True else False)
     try:
-        this_broker.run()
+        thisBroker.run()
     finally:
-        this_broker.shutdown()
+        thisBroker.shutdown()
