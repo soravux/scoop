@@ -29,15 +29,18 @@ import os
 import sys
 import operator
 from tests_parser import TestUtils
+
     
 def func0(n):
     task = futures.submit(func1, n)
     result = task.result()
     return result
 
+
 def func1(n):
     result = futures.map(func2, [i+1 for i in range(n)])
     return sum(result)
+
 
 def func2(n):
     launches = []
@@ -46,14 +49,17 @@ def func2(n):
     result = futures.as_completed(launches)
     return sum(r.result() for r in result)
 
+
 def func3(n):
     result = list(futures.map(func4, [i+1 for i in range(n)]))
     return sum(result)
+
 
 def func4(n):
     result = n*n
     return result
     
+
 def funcCallback():
     f = futures.submit(func4, 100)
     
@@ -69,17 +75,20 @@ def funcCallback():
     except:
         return False
         
+
 def funcCancel():
     f = futures.submit(func4, 100)
     f.cancel()
     return f.cancelled()
             
+
 def funcCompleted(n):
     launches = []
     for i in range(n):
         launches.append(futures.submit(func4, i + 1))
     result = futures.as_completed(launches)
     return sum(r.result() for r in result)
+
 
 def funcDone():
     f = futures.submit(func4, 100)
@@ -91,6 +100,7 @@ def funcDone():
     done = f.done()
     return done
     
+
 def funcExcept(n):
     f = futures.submit(funcRaise, n)
     try:
@@ -100,15 +110,19 @@ def funcExcept(n):
 
     return False
 
+
 def funcRaise(n):
     raise Exception("Test exception")
     
+
 def funcSub(n):
     f = futures.submit(func4, n)
     return f.result()
 
+
 def funcScan(l):
     return futures._scan(operator.add, l)
+
 
 def main(n):
     task = futures.submit(func0, n)
@@ -116,11 +130,13 @@ def main(n):
     result = task.result()
     return result
     
+
 def main_simple(n):
     task = futures.submit(func3, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()
     return result
+
 
 def port_ready(port, socket):
     """Checks if a given port is already binded"""
@@ -132,6 +148,7 @@ def port_ready(port, socket):
         socket.shutdown(2)
         socket.close()
         return True
+
 
 class TestScoopCommon(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -173,8 +190,9 @@ class TestScoopCommon(unittest.TestCase):
         if self.server.poll() == None:
             try: self.server.kill()
             except: pass
+        # Stabilise zmq after a deleted socket
+        time.sleep(0.1)
             
-
 
 class TestMultiFunction(TestScoopCommon):
     def __init__(self, *args, **kwargs):
@@ -253,6 +271,15 @@ class TestMultiFunction(TestScoopCommon):
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
 
+    def test_execQueue(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(func0, 20)
+        time.sleep(0.5)
+        self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
+        self.assertEqual(len(scoop._control.execQueue.ready), 0)
+        self.assertEqual(len(scoop._control.execQueue.movable), 0)
+
+
 class TestSingleFunction(TestMultiFunction):
     def __init__(self, *args, **kwargs):
         # Parent initialization
@@ -260,6 +287,7 @@ class TestSingleFunction(TestMultiFunction):
         self.main_func = main_simple
         self.small_result = 30
         self.large_result = 2870 
+
 
 class TestApi(TestScoopCommon):
     def __init(self, *args, **kwargs):
@@ -310,19 +338,6 @@ class TestApi(TestScoopCommon):
 
     def test_callback(self):
         self.assertTrue(futures._startup(funcCallback))
-
-    def test_scan_single(self):
-        l = [i for i in range(1111)]
-        result = futures._startup(funcScan, l)
-        self.assertEqual(result, sum(l))
-
-    def test_scan_multi(self):
-        self.w = self.multiworker_set()
-        l = [i for i in range(1111)]
-        result = futures._startup(funcScan, l)
-        self.assertEqual(result, sum(l))
-
-
 
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":

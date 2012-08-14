@@ -1,3 +1,13 @@
+0.5.2 (2012/08/14)
+------------------
+
++ Improved networking
++ Improved bootstrapping
++ Added unit tests
++ Fixed: Memory leak on exception handling
++ Fixed: Memory leak on Futures handling
+
+
 0.5.1 (2012/07/29)
 ------------------
 
