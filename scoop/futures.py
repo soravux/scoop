@@ -93,7 +93,8 @@ def _mapFuture(callable, *iterables, **kargs):
 
 def map(func, *iterables, **kargs):
     """Equivalent to 
-    `map(func, \*iterables, ...) <http://docs.python.org/library/functions.html#map>`_ 
+    `map(func, \*iterables, ...)
+    <http://docs.python.org/library/functions.html#map>`_ 
     but *func* is executed asynchronously
     and several calls to func may be made concurrently. The returned iterator
     raises a TimeoutError if *__next__()* is called and the result isn't available
@@ -103,9 +104,9 @@ def map(func, *iterables, **kargs):
     an exception then that exception will be raised when its value is retrieved
     from the iterator.
     
-    :param func: Any callable object (function or class object with *__call__*
-        method); this object will be called to execute the Futures. The
-        callable must return a value. 
+    :param func: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Futures. 
+        The callable must return a value. 
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
@@ -125,9 +126,9 @@ def submit(func, *args, **kargs):
     """Submit an independent parallel :class:`scoop._types.Future` that will 
     either run locally or remotely as `func(*args, **kargs)`.
     
-    :param func: Any callable object (function or class object with *__call__*
-        method); this object will be called to execute the Future. The callable
-        must return a value.
+    :param func: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Future. 
+        The callable must return a value. 
     :param args: A tuple of positional arguments that will be passed to the
         callable object.
     :param kargs: A dictionary of additional keyword arguments that will be
