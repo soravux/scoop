@@ -83,6 +83,9 @@ instance::
     instance of the program. This ensures that every worker waits for 
     parallelized tasks spawned by the origin worker.
 
+.. note::
+    Your callable function passed to SCOOP must be picklable in its entirety.
+
 Submit
 ~~~~~~
 

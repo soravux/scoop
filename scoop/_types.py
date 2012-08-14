@@ -69,7 +69,7 @@ class Future(object):
     """This class encapsulates an independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
     other futures."""
-    rank = itertools.count() 
+    rank = itertools.count()
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new future."""
         self.id = FutureId(scoop.worker, next(Future.rank))
@@ -84,6 +84,7 @@ class Future(object):
         self.resultValue = None           # future result
         self.exceptionValue = None        # exception raised by callable
         self.callback = []                # set callback
+        self.children = []                # set children list of the callable
         # insert future into global dictionary
         scoop._control.futureDict[self.id] = self
 
@@ -132,7 +133,7 @@ class Future(object):
         return not self.done() and self not in scoop._control.execQueue
         
     def done(self):
-        """True if the call was successfully cancelled or finished running, 
+        """True if the call was successfully cancelled or finished running,
            False otherwise."""
         return self.resultValue != None or self.exceptionValue != None
 
@@ -154,7 +155,7 @@ class Future(object):
             return scoop.futures._join(self)
         if self.exceptionValue != None:
             raise self.exceptionValue
-        del scoop._control.futureDict[self.id]
+        scoop._control.futureDict[self.id]._delete()
         return self.resultValue
 
     def exception(self, timeout=None):
@@ -185,6 +186,21 @@ class Future(object):
         If the future has already completed or been cancelled then callable will
         be called immediately."""
         self.callback.append(callable)
+
+    def _delete(self):
+        try:
+            del scoop._control.futureDict[self.id]
+        except KeyError:
+            pass
+        if self.id in scoop._control.execQueue.inprogress:
+            del scoop._control.execQueue.inprogress[self.id]
+        try:
+            if self in scoop._control.futureDict[self.parentId].children:
+                scoop._control.futureDict[self.parentId].children.remove(self)
+        except KeyError:
+            pass
+        for child in self.children:
+            child.exceptionValue = CancelledError()
 
 
 class FutureQueue(object):
@@ -230,7 +246,7 @@ class FutureQueue(object):
         else:
             if self.timelen(self.movable) > self.highwatermark:
                 if future.id.worker != scoop.worker:
-                    del scoop._control.futureDict[future.id]
+                    future._delete()
                 self.socket.sendFuture(future)
             else:
                 self.movable.append(future)
@@ -281,6 +297,7 @@ class FutureQueue(object):
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
             self.append(scoop._control.futureDict[future.id])
+            future._delete()
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
@@ -296,9 +313,9 @@ class FutureQueue(object):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
         future.greenlet = None
-        #assert future.done(), "The results are not valid"
+        assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
-        del scoop._control.futureDict[future.id]
+        future._delete()
 
     def shutdown(self):
         """Shutdown the ressources used by the queue"""

@@ -93,7 +93,8 @@ def _mapFuture(callable, *iterables, **kargs):
 
 def map(func, *iterables, **kargs):
     """Equivalent to 
-    `map(func, \*iterables, ...) <http://docs.python.org/library/functions.html#map>`_ 
+    `map(func, \*iterables, ...)
+    <http://docs.python.org/library/functions.html#map>`_ 
     but *func* is executed asynchronously
     and several calls to func may be made concurrently. The returned iterator
     raises a TimeoutError if *__next__()* is called and the result isn't available
@@ -103,9 +104,9 @@ def map(func, *iterables, **kargs):
     an exception then that exception will be raised when its value is retrieved
     from the iterator.
 
-    :param func: Any callable object (function or class object with *__call__*
-        method); this object will be called to execute the Futures. The
-        callable must return a value.
+    :param func: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Futures. 
+        The callable must return a value. 
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
@@ -128,9 +129,9 @@ def submit(func, *args, **kargs):
     """Submit an independent parallel :class:`scoop._types.Future` that will 
     either run locally or remotely as `func(*args, **kargs)`.
     
-    :param func: Any callable object (function or class object with *__call__*
-        method); this object will be called to execute the Future. The callable
-        must return a value.
+    :param func: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Future. 
+        The callable must return a value. 
     :param args: A tuple of positional arguments that will be passed to the
         callable object.
     :param kargs: A dictionary of additional keyword arguments that will be
@@ -149,6 +150,7 @@ def submit(func, *args, **kargs):
                                  "Be sure to start your program with the "
                                  "'-m scoop' parameter. You can find further "
                                  "information in the documentation.")
+    control.futureDict[control.current.id].children.append(child)
     control.execQueue.append(child)
     return child
 
@@ -200,7 +202,7 @@ def _waitAll(*children):
     order, the generator may have to wait for the last result to become
     available before it can produce an output. See waitAny for an alternative
     option."""
-    for index, future in enumerate(children):
+    for future in children:
         for f in _waitAny(future):
             yield f
 
@@ -270,7 +272,6 @@ def _join(child):
         del control.futureDict[future.id]
         if future.id in control.execQueue.inprogress:
             del control.execQueue.inprogress[future.id]
-
         return future.resultValue
 
 def _joinAll(*children):

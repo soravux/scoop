@@ -22,16 +22,18 @@ import re
 import socket
 
 def broker_hostname(hosts):
+    """Ensure broker hostname is routable, else return 127.0.0.1"""
     hostname = hosts[0][0]
-    if hostname not in local_hostname():
-        return hostname
-    else:
-        if len(hosts) == 1:
-            return hostname
-        else:
-            return socket.getfqdn().split('.')[0]
+    if hostname in localHostname() and len(hosts) > 1:
+        hostname = socket.getfqdn().split(".")[0]
+        try:
+            socket.getaddrinfo(hostname, None)
+        except socket.gaierror:
+            raise Exception("\nThe first host (broker) is not routable.\n"
+                            "Make sure the address is correct.")
+    return hostname
 
-def local_hostname():
+def localHostname():
     return ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
 
 def getCPUcount():
@@ -39,7 +41,8 @@ def getCPUcount():
         return cpu_count()
     except NotImplementedError:
         return 1
-        
+
+
 def getEnv():
     if "PBS_ENVIRONMENT" in os.environ:
         return "PBS"
@@ -47,23 +50,25 @@ def getEnv():
         return "SGE"
     else:
         return "other"
-        
-def getHosts(filename = None, hostlist = None):
-    if "PBS_ENVIRONMENT" in os.environ:
+
+
+def getHosts(filename=None, hostlist=None):
+    if filename:
+        return getHostsFromFile(filename)
+    elif hostlist:
+        return getHostsFromList(hostlist)
+    elif "PBS_ENVIRONMENT" in os.environ:
         return getHostsFromPBS()
     elif "PE_HOSTFILE" in os.environ:
         return getHostsFromSGE()
     else:
-        if filename:
-            return getHostsFromFile(filename)
-        elif hostlist:
-            return getHostsFromList(hostlist)
-        else:
-            return getDefaultHosts()
+        return getDefaultHosts()
+
+
 def getHostsFromFile(filename):
-    ValidHostname = r"[^ /\t:=\n]*" # TODO This won't work with ipv6 address
-                                    # TODO find a better regex that works 
-                                    # with all valid hostnames   
+    ValidHostname = r"[^ /\t=\n]*"  # TODO This won't work with ipv6 address
+                                    # TODO find a better regex that works
+                                    # with all valid hostnames
     workers = r"\d+"
     hn = re.compile(ValidHostname)
     w = re.compile(workers)
@@ -81,6 +86,7 @@ def getHostsFromFile(filename):
                 hosts.append((hostname, int(n)))
     return hosts
 
+
 def getHostsFromList(hostlist):
     return [i for i in Counter(hostlist).items()]
 
@@ -94,6 +100,7 @@ def getHostsFromSGE():
     with open(os.environ["PE_HOSTFILE"], 'r') as hosts:
         return [(host.split()[0], int(host.split()[1])) for host in hosts]
 
+
 def getWorkerQte(hosts):
     if "PBS_NP" in os.environ:
         return int(os.environ["PBS_NP"])
@@ -106,6 +113,6 @@ def getWorkerQte(hosts):
 def KeyboardInterruptHandler(signum, frame):
     raise KeyboardInterrupt("Shutting down!")
 
+
 def getDefaultHosts():
     return [('127.0.0.1', getCPUcount())]
-

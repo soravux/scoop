@@ -46,7 +46,6 @@ class _stat(deque):
         return float("inf")
 
 execStats = defaultdict(_stat)
-
 if scoop.DEBUG:
     import time
     list_defaultdict = partial(defaultdict, list)
@@ -91,7 +90,10 @@ def runFuture(future):
             try: callback(future)
             except: pass # Ignored callback exception as stated in PEP 3148
     return future
-    
+
+    # Delete references to the future
+    future._delete()
+
 # This is the callable greenlet that implements the controller logic.
 def runController(callable, *args, **kargs):
     global execQueue

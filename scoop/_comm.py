@@ -27,6 +27,7 @@ except ImportError:
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
     context = zmq.Context()
+
     def __init__(self):
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
@@ -38,11 +39,11 @@ class ZMQCommunicator(object):
 
         # socket for the shutdown signal
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
-        if scoop.IS_ORIGIN == False:
+        if scoop.IS_ORIGIN is False:
             self.infoSocket.connect(scoop.META_ADDRESS)
             self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
             self.poller.register(self.infoSocket, zmq.POLLIN)
-    
+
     def _poll(self, timeout):
         socks = dict(self.poller.poll(timeout))
         if self.infoSocket in socks:
@@ -55,20 +56,25 @@ class ZMQCommunicator(object):
     def _recv(self):
         msg = self.socket.recv_multipart()
         return pickle.loads(msg[1])
-    
+
     def recvFuture(self):
         while self._poll(0):
             yield self._recv()
-        
+
     def sendFuture(self, future):
-        self.socket.send_multipart([b"TASK", pickle.dumps(future, pickle.HIGHEST_PROTOCOL)])
-        
+        self.socket.send_multipart([b"TASK",
+                                    pickle.dumps(future,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
     def sendResult(self, future):
-        self.socket.send_multipart([b"REPLY", pickle.dumps(future, pickle.HIGHEST_PROTOCOL), future.id.worker[0]])
+        self.socket.send_multipart([b"REPLY",
+                                    pickle.dumps(future,
+                                                 pickle.HIGHEST_PROTOCOL),
+                                    future.id.worker[0]])
 
     def sendRequest(self):
         self.socket.send(b"REQUEST")
-        
+
     def shutdown(self):
         """Sends a shutdown message to other workers."""
         self.socket.send(b"SHUTDOWN")

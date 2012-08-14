@@ -26,6 +26,7 @@ TASK       = b"TASK"
 REPLY      = b"REPLY"
 SHUTDOWN   = b"SHUTDOWN"
 
+
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False):
         """This function initializes a broker.
@@ -85,7 +86,7 @@ class Broker(object):
                     returnAddress = msg[0]
                     task = msg[2]
                     try:
-                        address = self.available_workers.pop()
+                        address = self.available_workers.popleft()
                         self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.unassigned_tasks.append(task)
@@ -94,7 +95,7 @@ class Broker(object):
                 elif msg_type == REQUEST:
                     address = msg[0]
                     try:
-                        task = self.unassigned_tasks.popleft()
+                        task = self.unassigned_tasks.pop()
                         self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.available_workers.append(address)
@@ -116,13 +117,16 @@ class Broker(object):
         return (self.tSockPort, self.infoSockPort)
 
     def shutdown(self):
-        try:
-            self.infoSocket.send(SHUTDOWN)
-        except zmq.core.error.ZMQError:
-            pass
-        # out of infinite loop: do some housekeeping
-        time.sleep (0.3)
-        
+        # This send may raise an ZMQError
+        # Looping over it until it gets through
+        for i in range(100):
+            try:
+                self.infoSocket.send(SHUTDOWN)
+                break
+            except zmq.ZMQError:
+                time.sleep(0.01)
+        time.sleep(0.1)
+
         self.taskSocket.close()
         self.infoSocket.close()
         self.context.term()
