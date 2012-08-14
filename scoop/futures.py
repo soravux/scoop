@@ -120,9 +120,6 @@ def map(func, *iterables, **kargs):
     # Remove 'timeout' from kargs to be compliant with the futures API
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
-        del control.futureDict[future.id]
-        if future.id in control.execQueue.inprogress:
-            del control.execQueue.inprogress[future.id]
         yield future.resultValue
 
 def submit(func, *args, **kargs):

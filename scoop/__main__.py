@@ -74,7 +74,7 @@ class launchScoop(object):
                                        len(hosts)))
 
         # Handling Broker Hostname
-        self.brokerHostname = '127.0.0.1' if self.e else brokerHostname[0]
+        self.brokerHostname = '127.0.0.1' if self.e else brokerHostname
         logging.debug('Using hostname/ip: "{0}" as external broker '
                       'reference.'.format(self.brokerHostname))
         logging.info('The python executable to execute the program with is: '
@@ -168,7 +168,7 @@ class launchScoop(object):
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
         logging.debug("Starting the broker on host {0}".format(self.brokerHostname))
-        if self.brokerHostname in utils.local_hostname(): #self.brokerHostname == "127.0.0.1" or self.brokerHostname == utils.local_hostname():
+        if self.brokerHostname in utils.localHostnames:
             from scoop.broker import Broker
             self.localBroker = Broker(debug=True if self.debug is True else False)
             self.brokerPort, self.infoPort = self.localBroker.getPorts()
@@ -300,8 +300,7 @@ parser.add_argument('-e',
 parser.add_argument('--broker-hostname',
                     nargs=1,
                     help="The externally routable broker hostname / ip "
-                         "(defaults to the local hostname)",
-                    default=[utils.getCurrentHostname()])
+                         "(defaults to the local hostname)")
 parser.add_argument('--python-executable',
                     nargs=1,
                     help="The python executable with which to execute the "
@@ -335,8 +334,11 @@ if __name__ == "__main__":
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
                    "Use the '-n' flag to set it manually.")
+    if not args.broker_hostname:
+        args.broker_hostname = [utils.broker_hostname(hosts)]
     scoopLaunching = launchScoop(hosts, n, args.verbose,
-                                 args.python_executable, args.broker_hostname,
+                                 args.python_executable, 
+                                 args.broker_hostname[0],
                                  args.executable, args.args, args.e, args.log,
                                  args.path, args.debug, args.nice,
                                  utils.getEnv(), args.profile, args.pythonpath)

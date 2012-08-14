@@ -58,10 +58,10 @@ def runFuture(future):
         debug_stats[future.id]['start_time'].append(time.time())
     future.waitTime = future.stopWatch.get()
     future.stopWatch.reset()
-    try:
-        future.resultValue = future.callable(*future.args, **future.kargs)
-    except Exception as err:
-        future.exceptionValue = err
+    #try:
+    future.resultValue = future.callable(*future.args, **future.kargs)
+    #except Exception as err:
+    #    future.exceptionValue = err
     future.executionTime = future.stopWatch.get()
     assert future.done(), "callable must return a value!"
 

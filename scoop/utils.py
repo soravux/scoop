@@ -21,10 +21,13 @@ import os
 import re
 import socket
 
+localHostnames = ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
+
+
 def broker_hostname(hosts):
-    """Ensure broker hostname is routable, else return 127.0.0.1"""
+    """Ensure broker hostname is routable."""
     hostname = hosts[0][0]
-    if hostname in localHostname() and len(hosts) > 1:
+    if hostname in localHostnames and len(hosts) > 1:
         hostname = socket.getfqdn().split(".")[0]
         try:
             socket.getaddrinfo(hostname, None)
@@ -33,8 +36,6 @@ def broker_hostname(hosts):
                             "Make sure the address is correct.")
     return hostname
 
-def localHostname():
-    return ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
 
 def getCPUcount():
     try:
