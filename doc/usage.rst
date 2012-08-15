@@ -221,7 +221,7 @@ Here is a list of the parameters that can be passed to SCOOP::
                            [--verbose] [--log LOG] [-n N]
                            [-e] [--broker-hostname BROKER_HOSTNAME]
                            [--python-executable PYTHON_EXECUTABLE]
-                           [--pythonpath PYTHONPATH] [--debug]
+                           [--pythonpath PYTHONPATH]
                            executable ...
 
     Starts a parallel program using SCOOP.
@@ -258,8 +258,6 @@ Here is a list of the parameters that can be passed to SCOOP::
       --pythonpath PYTHONPATH
                             The PYTHONPATH environment variable (default is 
                             current PYTHONPATH)
-
-      --debug               Turn on the debuging
 
 A remote workers example may be as follow::
 
