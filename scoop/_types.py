@@ -294,9 +294,13 @@ class FutureQueue(object):
                         callback.future(scoop._control.futureDict[future.id])
                     except:
                         pass
+                self.append(scoop._control.futureDict[future.id])
+                future._delete()
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
-            self.append(scoop._control.futureDict[future.id])
+                self.append(scoop._control.futureDict[future.id])
+            else:
+                self.append(scoop._control.futureDict[future.id])
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
@@ -314,7 +318,6 @@ class FutureQueue(object):
         future.greenlet = None
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
-        future._delete()
 
     def shutdown(self):
         """Shutdown the ressources used by the queue"""

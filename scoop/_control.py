@@ -89,10 +89,11 @@ def runFuture(future):
         for callback in future.callback:
             try: callback(future)
             except: pass # Ignored callback exception as stated in PEP 3148
-    return future
 
     # Delete references to the future
     future._delete()
+
+    return future
 
 # This is the callable greenlet that implements the controller logic.
 def runController(callable, *args, **kargs):
@@ -143,9 +144,4 @@ def runController(callable, *args, **kargs):
     execQueue.shutdown()
     if future.exceptionValue:
         raise future.exceptionValue
-    # We delete the initial future from the futureDict
-    try:
-        futureDict[future.id]._delete()
-    except KeyError: # In the case of exceptions
-        pass
     return future.resultValue
