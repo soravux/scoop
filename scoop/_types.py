@@ -285,7 +285,6 @@ class FutureQueue(object):
         for future in to_remove:
             del self.inprogress[future.id]
         for future in self.socket.recvFuture():
-            # TODO: Memleak here?
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
                 scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
@@ -311,10 +310,11 @@ class FutureQueue(object):
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
+        future._delete()
         future.greenlet = None
+        future.children = []
         assert future.done(), "The results are not valid"
         self.socket.sendResult(future)
-        future._delete()
 
     def shutdown(self):
         """Shutdown the ressources used by the queue"""
