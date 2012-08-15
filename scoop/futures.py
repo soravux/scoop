@@ -166,7 +166,7 @@ def _waitAny(*children):
     # check for available results and index those unavailable
     for index, future in enumerate(children):
         if future.exceptionValue != None:
-            del scoop._control.futureDict[future.id]
+            scoop._control.futureDict[future.id]._delete()
             raise future.exceptionValue
         if future.resultValue != None:
             yield future
@@ -180,7 +180,7 @@ def _waitAny(*children):
         childFuture = _controller.switch(future)
         future.stopWatch.resume()
         if childFuture.exceptionValue:
-            del scoop._control.futureDict[future.id]
+            scoop._control.futureDict[future.id]._delete()
             raise childFuture.exceptionValue
         yield childFuture
         n -= 1
@@ -266,9 +266,9 @@ def _join(child):
     Only one Future can be specified. The function returns a single
     corresponding result as soon as it becomes available."""
     for future in _waitAny(child):
-        del control.futureDict[future.id]
+        control.futureDict[future.id]._delete()
         if future.id in control.execQueue.inprogress:
-            del control.execQueue.inprogress[future.id]
+            control.execQueue.inprogress[future.id]._delete()
         return future.resultValue
 
 def _joinAll(*children):

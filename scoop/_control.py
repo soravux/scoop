@@ -145,7 +145,7 @@ def runController(callable, *args, **kargs):
         raise future.exceptionValue
     # We delete the initial future from the futureDict
     try:
-        del futureDict[future.id]
+        futureDict[future.id]._delete()
     except KeyError: # In the case of exceptions
         pass
     return future.resultValue
