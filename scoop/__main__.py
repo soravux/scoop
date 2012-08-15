@@ -312,10 +312,12 @@ parser.add_argument('--pythonpath',
                          "current PYTHONPATH)",
                     default=[os.environ.get('PYTHONPATH', '')])
 parser.add_argument('--debug',
-                    help="Turn on the debuging",
+                    help=argparse.SUPPRESS,
                     action='store_true')
 parser.add_argument('--profile',
-                    help="Turn on the profiling",
+                    help=("Turn on the profiling. SCOOP will call cProfile.run\n"
+                    "on the executable for every worker and will produce files\n"
+                    "named workerX where X is the number of the worker."),
                     action='store_true')
 parser.add_argument('executable',
                     nargs=1,
