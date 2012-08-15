@@ -1,0 +1,29 @@
+0.5.2 (2012/08/14)
+------------------
+
++ Improved networking
++ Improved bootstrapping
++ Added unit tests
++ Fixed: Memory leak on exception handling
++ Fixed: Memory leak on Futures handling
+
+
+0.5.1 (2012/07/29)
+------------------
+
++ Substantially improved documentation
++ Improved grid scheduler support (SGE and Torque)
++ Improved hostfile support
++ Added: Python 2.6 support (see documentation)
++ Added: Default number of workers is now the number of local CPUs
++ Fixed: Bug on some Future return value
++ Fixed: Memory leak on a specific Future usage
+
+
+0.5.0 (Alpha) (2012/05/11)
+--------------------------
+
++ Greenlet based task handling
++ ZeroMQ based networking
++ Master-Slave paradigm implemented named Broker <-> Worker
++ Tasks caching features implemented (Thresholds named high and low water marks)
