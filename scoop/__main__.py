@@ -343,7 +343,8 @@ if __name__ == "__main__":
                                  args.broker_hostname[0],
                                  args.executable, args.args, args.e, args.log,
                                  args.path, args.debug, args.nice,
-                                 utils.getEnv(), args.profile, args.pythonpath)
+                                 utils.getEnv(), args.profile,
+                                 args.pythonpath[0])
     try:
         code = scoopLaunching.run()
     finally:
