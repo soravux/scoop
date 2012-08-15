@@ -118,7 +118,7 @@ class Future(object):
            the call will be cancelled and the method will return True."""
         if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
-            del scoop._control.futureDict[self.id]
+            scoop._control.futureDict[self.id]._delete()
             scoop._control.execQueue.remove(self)
             return True
         return False
@@ -155,7 +155,6 @@ class Future(object):
             return scoop.futures._join(self)
         if self.exceptionValue != None:
             raise self.exceptionValue
-        scoop._control.futureDict[self.id]._delete()
         return self.resultValue
 
     def exception(self, timeout=None):
@@ -286,6 +285,7 @@ class FutureQueue(object):
         for future in to_remove:
             del self.inprogress[future.id]
         for future in self.socket.recvFuture():
+            # TODO: Memleak here?
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
                 scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
@@ -297,7 +297,6 @@ class FutureQueue(object):
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
             self.append(scoop._control.futureDict[future.id])
-            future._delete()
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
