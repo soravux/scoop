@@ -200,6 +200,7 @@ class Future(object):
             pass
         for child in self.children:
             child.exceptionValue = CancelledError()
+        self.children = []
 
 
 class FutureQueue(object):
