@@ -27,7 +27,11 @@ from scoop import utils
 from threading import Thread
 import signal
 
-signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
+try:
+    signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
+except AttributeError:
+    # SIGQUIT doesn't exist on Windows
+    signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
 
 
 class launchScoop(object):
@@ -39,6 +43,7 @@ class launchScoop(object):
         hosts.reverse()
         self.workersLeft = n
         self.createdSubprocesses = []
+        self.createdRemoteConn = {}
 
         # launch information
         self.python_executable = python_executable[0]
@@ -197,18 +202,25 @@ class launchScoop(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
                     host[0],
-                    "bash -c '{0}; wait'".format(" & ".join(command))])
-                self.createdSubprocesses.append(shell)
+                    "bash -c 'echo $$; {0} &'".format(" & ".join(command))],
+                                         stdin=subprocess.PIPE,
+                                         stdout=subprocess.PIPE)
+                self.createdRemoteConn[shell] = [host[0]]
                 command = []
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
                 break
 
         # Ensure everything is started normaly
-        for this_subprocess in self.createdSubprocesses:
-            if this_subprocess.poll() is not None:
+        for thisSubprocess in self.createdSubprocesses:
+            if thisSubprocess.poll() is not None:
                 raise Exception('Subprocess {0} terminated abnormaly.'
-                                .format(this_subprocess))
+                                .format(thisSubprocess))
+
+        # Get group id from remote connections
+        for thisRemote in self.createdRemoteConn.keys():
+            GID = thisRemote.stdout.readline()[:-1]
+            self.createdRemoteConn[thisRemote].append(GID)
 
         # wait for the origin
         return self.createdSubprocesses[-1].wait()
@@ -226,6 +238,16 @@ class launchScoop(object):
                 process.terminate()
             except OSError:
                 pass
+        logging.debug('Destroying remote elements...')
+        for shell, data in self.createdRemoteConn.items():
+            if len(data) > 1:
+                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+                subprocess.Popen(ssh_command + [
+                    data[0],
+                    "kill -- -{0}".format(data[1])]).wait()
+            else:
+                logging.info('Zombie process left!')
+
         logging.info('Finished destroying spawned subprocesses.')
 
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
