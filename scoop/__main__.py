@@ -202,7 +202,7 @@ class launchScoop(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
                     host[0],
-                    "bash -c 'echo $$; {0} &'".format(" & ".join(command))],
+                    "bash -c 'ps -o pgid= -p $BASHPID && {0} &'".format(" & ".join(command))],
                                          stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE)
                 self.createdRemoteConn[shell] = [host[0]]
@@ -219,7 +219,7 @@ class launchScoop(object):
 
         # Get group id from remote connections
         for thisRemote in self.createdRemoteConn.keys():
-            GID = thisRemote.stdout.readline()[:-1]
+            GID = thisRemote.stdout.readline().strip()
             self.createdRemoteConn[thisRemote].append(GID)
 
         # wait for the origin
@@ -244,7 +244,7 @@ class launchScoop(object):
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 subprocess.Popen(ssh_command + [
                     data[0],
-                    "kill -- -{0}".format(data[1])]).wait()
+                    "bash -c 'kill -9 -{0} &>/dev/null'".format(data[1])]).wait()
             else:
                 logging.info('Zombie process left!')
 
