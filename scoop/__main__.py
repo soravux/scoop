@@ -15,7 +15,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
 import argparse
 import os
 import sys
@@ -69,7 +68,7 @@ class launchScoop(object):
 
         if env in ["PBS", "SGE"]:
             logging.info("Detected {0} environment.".format(env))
-        logging.info("Deploying {0} workers over {1} "
+        logging.info("Deploying {0} worker(s) over {1} "
                      "host(s).".format(n,
                                        len(hosts)))
 
@@ -153,11 +152,11 @@ class launchScoop(object):
         # Show worker distribution
         if self.verbose > 1:
             logging.info('Worker distribution: ')
-            for worker, number in self.hosts:
+            for worker, number in reversed(self.hosts):
                 logging.info('   {0}:\t{1} {2}'.format(
                     worker,
-                    number - 1 if worker == hosts[0][0] else str(number),
-                    "+ origin" if worker == hosts[0][0] else ""))
+                    number - 1 if worker == hosts[-1][0] else str(number),
+                    "+ origin" if worker == hosts[-1][0] else ""))
 
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
@@ -176,6 +175,7 @@ class launchScoop(object):
                       ".".format(self.brokerPort, self.infoPort))
 
         # Launch the workers
+        rootProcess="Local"
         for host in self.hosts:
             command = []
             for n in range(min(host[1], self.workersLeft)):
@@ -206,6 +206,8 @@ class launchScoop(object):
                                          stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE)
                 self.createdRemoteConn[shell] = [host[0]]
+                if self.workersLeft == 0:
+                    rootProcess = shell
                 command = []
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
@@ -222,8 +224,14 @@ class launchScoop(object):
             GID = thisRemote.stdout.readline().strip()
             self.createdRemoteConn[thisRemote].append(GID)
 
-        # wait for the origin
-        return self.createdSubprocesses[-1].wait()
+        # Wait for the root program
+        if rootProcess == "Local":
+            return self.createdSubprocesses[-1].wait()
+        else:
+            data = rootProcess.stdout.read(1)
+            while len(data) > 0:
+                sys.stdout.write(data)
+                data = rootProcess.stdout.read(1)
 
     def close(self):
         # Ensure everything is cleaned up on exit
@@ -231,7 +239,7 @@ class launchScoop(object):
         # Kill the broker last
         self.createdSubprocesses.reverse()
         if self.debug == 1:
-            # give time to flush data
+            # Give time to flush data
             time.sleep(1)
         for process in self.createdSubprocesses:
             try:
