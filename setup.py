@@ -4,6 +4,7 @@ from setuptools import setup
 
 import scoop
 
+
 setup(name='scoop',
       version=scoop.__revision__,
       description='Scalable COncurrent Operations in Python',
