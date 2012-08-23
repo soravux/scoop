@@ -10,9 +10,9 @@ Nomenclature
   Keyword   Description
 =========== =======================================================================================================================================
 Future(s)   The Future class encapsulates the asynchronous execution of a callable.
-Broker      Dispatch Futures.
+Broker      Process dispatching Futures.
 Worker      Process executing Futures.
-Origin      The worker executing the user program.
+Root        The worker executing the root Future.
 =========== =======================================================================================================================================
 
 Architecture diagram
@@ -20,7 +20,7 @@ Architecture diagram
 
 The future(s) distribution over workers is done by a variation of the 
 `Broker pattern <http://zguide.zeromq.org/page:all#A-Request-Reply-Broker>`_. 
-In such pattern, workers act as independant elements which interacts with a 
+In such a pattern, workers act as independant elements that interact with a 
 broker to mediate their communications.
 
 .. image:: images/architecture.png
@@ -31,7 +31,7 @@ How to use SCOOP in your code
 
 The philosophy of SCOOP is loosely built around the *futures* module proposed 
 by :pep:`3148`. It primarily defines a :meth:`~scoop.futures.map` and a 
-:meth:`~scoop.futures.submit` function allowing asynchroneous computation which 
+:meth:`~scoop.futures.submit` function allowing asynchroneous computation that 
 SCOOP will propagate to its workers. 
 
 Map
@@ -54,8 +54,8 @@ example, if you want to apply the |abs()|_ function to every number of a list::
 .. |abs()| replace:: *abs()*
 .. _abs(): http://docs.python.org/library/functions.html#abs
 
-SCOOP's :meth:`~scoop.futures.map` returns a generator over the results 
-in-order. It can thus act as a parallel substitute to the standard |map()|_, for
+SCOOP's :meth:`~scoop.futures.map` returns a generator retriving the results 
+in their proper order. It can thus act as a parallel substitute to the standard |map()|_, for
 instance::
 
     # Script to be launched with: python -m scoop scriptName.py
@@ -77,11 +77,12 @@ instance::
 
 .. _test-for-main-mandatory:
 
-.. note::
-    You *must* wrap your code with a test for the __main__ name as show above.
+.. warning::
+    In your root program, you *must* check ``if __name__ == __main__`` as
+    show above.
     Failure to do so will result in every worker trying to run their own 
     instance of the program. This ensures that every worker waits for 
-    parallelized tasks spawned by the origin worker.
+    parallelized tasks spawned by the root worker.
 
 .. note::
     Your callable function passed to SCOOP must be picklable in its entirety.
@@ -91,7 +92,8 @@ Submit
 
 SCOOP's :meth:`~scoop.futures.submit` returns a :class:`~scoop._types.Future` 
 instance. 
-This allows a finer control over the Futures, such as out-of-order processing.
+This allows a finer control over the Futures, such as out-of-order results 
+retrieval.
 
 .. _examples-reference:
 
@@ -234,7 +236,7 @@ Here is a list of the parameters that can be passed to SCOOP::
       -h, --help            show this help message and exit
       --hosts [HOSTS [HOSTS ...]], --host [HOSTS [HOSTS ...]]
                             The list of hosts. The first host will execute the
-                            origin. (default is 127.0.0.1)
+                            root program. (default is 127.0.0.1)
       --hostfile HOSTFILE   The hostfile name
       --path PATH, -p PATH  The path to the executable on remote hosts (default 
                             is local directory)
