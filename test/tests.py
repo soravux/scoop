@@ -21,6 +21,7 @@ scoop.DEBUG = False
 
 from scoop import futures
 from scoop import _control
+from scoop._types import FutureQueue
 import unittest
 import subprocess
 import time
@@ -181,6 +182,7 @@ class TestScoopCommon(unittest.TestCase):
         scoop.VALID = True
         scoop.DEBUG = False
         scoop.SIZE = 2
+        scoop._control.execQueue = FutureQueue()
         
     def tearDown(self):
         scoop._control.futureDict.clear()

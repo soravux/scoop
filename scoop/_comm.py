@@ -78,6 +78,8 @@ class ZMQCommunicator(object):
     def shutdown(self):
         """Sends a shutdown message to other workers."""
         self.socket.send(b"SHUTDOWN")
+        self.socket.close()
+        self.infoSocket.close()
         time.sleep(0.3)
 
 
