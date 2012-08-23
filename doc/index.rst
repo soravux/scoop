@@ -14,7 +14,7 @@ Our philosophy is based on these ideas:
 
     * The **future** is parallel;
     * **Simple** is beautiful;
-    * **Parallelism** should be easy.
+    * **Parallelism** should be simpler.
     
 These tenets are translated concretely in a minimum number of functions 
 allowing maximum parallel efficiency while keeping at minimum the 
