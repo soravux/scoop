@@ -21,6 +21,7 @@ scoop.DEBUG = False
 
 from scoop import futures
 from scoop import _control
+from scoop import utils
 from scoop._types import FutureQueue
 import unittest
 import subprocess
@@ -29,7 +30,18 @@ import copy
 import os
 import sys
 import operator
+import signal
 from tests_parser import TestUtils
+
+subprocesses = []
+def cleanSubprocesses():
+    [a.kill() for a in subprocesses]
+
+try:
+    signal.signal(signal.SIGQUIT, cleanSubprocesses)
+except AttributeError:
+    # SIGQUIT doesn't exist on Windows
+    signal.signal(signal.SIGTERM, cleanSubprocesses)
 
     
 def func0(n):
@@ -157,12 +169,15 @@ class TestScoopCommon(unittest.TestCase):
         super(TestScoopCommon, self).__init__(*args, **kwargs)
         
     def multiworker_set(self):
+        global subprocesses
         worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
         "--workerName", "worker", "--brokerName", "broker", "--brokerAddress",
         "tcp://127.0.0.1:5555", "--metaAddress", "tcp://127.0.0.1:5556", "tests.py"])
+        subprocesses.append(worker)
         return worker
         
     def setUp(self):
+        global subprocesses
         # Start the server
         self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker",
         "--tPort", "5555", "--mPort", "5556"])
@@ -173,6 +188,7 @@ class TestScoopCommon(unittest.TestCase):
             if (datetime.datetime.now() - begin > datetime.timedelta(seconds=3)):
                 raise Exception('Could not start server!')
             pass
+        subprocesses.append(self.server)
         scoop.IS_ORIGIN = True
         scoop.WORKER_NAME = 'origin'.encode()
         scoop.BROKER_NAME = 'broker'.encode()
@@ -185,6 +201,7 @@ class TestScoopCommon(unittest.TestCase):
         scoop._control.execQueue = FutureQueue()
         
     def tearDown(self):
+        global subprocesses
         scoop._control.futureDict.clear()
         try: self.w.kill()
         except: pass
@@ -193,6 +210,7 @@ class TestScoopCommon(unittest.TestCase):
             try: self.server.kill()
             except: pass
         # Stabilise zmq after a deleted socket
+        del subprocesses[:]
         time.sleep(0.1)
             
 
