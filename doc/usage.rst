@@ -400,9 +400,15 @@ your network.
 Incorrect::
 
     from scoop import futures
+
+
+    def mySum(inData):
+        """The worker will receive all its data from network."""
+        return sum(inData)
     
     if __name__ == '__main__':
-        results = list(futures.map(sum, zip(*([range(8)])*(2**16))))
+        data = [[i for i in range(x, x + 1000)] for x in range(0, 8001, 1000)]
+        results = list(futures.map(mySum, data))
 
 Better::
 
@@ -412,10 +418,11 @@ Better::
 
 
     def mySum(inIndex):
-      return sum(data[inIndex])
+        """The worker will only receive an index from network."""
+        return sum(data[inIndex])
     
     if __name__ == '__main__':
-        results = list(futures.map(mySum, range(8)))
+        results = list(futures.map(mySum, range(len(data))))
    
 SCOOP and greenlets
 ~~~~~~~~~~~~~~~~~~~
