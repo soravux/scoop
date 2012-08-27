@@ -16,4 +16,4 @@ export PATH=$HOME/python/bin:$PATH
 #workon yourenvironment
 
 # Launch SCOOP using the hosts
-python -m scoop fullTree.py
+python -m scoop -vv fullTree.py

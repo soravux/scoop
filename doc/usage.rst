@@ -210,9 +210,10 @@ passed to Python, as such::
     python -m scoop fullTree.py
 
 .. note::
-  If you are using a Python version prior to 2.7, you must start SCOOP using 
-  :option:`-m scoop.__main__`. You should also consider using an up-to-date 
-  version of Python.
+  When using a Python version prior to 2.7, you must start SCOOP using 
+  :option:`-m scoop.__main__`.
+
+  You should also consider using an up-to-date version of Python.
     
 Here is a list of the parameters that can be passed to SCOOP::
 
@@ -284,14 +285,15 @@ your_program.py     The program to be launched.
 Hostfile format
 ~~~~~~~~~~~~~~~
 
-.. TODO: slots inevitable?
-
-You should create a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
+You can specify the hosts with a hostfile and pass it to SCOOP using the :option:`--hostfile` argument.
 The hostfile should use the following syntax::
 
-    hostname_or_ip workers=4
-    other_hostname workers=5
-    third_hostname workers=2
+    hostname_or_ip 4
+    other_hostname 5
+    third_hostname 2
+
+The name being the system hostname and the number being the number of workers
+to launch on this host.
 
 Using a list of host
 ~~~~~~~~~~~~~~~~~~~~
@@ -308,18 +310,32 @@ Choosing the number of workers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The number of workers started should be equal to the number of cores you have 
-on each machine. If you wish to start more or less worker than specified in your
+on each machine. If you wish to start more or less workers than specified in your
 hostfile or in your hostlist, you can use the :option:`-n` parameter.
+
+.. note::
+    The :option:`-n` parameter overrides any previously specified worker 
+    amount.
+
+    If :option:`-n` if less than the sum of workers specified in the hostfile
+    or hostlist, the workers are launched in batch by host until the parameter
+    is reached.
+    This behaviour may ignore latters hosts.
+
+    If :option:`-n` if more than the sum of workers specified in the hostfile
+    or hostlist, the remaining workers are distributed using a Round-Robin
+    algorithm. Each host will increment its worker amount until the parameter
+    is reached.
 
 Be aware that tinkering with this parameter may hinder performances.
 The default value choosen by SCOOP (one worker by physical core) is generaly a
 good value.
 
-Startup scripts (supercomputer or grid)
----------------------------------------
+Startup scripts (cluster or grid)
+---------------------------------
 
-You must provide a startup script on systems using a scheduler. Here is 
-provided some example startup scripts using different grid task managers. They
+You must provide a startup script on systems using a scheduler. Here are some
+example startup scripts using different grid task managers. They
 are available in the |submitFilesPath|_ directory.
 
 .. |submitFilesPath| replace:: :file:`examples/submitFiles`
@@ -328,7 +344,7 @@ are available in the |submitFilesPath|_ directory.
 .. note::
     **Please note that these are only examples**. Refer to the documentation of 
     your scheduler for the list of arguments needed to run the task on your 
-    grid.
+    grid or cluster.
 
 Torque (Moab & Maui)
 ~~~~~~~~~~~~~~~~~~~~
@@ -340,17 +356,15 @@ Here is an example of submit file for Torque:
 Sun Grid Engine (SGE)
 ~~~~~~~~~~~~~~~~~~~~~
 
-Here is an example of submit file for SGE:
+Here is an example of a submit file for SGE:
 
 .. literalinclude:: ../examples/submitFiles/SGE.sh
 
 .. TODO Condor, Amazon EC2 using Boto & others
-        ~~~~~~
+
 
 Pitfalls
 --------
-
-.. * (Global variables? Todo?)
 
 Program scope
 ~~~~~~~~~~~~~
@@ -406,6 +420,7 @@ Better::
 SCOOP and greenlets
 ~~~~~~~~~~~~~~~~~~~
 
-Since SCOOP uses greenlets to schedule and run futures, programs using 
-greenlets won't work with SCOOP. However, you should consider replacing 
-the greenlets in your code by SCOOP functions.
+.. warning::
+    Since SCOOP uses greenlets to schedule and run futures. Programs that use 
+    their own greenlets won't work with SCOOP. However, you should consider
+    replacing the greenlets in your code by SCOOP functions.

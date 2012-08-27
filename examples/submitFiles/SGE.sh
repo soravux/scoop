@@ -1,3 +1,4 @@
+#!/bin/bash
 ## Please refer to your grid documentation for available flags. This is only an example.
 #$ -l h_rt=300
 #$ -pe test 16
@@ -17,4 +18,4 @@ export PATH=$HOME/python/bin:$PATH
 #workon yourenvironment
 
 # Launch the remotes workers
-python -m scoop fullTree.py
+python -m scoop -vv fullTree.py
