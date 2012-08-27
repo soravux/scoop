@@ -39,7 +39,6 @@ class launchScoop(object):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], ("You should at least "
                                                      "specify one host.")
-        hosts.reverse()
         self.workersLeft = n
         self.createdSubprocesses = []
         self.createdRemoteConn = {}
@@ -126,6 +125,9 @@ class launchScoop(object):
     def divideHosts(self, hosts):
         """Divide the workers accross hosts."""
         maximumWorkers = sum(host[1] for host in hosts)
+
+
+        # If specified amount of workers is greater than sum of each specified.
         if self.n > maximumWorkers:
             logging.info("The -n flag is set at {0} workers, which is higher "
                          "than the maximum number of workers ({1}) specified "
@@ -138,6 +140,21 @@ class launchScoop(object):
             index = (index + 1) % len(hosts)
             maximumWorkers += 1
 
+        # If specified amount of workers if lower than sum of each specified.
+        if self.n < maximumWorkers:
+            logging.info("The -n flag is set at {0} workers, which is lower "
+                         "than the maximum number of workers ({1}) specified "
+                         "by the hostfile."
+                         "".format(self.n, sum(host[1] for host in hosts)))
+        while self.n < maximumWorkers:
+            if hosts[-1][1] > maximumWorkers - self.n:
+                hosts[-1] = (hosts[-1][0],
+                             hosts[-1][1] - (maximumWorkers - self.n))
+            else:
+                del hosts[-1]
+            maximumWorkers = sum(host[1] for host in hosts)
+
+        # Checking if the broker if externally routable
         if self.brokerHostname in ["127.0.0.1", "localhost"] and \
                 len(hosts) > 1 and \
                 self.e is not True:
@@ -147,9 +164,11 @@ class launchScoop(object):
                             "Please specify your externally routable hostname "
                             "or IP using the --broker-hostname parameter.")
 
+        hosts.reverse()
         self.hosts = hosts
 
         # Show worker distribution
+        nbWorkers = 0
         if self.verbose > 1:
             logging.info('Worker distribution: ')
             for worker, number in reversed(self.hosts):
