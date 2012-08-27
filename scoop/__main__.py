@@ -124,7 +124,7 @@ class launchScoop(object):
                     arguments=" ".join(self.args))
 
     def divideHosts(self, hosts):
-        """ Separe the workers accross hosts."""
+        """Divide the workers accross hosts."""
         maximumWorkers = sum(host[1] for host in hosts)
         if self.n > maximumWorkers:
             logging.info("The -n flag is set at {0} workers, which is higher "
