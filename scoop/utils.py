@@ -24,7 +24,7 @@ import socket
 localHostnames = ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
 
 
-def broker_hostname(hosts):
+def brokerHostname(hosts):
     """Ensure broker hostname is routable."""
     hostname = hosts[0][0]
     if hostname in localHostnames and len(hosts) > 1:
