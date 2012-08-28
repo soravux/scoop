@@ -24,6 +24,7 @@ In such a pattern, workers act as independant elements that interact with a
 broker to mediate their communications.
 
 .. image:: images/architecture.png
+   :height: 250px
    :align: center
 
 How to use SCOOP in your code
