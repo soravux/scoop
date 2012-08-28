@@ -351,8 +351,7 @@ parser.add_argument('-e',
 parser.add_argument('--broker-hostname',
                     nargs=1,
                     help="The externally routable broker hostname / ip "
-                         "(defaults to the local hostname)",
-                    default=[utils.getCurrentHostname()])
+                         "(defaults to the local hostname)")
 parser.add_argument('--python-executable',
                     nargs=1,
                     help="The python executable with which to execute the "
@@ -389,7 +388,7 @@ if __name__ == "__main__":
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
                    "Use the '-n' flag to set it manually.")
     if not args.broker_hostname:
-        args.broker_hostname = [utils.broker_hostname(hosts)]
+        args.broker_hostname = [utils.brokerHostname(hosts)]
     scoopLaunching = launchScoop(hosts, n, args.verbose,
                                  args.python_executable, 
                                  args.broker_hostname[0],
