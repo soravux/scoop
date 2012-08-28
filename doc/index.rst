@@ -68,6 +68,7 @@ Manual
 
    install
    usage
+   examples
    api
    
 Indices and tables

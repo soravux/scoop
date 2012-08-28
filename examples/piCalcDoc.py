@@ -26,9 +26,9 @@ from scoop import futures
 def test(tries):
     return sum(hypot(random(), random()) < 1 for i in range(tries))
 
-def calcPi(n, t):
-    expr = futures.map(test, [t] * n)
-    return 4. * sum(expr) / float(n * t)
+def calcPi(nbFutures, tries):
+    expr = futures.map(test, [tries] * nbFutures)
+    return 4. * sum(expr) / float(nbFutures * tries)
 
 if __name__ == "__main__":
     print("pi = {}".format(calcPi(3000, 5000)))

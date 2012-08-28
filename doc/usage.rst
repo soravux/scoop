@@ -104,98 +104,15 @@ retrieval.
 
 Examples
 --------
-    
-Examples are available in the |exampleDirectory|_ directory of SCOOP. 
+
+Examples are available in the |exampleDirectory|_ directory of SCOOP.
 
 .. |exampleDirectory| replace:: :file:`examples/`
 .. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
 
-Computation of :math:`\pi`
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Please refer to the :doc:`examples` page where detailed explanations are
+available.
 
-A `Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ to 
-calculate :math:`\pi` using SCOOP to parallelize its computation is found in 
-|piCalcFile|_.
-You should familiarize yourself with 
-`Monte-Carlo methods <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ before
-going forth with this example. 
-
-.. |piCalcFile| replace:: :file:`examples/piCalc.py`
-.. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/piCalc.py
-
-First, we need to import the needed functions as such:
-
-.. literalinclude:: ../examples/piCalcDoc.py
-   :lines: 22-24
-   :linenos:
-
-The `Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ is
-then defined. It spawns two pseudo-random numbers that are fed to the 
-`hypot <http://docs.python.org/library/math.html#math.hypot>`_ function which 
-calculates the hypotenuse of its parameters.
-This step computes the 
-`Pythagorean equation <http://en.wikipedia.org/wiki/Pythagorean_theorem>`_
-(:math:`\sqrt{x^2+y^2}`) of the given parameters to find the distance from the 
-origin (0,0) to the randomly placed point (which X and Y values were generated 
-from the two pseudo-random values).
-Then, the result is compared to one to evaluate if this point is inside or 
-outside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_.
-If it is inside (have a distance from the origin lesser than one), a value of 
-one is produced, otherwise the value is zero.
-The experiment is repeated ``tries`` number of times with new random values.
-
-The function returns the number times a pseudo-randomly generated point fell
-inside the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ for a given
-number of tries.
-
-.. TODO: don't restart line numbering
-
-.. literalinclude:: ../examples/piCalcDoc.py
-   :lines: 26-27
-   :linenos:
-
-One way to obtain a more precise result with a 
-`Monte-Carlo method <http://en.wikipedia.org/wiki/Monte_Carlo_method>`_ is to
-perform the method multiple times. The following function executes repeatedly
-the previous function to gain more precision.
-These calls are handled by SCOOP using it's :meth:`~scoop.futures.map` 
-function.
-The results, that is the number of times a random distribution over a 1x1 
-square hits the `unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ over a 
-given number of tries, are then summed and divided by the total of tries.
-Since we only covered the upper right quadrant of the
-`unit disk <http://en.wikipedia.org/wiki/Unit_disk>`_ because both parameters
-are positive in a cartesian map, the result must be multiplied by 4 to get the 
-relation between area and circumference, namely 
-:math:`\pi`.
-
-.. literalinclude:: ../examples/piCalcDoc.py
-   :lines: 29-31
-   :linenos:
-
-As :ref:`stated above <test-for-main-mandatory>`, you `must` wrap your code with a test for the __main__ name.
-You can now run your code using the command :program:`python -m scoop`.
-
-.. literalinclude:: ../examples/piCalcDoc.py
-   :lines: 33-34
-   :linenos:
-
-Overall example
-~~~~~~~~~~~~~~~
-
-The |fullTreeFile|_ example holds a pretty good wrap-up of available
-functionnalities:
-
-.. TODO: Document it like piCalc.
-
-.. |fullTreeFile| replace:: :file:`examples/fullTree.py`
-.. _fullTreeFile: https://code.google.com/p/scoop/source/browse/examples/fullTree.py
-
-.. literalinclude:: ../examples/fullTree.py
-   :lines: 22-
-    
-Please check the :doc:`api` for any implentation detail of the proposed 
-functions.
 
 How to launch SCOOP programs
 ----------------------------
@@ -349,7 +266,7 @@ are available in the |submitFilesPath|_ directory.
 Torque (Moab & Maui)
 ~~~~~~~~~~~~~~~~~~~~
 
-Here is an example of submit file for Torque:
+Here is an example of a submit file for Torque:
 
 .. literalinclude:: ../examples/submitFiles/Torque.sh
 
@@ -385,17 +302,19 @@ The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will distribute
 their Futures both locally and remotely.
 Futures executed locally will be computed upon access (iteration for the 
 :meth:`~scoop.futures.map` and :meth:`~scoop._types.Future.result` for 
-:meth:`~scoop.futures.submit`).
-Futures distributed remotely will be executed right away.
+:meth:`~scoop.futures.submit`).Futures distributed remotely will be executed right away.
 
 Large datasets
 ~~~~~~~~~~~~~~
 
 Every parameter sent to a function by a :meth:`~scoop.futures.map` or 
 :meth:`~scoop.futures.submit` gets serialized and sent within the Future to its
-worker. Consider using a global variable in your module scope for passing large
-elements; it will then be loaded on launch by every worker and won't overload
-your network.
+worker. It results in slow speeds and network overload when sending large
+elements as a parameter to your function(s).
+
+You should consider using a global variable in your module scope for passing
+large elements; it will then be loaded on launch by every worker and won't
+overload your network.
 
 Incorrect::
 
