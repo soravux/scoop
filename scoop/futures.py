@@ -105,7 +105,7 @@ def map(func, *iterables, **kargs):
     specified or None then there is no limit to the wait time. If a call raises
     an exception then that exception will be raised when its value is retrieved
     from the iterator.
-    
+
     :param func: Any picklable callable object (function or class object with 
         *__call__* method); this object will be called to execute the Futures. 
         The callable must return a value. 
@@ -286,3 +286,13 @@ def shutdown(wait=True):
     
     :param wait: Unapplied parameter."""
     pass
+
+def _scan(func, args):
+    if len(args) == 2:
+        return _join(submit(func, args[0], args[1]))
+    elif len(args) == 3:
+        return _join(submit(func, args[2], _join(submit(func, args[0],
+                                                args[1]))))
+    else:
+        return _join(submit(func, _scan(func, args[0:len(args)//2]),
+            _scan(func, args[len(args)//2:len(args) + 1])))

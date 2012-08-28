@@ -35,7 +35,8 @@ except AttributeError:
 
 class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-                 executable, arguments, e, log, path, debug, nice, env):
+            executable, arguments, e, log, path, debug, nice, env, profile,
+            python_path):
         # Assure setup sanity
         assert type(hosts) == list and hosts != [], ("You should at least "
                                                      "specify one host.")
@@ -45,6 +46,7 @@ class launchScoop(object):
 
         # launch information
         self.python_executable = python_executable[0]
+        self.pythonpath = python_path
         self.n = n
         self.e = e
         self.executable = executable[0]
@@ -53,6 +55,9 @@ class launchScoop(object):
         self.path = path
         self.debug = debug
         self.nice = nice
+        self.profile = profile
+        self.errors  = None
+
 
         # Logging configuration
         if self.verbose > 2:
@@ -72,7 +77,7 @@ class launchScoop(object):
                                        len(hosts)))
 
         # Handling Broker Hostname
-        self.brokerHostname = '127.0.0.1' if self.e else brokerHostname[0]
+        self.brokerHostname = '127.0.0.1' if self.e else brokerHostname
         logging.debug('Using hostname/ip: "{0}" as external broker '
                       'reference.'.format(self.brokerHostname))
         logging.info('The python executable to execute the program with is: '
@@ -97,22 +102,28 @@ class launchScoop(object):
         if self.debug is True:
             logging.debug('Set debug on')
             c.append("--debug")
+        if self.profile is True:
+            logging.info('Setting profile on')
+            c.append("--profile")
         c.append(self.executable)
         c.extend(self.args)
         return c
 
     def launchForeign(self):
-        return ("cd {remotePath} && {nice} {pythonExecutable} -m "
+        pythonpath = ("export PYTHONPATH={0} "
+                      "&&".format(self.pythonpath) if self.pythonpath else '')
+        return ("{pythonpath} cd {remotePath} && {nice} {pythonExecutable} -m "
                 "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
                 "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
                 "{brokerPort} --metaAddress tcp://{brokerHostname}:"
-                "{infoPort} --size {n} {origin} {debug} {executable} "
-                "{arguments}").format(
-                    remotePath=self.path,
+                "{infoPort} --size {n} {origin} {debug} {profile} {executable} "
+                "{arguments}").format(remotePath = self.path, 
+                    pythonpath = pythonpath,
                     nice='nice - n {0}'.format(self.nice)
                     if self.nice is not None else '',
                     origin='--origin' if self.workersLeft == 1 else '',
                     debug='--debug' if self.debug == 1 else '',
+                    profile='--profile' if self.profile == True else '',
                     pythonExecutable=self.python_executable,
                     workersLeft=self.workersLeft,
                     brokerHostname=self.brokerHostname,
@@ -179,12 +190,33 @@ class launchScoop(object):
 
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
-        from scoop.broker import Broker
-        self.localBroker = Broker(debug=True if self.debug is True else False)
-        self.brokerPort, self.infoPort = self.localBroker.getPorts()
-        self.localBrokerProcess = Thread(target=self.localBroker.run)
-        self.localBrokerProcess.daemon = True
-        self.localBrokerProcess.start()
+        logging.debug("Starting the broker on host {0}".format(self.brokerHostname))
+        if self.brokerHostname in utils.localHostnames:
+            from scoop.broker import Broker
+            self.localBroker = Broker(debug=True if self.debug is True else False)
+            self.brokerPort, self.infoPort = self.localBroker.getPorts()
+            self.localBrokerProcess = Thread(target=self.localBroker.run)
+            self.localBrokerProcess.daemon = True
+            self.localBrokerProcess.start()
+            logging.debug("Local broker launched on ports {0}, {1}"
+                          ".".format(self.brokerPort, self.infoPort))
+        else:
+            brokerString = ("{pythonExec} -m scoop.broker.__main__ --tPort {brokerPort}"
+                            " --mPort {infoPort}")
+            for i in range(5000,10000,2):
+                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+                broker = subprocess.Popen(ssh_command + [self.brokerHostname] +
+                        [brokerString.format(brokerPort = i, infoPort =i+1,
+                            pythonExec = self.python_executable)])
+                if broker.poll() is not None:
+                    continue
+                else:
+                    self.brokerPort, self.infoPort = i, i+1
+                    self.createdSubprocesses.append(broker)
+                    break
+            logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
+                          ".".format(self.brokerPort, self.infoPort,
+                              self.brokerHostname))
 
     def run(self):
         # Launching the local broker, repeat until it works
@@ -245,7 +277,7 @@ class launchScoop(object):
 
         # Wait for the root program
         if rootProcess == "Local":
-            return self.createdSubprocesses[-1].wait()
+            self.errors = self.createdSubprocesses[-1].wait()
         else:
             data = rootProcess.stdout.read(1)
             while len(data) > 0:
@@ -276,6 +308,7 @@ class launchScoop(object):
                 logging.info('Zombie process left!')
 
         logging.info('Finished destroying spawned subprocesses.')
+        exit(self.errors)
 
 parser = argparse.ArgumentParser(description="Starts a parallel program using "
                                              "SCOOP.",
@@ -331,7 +364,12 @@ parser.add_argument('--pythonpath',
                          "current PYTHONPATH)",
                     default=[os.environ.get('PYTHONPATH', '')])
 parser.add_argument('--debug',
-                    help="Turn on the debuging",
+                    help=argparse.SUPPRESS,
+                    action='store_true')
+parser.add_argument('--profile',
+                    help=("Turn on the profiling. SCOOP will call cProfile.run\n"
+                    "on the executable for every worker and will produce files\n"
+                    "named workerX where X is the number of the worker."),
                     action='store_true')
 parser.add_argument('executable',
                     nargs=1,
@@ -350,11 +388,15 @@ if __name__ == "__main__":
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
                    "Use the '-n' flag to set it manually.")
+    if not args.broker_hostname:
+        args.broker_hostname = [utils.broker_hostname(hosts)]
     scoopLaunching = launchScoop(hosts, n, args.verbose,
-                                 args.python_executable, args.broker_hostname,
+                                 args.python_executable, 
+                                 args.broker_hostname[0],
                                  args.executable, args.args, args.e, args.log,
                                  args.path, args.debug, args.nice,
-                                 utils.getEnv())
+                                 utils.getEnv(), args.profile,
+                                 args.pythonpath[0])
     try:
         code = scoopLaunching.run()
     finally:

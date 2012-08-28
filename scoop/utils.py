@@ -21,6 +21,21 @@ import os
 import re
 import socket
 
+localHostnames = ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
+
+
+def broker_hostname(hosts):
+    """Ensure broker hostname is routable."""
+    hostname = hosts[0][0]
+    if hostname in localHostnames and len(hosts) > 1:
+        hostname = socket.getfqdn().split(".")[0]
+        try:
+            socket.getaddrinfo(hostname, None)
+        except socket.gaierror:
+            raise Exception("\nThe first host (broker) is not routable.\n"
+                            "Make sure the address is correct.")
+    return hostname
+
 
 def groupTogether(inList):
     # TODO: This algorithm is not efficient
@@ -124,16 +139,3 @@ def KeyboardInterruptHandler(signum, frame):
 
 def getDefaultHosts():
     return [('127.0.0.1', getCPUcount())]
-
-
-def getCurrentHostname():
-    """Ensure current hostname is routable, else return 127.0.0.1"""
-    hostname = socket.getfqdn().split(".")[0]
-    try:
-        socket.getaddrinfo(hostname, None)
-    except socket.gaierror:
-        hostname = "127.0.0.1"
-    return hostname
-
-if __name__ == "__main__":
-    print(getHosts())
