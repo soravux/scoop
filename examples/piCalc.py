@@ -32,14 +32,14 @@ def test(tries):
 # Calculates pi with a Monte-Carlo method. This function calls the function
 # test "n" times with an argument of "t". Scoop dispatches these 
 # functions interactively accross the available ressources.
-def calcPi(n, t):
+def calcPi(workers, tries):
     bt = time()
-    expr = futures.map(test, [t] * n)
-    pi_value = 4. * sum(expr) / float(n*t)
+    expr = futures.map(test, [tries] * workers)
+    piValue = 4. * sum(expr) / float(workers * tries)
     totalTime = time() - bt
-    print("pi = " + str(pi_value))
+    print("pi = " + str(piValue))
     print("total time {}".format(totalTime))
-    return pi_value
+    return piValue
 
 if __name__ == "__main__":
     dataPi = calcPi(3000, 5000)
