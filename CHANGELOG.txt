@@ -1,3 +1,11 @@
+0.6.0-RC1 ()
+------------
+
++ Improved: Time-based future buffer (instead of number-based)
++ Added: Remote broker launching
++ Added: reduce and mapReduce functions
+
+
 0.5.3 (2012/08/24)
 ------------------
 
