@@ -66,7 +66,7 @@ class Broker(object):
         
         # Two cases are important and must be optimised:
         # - The search of unassigned task
-        # - the search of available workers 
+        # - The search of available workers 
         # These represent when the broker must deal the communications the
         # fastest. Other cases, the broker isn't flooded with urgent messages.
         
@@ -131,7 +131,7 @@ class Broker(object):
         self.infoSocket.close()
         self.context.term()
         
-        # write down statistics about this run if asked
+        # Write down statistics about this run if asked
         if self.debug:
             import os
             try:
