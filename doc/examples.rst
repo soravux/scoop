@@ -72,12 +72,12 @@ Residual sum of squares
 You can use the Residual Sum of Squares (RSS) metric to verify if two signals
 are similar to one another.
 
-The RSS is defined by the mathematical equation:
+The RSS is defined by the mathematical equation
 :math:`RSS = \sum_{i=1}^n (y_i - x_i)^2`.
 Put it simply, you take the difference between every element of your arrays,
 square each of these results and then sum it.
 
-Its implementation is found in the |rssDocFile|_:
+Its implementation is found in |rssDocFile|_:
 
 .. |rssDocFile| replace:: :file:`examples/rssDoc.py`
 .. _rssDocFile: https://code.google.com/p/scoop/source/browse/examples/rssDoc.py
@@ -85,6 +85,15 @@ Its implementation is found in the |rssDocFile|_:
 .. literalinclude:: ../examples/rssDoc.py
    :lines: 21-
    :linenos:
+
+
+
+.. note::
+  This kind of operation is actually called a reduction. It involves returning
+  a single value out of multiple computations.
+
+  The SCOOP Roadmap have parallel reduction functionality and more forecasted,
+  stay tuned for updates on these.
 
 
 Computation of :math:`\pi`

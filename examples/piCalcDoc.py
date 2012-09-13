@@ -24,7 +24,7 @@ from random import random
 from scoop import futures
 
 def test(tries):
-    return sum(hypot(random(), random()) < 1 for i in range(tries))
+    return sum(hypot(random(), random()) < 1 for _ in range(tries))
 
 def calcPi(nbFutures, tries):
     expr = futures.map(test, [tries] * nbFutures)
