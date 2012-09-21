@@ -259,7 +259,7 @@ class launchScoop(object):
         self.createdSubprocesses.reverse()
         if self.debug == 1:
             # Give time to flush data
-            time.sleep(1)
+            time.sleep(5)
         for process in self.createdSubprocesses:
             try:
                 process.terminate()
