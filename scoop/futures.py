@@ -61,7 +61,7 @@ def _startup(rootFuture, *args, **kargs):
             pass
         with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
                 scoop.BROKER_NAME.decode(), 'wb') as f:
-            pickle.dump(control.debug_stats, f)
+            pickle.dump(control.stats, f)
         with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'wb') as f:
             pickle.dump(control.QueueLength, f)
     return result
