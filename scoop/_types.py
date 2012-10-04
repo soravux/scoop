@@ -186,6 +186,8 @@ class Future(object):
         self.callback.append(callable)
 
     def _delete(self):
+        #global totalNotFound
+        # Do we need this?
         try:
             del scoop._control.futureDict[self.id]
         except KeyError:
@@ -199,6 +201,7 @@ class Future(object):
             pass
         for child in self.children:
             child.exceptionValue = CancelledError()
+        scoop._control.delFuture(self.id, self.parentId)
 
 
 class FutureQueue(object):
