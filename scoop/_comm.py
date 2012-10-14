@@ -39,7 +39,7 @@ class ZMQCommunicator(object):
 
         # socket for the shutdown signal
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
-        if scoop.IS_ORIGIN is False:
+        if not scoop.IS_ORIGIN:
             self.infoSocket.connect(scoop.META_ADDRESS)
             self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
             self.poller.register(self.infoSocket, zmq.POLLIN)
@@ -48,10 +48,8 @@ class ZMQCommunicator(object):
         socks = dict(self.poller.poll(timeout))
         if self.infoSocket in socks:
             raise Shutdown("Closing the communication")
-        elif self.socket in socks:
-            return True
         else:
-            return False
+            return self.socket in socks
 
     def _recv(self):
         msg = self.socket.recv_multipart()

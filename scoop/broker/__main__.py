@@ -30,8 +30,8 @@ if __name__=="__main__":
 
     args = parser.parse_args()
     thisBroker = Broker("tcp://*:" + args.tPort,
-                         "tcp://*:" + args.mPort,
-                         debug=True if args.debug == True else False)
+                        "tcp://*:" + args.mPort,
+                        debug=args.debug)
     try:
         thisBroker.run()
     finally:
