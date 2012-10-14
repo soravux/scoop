@@ -37,8 +37,8 @@ class launchScoop(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
                  executable, arguments, e, log, path, debug, nice, env):
         # Assure setup sanity
-        assert type(hosts) == list and hosts != [], ("You should at least "
-                                                     "specify one host.")
+        assert type(hosts) == list and hosts, ("You should at least "
+                                               "specify one host.")
         self.workersLeft = n
         self.createdSubprocesses = []
         self.createdRemoteConn = {}
@@ -94,7 +94,7 @@ class launchScoop(object):
              "--size", str(self.n)]
         if self.workersLeft == 1:
             c.append("--origin")
-        if self.debug is True:
+        if self.debug:
             logging.debug('Set debug on')
             c.append("--debug")
         c.append(self.executable)
@@ -157,7 +157,7 @@ class launchScoop(object):
         # Checking if the broker if externally routable
         if self.brokerHostname in ["127.0.0.1", "localhost"] and \
                 len(hosts) > 1 and \
-                self.e is not True:
+                not self.e:
             raise Exception("\n"
                             "Could not find route from external worker to the "
                             "broker: Unresolvable hostname or IP address.\n "
@@ -180,7 +180,7 @@ class launchScoop(object):
     def startBroker(self):
         """Starts a broker on random unoccupied port(s)"""
         from scoop.broker import Broker
-        self.localBroker = Broker(debug=True if self.debug is True else False)
+        self.localBroker = Broker(debug=self.debug)
         self.brokerPort, self.infoPort = self.localBroker.getPorts()
         self.localBrokerProcess = Thread(target=self.localBroker.run)
         self.localBrokerProcess.daemon = True
