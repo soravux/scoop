@@ -109,7 +109,7 @@ class Future(object):
     def _switch(self, future):
         """Switch greenlet."""
         scoop._control.current = self
-        assert self.greenlet != None, "No greenlet to switch to:\n%s" % self.__dict__
+        assert self.greenlet is not None, "No greenlet to switch to:\n%s" % self.__dict__
         return self.greenlet.switch(future)
 
     def cancel(self):
@@ -135,7 +135,7 @@ class Future(object):
     def done(self):
         """True if the call was successfully cancelled or finished running,
            False otherwise."""
-        return self.resultValue != None or self.exceptionValue != None
+        return self.resultValue is not None or self.exceptionValue is not None
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
@@ -153,7 +153,7 @@ class Future(object):
         :returns: The value returned by the call."""
         if not self.done():
             return scoop.futures._join(self)
-        if self.exceptionValue != None:
+        if self.exceptionValue is not None:
             raise self.exceptionValue
         return self.resultValue
 
@@ -237,11 +237,11 @@ class FutureQueue(object):
     
     def append(self, future):
         """Append a future to the queue."""
-        if future.done() and future.index == None:
+        if future.done() and future.index is None:
             self.inprogress[future.id] = future
-        elif future.done() and future.index != None:
+        elif future.done() and future.index is not None:
             self.ready.append(future)
-        elif future.greenlet != None:
+        elif future.greenlet is not None:
             self.inprogress.append(future)
         else:
             if self.timelen(self.movable) > self.highwatermark:
@@ -280,7 +280,7 @@ class FutureQueue(object):
         """Updates the local queue with elements from the broker."""
         to_remove = []
         for future in self.inprogress.values():
-            if future.index != None:
+            if future.index is not None:
                 self.ready.append(future)
                 to_remove.append(future)
         for future in to_remove:

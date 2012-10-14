@@ -31,10 +31,11 @@ class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False):
         """This function initializes a broker.
     
-    :param tSock: Task Socket Address. Must contain protocol, address and port
-        information.
-    :param mSock: Meta Socket Address. Must contain protocol, address and port
-        information."""
+        :param tSock: Task Socket Address. 
+        Must contain protocol, address  and port information.
+        :param mSock: Meta Socket Address. 
+        Must contain protocol, address and port information.
+        """
         self.context = zmq.Context(1)
         
         self.debug = debug
@@ -61,7 +62,7 @@ class Broker(object):
         self.poller.register(self.infoSocket, zmq.POLLIN)
         
         # init statistics
-        if self.debug == True:
+        if self.debug:
             self.stats = []
         
         # Two cases are important and must be optimised:
@@ -78,7 +79,7 @@ class Broker(object):
     def run(self):
         while True:
             socks = dict(self.poller.poll(-1))
-            if (self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN):
+            if self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN:
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
                 # Broker received a new task
@@ -87,18 +88,20 @@ class Broker(object):
                     task = msg[2]
                     try:
                         address = self.available_workers.popleft()
-                        self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.unassigned_tasks.append(task)
+                    else:
+                        self.taskSocket.send_multipart([address, TASK, task])
                         
                 # Broker received a request for task
                 elif msg_type == REQUEST:
                     address = msg[0]
                     try:
                         task = self.unassigned_tasks.pop()
-                        self.taskSocket.send_multipart([address, TASK, task])
                     except IndexError:
                         self.available_workers.append(address)
+                    else:
+                        self.taskSocket.send_multipart([address, TASK, task])
                 
                 # Broker received an answer needing delivery
                 elif msg_type == REPLY:
@@ -122,9 +125,10 @@ class Broker(object):
         for i in range(100):
             try:
                 self.infoSocket.send(SHUTDOWN)
-                break
             except zmq.ZMQError:
                 time.sleep(0.01)
+            else:
+                break
         time.sleep(0.1)
 
         self.taskSocket.close()

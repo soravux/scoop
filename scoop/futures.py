@@ -167,9 +167,9 @@ def _waitAny(*children):
     n = len(children)
     # check for available results and index those unavailable
     for index, future in enumerate(children):
-        if future.exceptionValue != None:
+        if future.exceptionValue is not None:
             raise future.exceptionValue
-        if future.resultValue != None:
+        if future.resultValue is not None:
             yield future
             n -= 1
         else:
@@ -235,7 +235,7 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
             pass
     elif return_when == FIRST_EXCEPTION:
         for future in _waitAny(*fs):
-            if future.exceptionValue != None:
+            if future.exceptionValue is not None:
                 break
     done = set(f for f in fs if f.done())
     not_done = set(fs) - done
