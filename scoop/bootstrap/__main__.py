@@ -27,39 +27,46 @@ import functools
 import argparse
 import scoop
 
-parser = argparse.ArgumentParser(description='Starts the executable.',
-                                 prog="{0} -m scoop.bootstrap".format(sys.executable))
 
-parser.add_argument('--origin', help="To specify that the worker is the origin",
-                    action='store_true')
-parser.add_argument('--workerName', help="The name of the worker",
-                    default="worker0")
-parser.add_argument('--brokerName', help="The name of the broker",
-                    default="broker")
-parser.add_argument('--brokerAddress',
-                    help="The tcp address of the broker written tcp://address:port",
-                    default="")
-parser.add_argument('--metaAddress',
-                    help="The tcp address of the info written tcp://address:port",
-                    default="")
-parser.add_argument('--size',
-                    help="The size of the worker pool",
-                    type=int,
-                    default = 1)
-parser.add_argument('--debug',
-                    help="Activate the debug",
-                    action='store_true')
-parser.add_argument('executable',
-                    nargs=1,
-                    help='The executable to start with scoop')
-parser.add_argument('args',
-                    nargs=argparse.REMAINDER,
-                    help='The arguments to pass to the executable',
-                    default=[])
-args = parser.parse_args()
+def makeParser():
+    parser = argparse.ArgumentParser(description='Starts the executable.',
+                                     prog="{0} -m scoop.bootstrap".format(sys.executable))
 
-if __name__ == "__main__":
-    # Setup the scoop constants
+    parser.add_argument('--origin', help="To specify that the worker is the origin",
+                        action='store_true')
+    parser.add_argument('--workerName', help="The name of the worker",
+                        default="worker0")
+    parser.add_argument('--brokerName', help="The name of the broker",
+                        default="broker")
+    parser.add_argument('--brokerAddress',
+                        help="The tcp address of the broker written tcp://address:port",
+                        default="")
+    parser.add_argument('--metaAddress',
+                        help="The tcp address of the info written tcp://address:port",
+                        default="")
+    parser.add_argument('--size',
+                        help="The size of the worker pool",
+                        type=int,
+                        default = 1)
+    parser.add_argument('--debug',
+                        help="Activate the debug",
+                        action='store_true')
+    parser.add_argument('executable',
+                        nargs=1,
+                        help='The executable to start with scoop')
+    parser.add_argument('args',
+                        nargs=argparse.REMAINDER,
+                        help='The arguments to pass to the executable',
+                        default=[])
+    return parser
+
+
+def main():
+    # Generate a argparse parser and parse the command-line arguments
+    parser = makeParser()
+    args = parser.parse_args()
+
+    # Setup the SCOOP constants
     scoop.IS_ORIGIN       = args.origin
     scoop.WORKER_NAME     = args.workerName.encode()
     scoop.BROKER_NAME     = args.brokerName.encode()
@@ -75,12 +82,12 @@ if __name__ == "__main__":
     sys.path.append(os.path.join(os.getcwd(), os.path.dirname(args.executable[0])))
         
     # temp values to keep the args
-    executable = args.executable[0]    
-        
+    executable = args.executable[0]
+
     # Add the user arguments to argv
     sys.argv = sys.argv[:1]
     sys.argv += args.args
-    
+
     # import the user module into the global dictionary
     # equivalent to from {user_module} import *
     user_module = __import__(os.path.basename(executable)[:-3])
@@ -90,10 +97,13 @@ if __name__ == "__main__":
         attrlist = dir(user_module)
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
-   
+
     # Startup the program
     from scoop import futures
     futures._startup(functools.partial(runpy.run_path,
                                        executable,
                                        init_globals=globals(),
                                        run_name="__main__"))
+
+if __name__ == "__main__":
+    main()
