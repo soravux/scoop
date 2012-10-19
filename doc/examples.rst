@@ -10,6 +10,91 @@ directory of SCOOP.
 Please check the :doc:`api` for any implentation detail of the proposed 
 functions.
 
+Introduction to the :meth:`~scoop.futures.map` function
+-------------------------------------------------------
+ 
+A core concept of task-based parallelism as presented in SCOOP is the
+map. An introductory example to map working is presented in |mapDocFile|_.
+
+.. |mapDocFile| replace:: :file:`examples/mapDoc.py`
+.. _mapDocFile: https://code.google.com/p/scoop/source/browse/examples/mapDoc.py
+
+.. literalinclude:: ../examples/mapDoc.py
+   :lines: 21-
+   :linenos:
+
+Line `1` allows Python 2 users to have a print function compatible with
+Python 3.
+
+On line `2`, SCOOP is imported.
+
+On line `4-5`, the function that will be mapped is declared.
+
+The condition on line `7` is a safety barrier that prevents the main program to
+be executed on every workers. It ensures that the map is issued only by one
+worker, the root.
+
+The :meth:`~scoop.futures.map` function is located on line `8`.
+It launches the `helloWorld` function 16 times, each time with a different
+argument value selected from the `range(16)` argument.
+This method is compatible with the standard Python |map()|_ function and thus
+can be seamlessly interchanged without modifying its arguments.
+
+.. |map()| replace:: *map()*
+.. _map(): http://docs.python.org/library/functions.html#map
+
+The example then prints the return values of every calls on line `9`.
+
+You can launch this program using :program:`python -m scoop`.
+The output should look like this::
+
+  ~/scoop/examples$ python -m scoop -n 8 mapDoc.py
+  Hello World from Future #0
+  Hello World from Future #1
+  Hello World from Future #2
+  [...]
+
+.. note::
+  Results of a map are always ordered even if their computation was made
+  asynchronously on multiple computers.
+
+.. note::
+  You can toy around with the previous example by changing the second parameter
+  of the :meth:`~scoop.futures.map` function. Is it working with string arrays,
+  pure strings or other variable types?
+
+
+Residual sum of squares
+-----------------------
+
+.. Really? Reduction example this soon?
+
+You can use the Residual Sum of Squares (RSS) metric to verify if two signals
+are similar to one another.
+
+The RSS is defined by the mathematical equation
+:math:`RSS = \sum_{i=1}^n (y_i - x_i)^2`.
+Put it simply, you take the difference between every element of your arrays,
+square each of these results and then sum it.
+
+Its implementation is found in |rssDocFile|_:
+
+.. |rssDocFile| replace:: :file:`examples/rssDoc.py`
+.. _rssDocFile: https://code.google.com/p/scoop/source/browse/examples/rssDoc.py
+
+.. literalinclude:: ../examples/rssDoc.py
+   :lines: 21-
+   :linenos:
+
+
+
+.. note::
+  This kind of operation is actually called a reduction. It involves returning
+  a single value out of multiple computations.
+
+  The SCOOP Roadmap have parallel reduction functionality and more forecasted,
+  stay tuned for updates on these.
+
 
 Computation of :math:`\pi`
 --------------------------
@@ -86,7 +171,8 @@ relation between area and circumference, namely
    :lines: 29-31
    :linenos:
 
-As :ref:`stated above <test-for-main-mandatory>`, you `must` wrap your code with a test for the __main__ name.
+As :ref:`stated previously <test-for-main-mandatory>`, you `must` wrap your
+code with a test for the __main__ name.
 You can now run your code using the command :program:`python -m scoop`.
 
 .. literalinclude:: ../examples/piCalcDoc.py

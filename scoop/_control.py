@@ -52,6 +52,18 @@ if scoop.DEBUG:
     debug_stats = defaultdict(list_defaultdict)
     QueueLength = []
     
+def delFuture(futureId, parentId):
+    try:
+        del futureDict[futureId]
+    except KeyError:
+        pass
+    try:
+        while futureId in (a.id for a in futureDict[parentId].children):
+            toDel = [a.id for a in futureDict[parentId].children].index(futureId)
+            futureDict[parentId].children.pop(toDel)
+    except KeyError:
+        pass
+
 # This is the callable greenlet for running tasks.
 def runFuture(future):
     if scoop.DEBUG:

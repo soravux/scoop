@@ -119,7 +119,7 @@ class ScoopApp(object):
                 "{infoPort} --size {n} {origin} {debug} {profile} {executable} "
                 "{arguments}").format(remotePath = self.path, 
                     pythonpath = pythonpath,
-                    nice='nice - n {0}'.format(self.nice)
+                    nice='nice -n {0}'.format(self.nice)
                     if self.nice is not None else '',
                     origin='--origin' if self.workersLeft == 1 else '',
                     debug='--debug' if self.debug else '',
@@ -289,7 +289,7 @@ class ScoopApp(object):
         self.createdSubprocesses.reverse()
         if self.debug:
             # Give time to flush data
-            time.sleep(1)
+            time.sleep(5)
         for process in self.createdSubprocesses:
             try:
                 process.terminate()
@@ -308,76 +308,86 @@ class ScoopApp(object):
         logging.info('Finished destroying spawned subprocesses.')
         exit(self.errors)
 
-parser = argparse.ArgumentParser(description="Starts a parallel program using "
-                                             "SCOOP.",
-                                 prog="{0} -m scoop".format(sys.executable))
-group = parser.add_mutually_exclusive_group()
-group.add_argument('--hosts', '--host',
-                   help="The list of hosts. The first host will execute the "
-                        "origin. (default is 127.0.0.1)",
-                   nargs='*')
-group.add_argument('--hostfile', help="The hostfile name")
-parser.add_argument('--path', '-p',
-                    help="The path to the executable on remote hosts "
-                         "(default is local directory)",
-                    default=os.getcwd())
-parser.add_argument('--nice',
-                    type=int,
-                    help="*nix niceness level (-20 to 19) to run the "
-                         "executable")
-parser.add_argument('--verbose', '-v',
-                    action='count',
-                    help="Verbosity level of this launch script (-vv for "
-                           "more)",
-                    default=0)
-parser.add_argument('--log',
-                    help="The file to log the output. (default is stdout)",
-                    default=None)
-parser.add_argument('-n',
-                    help="Total number of workers to launch on the hosts. "
-                         "Workers are spawned sequentially over the hosts. "
-                         "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
-                         "first host and 1 on the second.) (default: Number of"
-                         "CPUs on current machine)",
-                    type=int)
-parser.add_argument('--tunnel',
-                    help="Activate ssh tunnels to route toward the broker "
-                         "sockets over remote connections (may eliminate "
-                         "routing problems and activate encryption but "
-                         "slows down communications)",
-                    action='store_true')
-parser.add_argument('--broker-hostname',
-                    nargs=1,
-                    help="The externally routable broker hostname / ip "
-                         "(defaults to the local hostname)")
-parser.add_argument('--python-executable',
-                    nargs=1,
-                    help="The python executable with which to execute the "
-                         "script",
-                    default=[sys.executable])
-parser.add_argument('--pythonpath',
-                    nargs=1,
-                    help="The PYTHONPATH environment variable (default is "
-                         "current PYTHONPATH)",
-                    default=[os.environ.get('PYTHONPATH', '')])
-parser.add_argument('--debug',
-                    help=argparse.SUPPRESS,
-                    action='store_true')
-parser.add_argument('--profile',
-                    help=("Turn on the profiling. SCOOP will call cProfile.run\n"
-                    "on the executable for every worker and will produce files\n"
-                    "named workerX where X is the number of the worker."),
-                    action='store_true')
-parser.add_argument('executable',
-                    nargs=1,
-                    help='The executable to start with SCOOP')
-parser.add_argument('args',
-                    nargs=argparse.REMAINDER,
-                    help='The arguments to pass to the executable',
-                    default=[])
-args = parser.parse_args()
+def makeParser():
+    """Create the SCOOP module arguments parser."""
+    parser = argparse.ArgumentParser(description="Starts a parallel program using "
+                                                 "SCOOP.",
+                                     prog="{0} -m scoop".format(sys.executable))
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--hosts', '--host',
+                       help="The list of hosts. The first host will execute the "
+                            "origin. (default is 127.0.0.1)",
+                       nargs='*')
+    group.add_argument('--hostfile', help="The hostfile name")
+    parser.add_argument('--path', '-p',
+                        help="The path to the executable on remote hosts "
+                             "(default is local directory)",
+                        default=os.getcwd())
+    parser.add_argument('--nice',
+                        type=int,
+                        help="*nix niceness level (-20 to 19) to run the "
+                             "executable")
+    parser.add_argument('--verbose', '-v',
+                        action='count',
+                        help="Verbosity level of this launch script (-vv for "
+                               "more)",
+                        default=0)
+    parser.add_argument('--log',
+                        help="The file to log the output. (default is stdout)",
+                        default=None)
+    parser.add_argument('-n',
+                        help="Total number of workers to launch on the hosts. "
+                             "Workers are spawned sequentially over the hosts. "
+                             "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
+                             "first host and 1 on the second.) (default: Number of"
+                             "CPUs on current machine)",
+                        type=int)
+    parser.add_argument('--tunnel',
+                        help="Activate ssh tunnels to route toward the broker "
+                             "sockets over remote connections (may eliminate "
+                             "routing problems and activate encryption but "
+                             "slows down communications)",
+                        action='store_true')
+    parser.add_argument('--broker-hostname',
+                        nargs=1,
+                        help="The externally routable broker hostname / ip "
+                             "(defaults to the local hostname)")
+    parser.add_argument('--python-executable',
+                        nargs=1,
+                        help="The python executable with which to execute the "
+                             "script",
+                        default=[sys.executable])
+    parser.add_argument('--pythonpath',
+                        nargs=1,
+                        help="The PYTHONPATH environment variable (default is "
+                             "current PYTHONPATH)",
+                        default=[os.environ.get('PYTHONPATH', '')])
+    parser.add_argument('--debug',
+                        help=argparse.SUPPRESS,
+                        action='store_true')
+    parser.add_argument('--profile',
+                        help=("Turn on the profiling. SCOOP will call cProfile.run\n"
+                        "on the executable for every worker and will produce files\n"
+                        "named workerX where X is the number of the worker."),
+                        action='store_true')
+    parser.add_argument('executable',
+                        nargs=1,
+                        help='The executable to start with SCOOP')
+    parser.add_argument('args',
+                        nargs=argparse.REMAINDER,
+                        help='The arguments to pass to the executable',
+                        default=[])
+    return parser
 
-if __name__ == "__main__":
+
+def main():
+    """Execution of the SCOOP module. Parses its command-line arguments and
+    launch needed resources."""
+    # Generate a argparse parser and parse the command-line arguments
+    parser = makeParser()
+    args = parser.parse_args()
+
+    # Get a list of resources to launch worker(s) on
     hosts = utils.getHosts(args.hostfile, args.hosts)
     if args.n:
         n = args.n
@@ -387,6 +397,8 @@ if __name__ == "__main__":
                    "Use the '-n' flag to set it manually.")
     if not args.broker_hostname:
         args.broker_hostname = [utils.brokerHostname(hosts)]
+        
+    # Launch SCOOP
     scoopApp = ScoopApp(hosts, n, args.verbose,
                         args.python_executable, 
                         args.broker_hostname[0],
@@ -395,7 +407,11 @@ if __name__ == "__main__":
                         utils.getEnv(), args.profile,
                         args.pythonpath[0])
     try:
-        code = scoopApp.run()
+        rootTaskExitCode = scoopApp.run()
     finally:
         scoopApp.close()
-    exit(code)
+    exit(rootTaskExitCode)
+
+
+if __name__ == "__main__":
+    main()
