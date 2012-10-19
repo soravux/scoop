@@ -109,7 +109,7 @@ class launchScoop(object):
                 "{infoPort} --size {n} {origin} {debug} {executable} "
                 "{arguments}").format(
                     remotePath=self.path,
-                    nice='nice - n {0}'.format(self.nice)
+                    nice='nice -n {0}'.format(self.nice)
                     if self.nice is not None else '',
                     origin='--origin' if self.workersLeft == 1 else '',
                     debug='--debug' if self.debug == 1 else '',
