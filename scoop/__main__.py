@@ -317,14 +317,18 @@ def makeParser():
     group.add_argument('--hosts', '--host',
                        help="The list of hosts. The first host will execute the "
                             "origin. (default is 127.0.0.1)",
+                       metavar="Address",
                        nargs='*')
-    group.add_argument('--hostfile', help="The hostfile name")
+    group.add_argument('--hostfile',
+                       help="The hostfile name",
+                       metavar="FileName")
     parser.add_argument('--path', '-p',
                         help="The path to the executable on remote hosts "
                              "(default is local directory)",
                         default=os.getcwd())
     parser.add_argument('--nice',
                         type=int,
+                        metavar="NiceLevel",
                         help="*nix niceness level (-20 to 19) to run the "
                              "executable")
     parser.add_argument('--verbose', '-v',
@@ -334,7 +338,8 @@ def makeParser():
                         default=0)
     parser.add_argument('--log',
                         help="The file to log the output. (default is stdout)",
-                        default=None)
+                        default=None,
+                        metavar="FileName")
     parser.add_argument('-n',
                         help="Total number of workers to launch on the hosts. "
                              "Workers are spawned sequentially over the hosts. "
@@ -351,12 +356,14 @@ def makeParser():
     parser.add_argument('--broker-hostname',
                         nargs=1,
                         help="The externally routable broker hostname / ip "
-                             "(defaults to the local hostname)")
-    parser.add_argument('--python-executable',
+                             "(defaults to the local hostname)",
+                        metavar="Address")
+    parser.add_argument('--python-interpreter',
                         nargs=1,
-                        help="The python executable with which to execute the "
-                             "script",
-                        default=[sys.executable])
+                        help="The python interpreter executable with which to "
+                             "execute the script",
+                        default=[sys.executable],
+                        metavar="Path")
     parser.add_argument('--pythonpath',
                         nargs=1,
                         help="The PYTHONPATH environment variable (default is "
@@ -376,7 +383,8 @@ def makeParser():
     parser.add_argument('args',
                         nargs=argparse.REMAINDER,
                         help='The arguments to pass to the executable',
-                        default=[])
+                        default=[],
+                        metavar="args")
     return parser
 
 
@@ -397,10 +405,10 @@ def main():
                    "Use the '-n' flag to set it manually.")
     if not args.broker_hostname:
         args.broker_hostname = [utils.brokerHostname(hosts)]
-        
+
     # Launch SCOOP
     scoopApp = ScoopApp(hosts, n, args.verbose,
-                        args.python_executable, 
+                        args.python_interpreter,
                         args.broker_hostname[0],
                         args.executable, args.args, args.tunnel,
                         args.log, args.path, args.debug, args.nice,
