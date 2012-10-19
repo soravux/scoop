@@ -26,7 +26,7 @@ from time import time
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
 def test(tries):
-    return sum(hypot(random(), random()) < 1 for i in range(tries))
+    return sum(hypot(random(), random()) < 1 for _ in range(tries))
 
 
 # Calculates pi with a Monte-Carlo method. This function calls the function
@@ -38,7 +38,7 @@ def calcPi(workers, tries):
     piValue = 4. * sum(expr) / float(workers * tries)
     totalTime = time() - bt
     print("pi = " + str(piValue))
-    print("total time {}".format(totalTime))
+    print("total time: " + str(totalTime))
     return piValue
 
 if __name__ == "__main__":

@@ -68,7 +68,7 @@ def getTimes(dataTasks):
     start_time = 9999999999999999999999999; end_time = 0
     for fichier, vals in dataTask.items():
         try:
-            if type(vals) == defaultdict:
+            if hasattr(vals, 'values'):
                 tmp_start_time = min([a['start_time'] for a in vals.values()])[0]
                 if tmp_start_time < start_time:
                     start_time = tmp_start_time
@@ -87,7 +87,7 @@ def WorkersDensity(dataTasks):
 
     for name in getWorkersName(dataTasks):
         vals = dataTasks[name]
-        if type(vals) == defaultdict:
+        if hasattr(vals, 'values'):
             # Data from worker
             workerdata = []
             print("Plotting density map for {}".format(name))
@@ -115,22 +115,23 @@ def plotDensity(dataTask, filename):
         return ts.strftime("%H:%M:%S")
 
     graphdata = WorkersDensity(dataTask)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    box = ax.get_position()
-    ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
-    cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
-    ax.grid(True, linewidth=2, color="w")
-    plt.xlabel('time'); plt.ylabel('Queue Length'); ax.set_title('Work density')
-    ax.yaxis.set_ticks(range(len(graphdata)))
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
-    interval_size = DENSITY_MAP_TIME_AXIS_LENGTH // 4
-    ax.xaxis.set_ticks(range(0,
-                             DENSITY_MAP_TIME_AXIS_LENGTH + interval_size,
-                             interval_size))
-    ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_time))
-    cbar = fig.colorbar(cax)
-    fig.savefig(filename)
+    if len(graphdata):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        box = ax.get_position()
+        ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
+        cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
+        ax.grid(True, linewidth=2, color="w")
+        plt.xlabel('time'); plt.ylabel('Queue Length'); ax.set_title('Work density')
+        ax.yaxis.set_ticks(range(len(graphdata)))
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
+        interval_size = DENSITY_MAP_TIME_AXIS_LENGTH // 4
+        ax.xaxis.set_ticks(range(0,
+                                 DENSITY_MAP_TIME_AXIS_LENGTH + interval_size,
+                                 interval_size))
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_time))
+        cbar = fig.colorbar(cax)
+        fig.savefig(filename)
 
 def plotBrokerQueue(dataTask, filename):
     # Broker queue length graph
@@ -161,7 +162,7 @@ def plotWorkerQueue(dataQueue, filename):
         print("Plotting {}".format(fichier))
         ax.plot(*zip(*vals), label=fichier)
     plt.xlabel('time(s)'); plt.ylabel('Queue Length')
-    plt.title('Queue length throught time')
+    plt.title('Queue length through time')
     fig.savefig(filename)
 
 def getWorkerInfo(dataTask):
@@ -169,7 +170,7 @@ def getWorkerInfo(dataTask):
     workertime = []
     workertasks = []
     for fichier, vals in dataTask.items():
-        if type(vals) == defaultdict:
+        if hasattr(vals, 'values'):
             #workers_names.append(fichier)
             # Data from worker
             totaltime = sum([a['executionTime'] for a in vals.values()])
@@ -178,13 +179,11 @@ def getWorkerInfo(dataTask):
             workertasks.append(totaltasks)
     return workertime, workertasks
 
-def plotWorkerTime(workertime,worker_names, filename):
+def plotWorkerTime(workertime, worker_names, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ind = range(len(workertime))
     width = 0.35
-
-    print(ind, workertime, width)
 
     rects = ax.bar(ind, workertime, width)
     ax.set_ylabel('WorkedTime')
@@ -195,7 +194,7 @@ def plotWorkerTime(workertime,worker_names, filename):
     fig.savefig(filename)
 
 
-def plotWorkerTask(workertask,worker_names, filename):
+def plotWorkerTask(workertask, worker_names, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ind = range(len(workertask))
