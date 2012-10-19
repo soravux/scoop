@@ -277,72 +277,82 @@ class launchScoop(object):
 
         logging.info('Finished destroying spawned subprocesses.')
 
-parser = argparse.ArgumentParser(description="Starts a parallel program using "
-                                             "SCOOP.",
-                                 prog="{0} -m scoop".format(sys.executable))
-group = parser.add_mutually_exclusive_group()
-group.add_argument('--hosts', '--host',
-                   help="The list of hosts. The first host will execute the "
-                        "origin. (default is 127.0.0.1)",
-                   nargs='*')
-group.add_argument('--hostfile', help="The hostfile name")
-parser.add_argument('--path', '-p',
-                    help="The path to the executable on remote hosts "
-                         "(default is local directory)",
-                    default=os.getcwd())
-parser.add_argument('--nice',
-                    type=int,
-                    help="*nix niceness level (-20 to 19) to run the "
-                         "executable")
-parser.add_argument('--verbose', '-v',
-                    action='count',
-                    help="Verbosity level of this launch script (-vv for "
-                           "more)",
-                    default=0)
-parser.add_argument('--log',
-                    help="The file to log the output. (default is stdout)",
-                    default=None)
-parser.add_argument('-n',
-                    help="Total number of workers to launch on the hosts. "
-                         "Workers are spawned sequentially over the hosts. "
-                         "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
-                         "first host and 1 on the second.) (default: Number of"
-                         "CPUs on current machine)",
-                    type=int)
-parser.add_argument('-e',
-                    help="Activate ssh tunnels to route toward the broker "
-                         "sockets over remote connections (may eliminate "
-                         "routing problems and activate encryption but "
-                         "slows down communications)",
-                    action='store_true')
-parser.add_argument('--broker-hostname',
-                    nargs=1,
-                    help="The externally routable broker hostname / ip "
-                         "(defaults to the local hostname)",
-                    default=[utils.getCurrentHostname()])
-parser.add_argument('--python-executable',
-                    nargs=1,
-                    help="The python executable with which to execute the "
-                         "script",
-                    default=[sys.executable])
-parser.add_argument('--pythonpath',
-                    nargs=1,
-                    help="The PYTHONPATH environment variable (default is "
-                         "current PYTHONPATH)",
-                    default=[os.environ.get('PYTHONPATH', '')])
-parser.add_argument('--debug',
-                    help="Turn on the debuging",
-                    action='store_true')
-parser.add_argument('executable',
-                    nargs=1,
-                    help='The executable to start with SCOOP')
-parser.add_argument('args',
-                    nargs=argparse.REMAINDER,
-                    help='The arguments to pass to the executable',
-                    default=[])
-args = parser.parse_args()
+def makeParser():
+    """Create the SCOOP module arguments parser."""
+    parser = argparse.ArgumentParser(description="Starts a parallel program using "
+                                                 "SCOOP.",
+                                     prog="{0} -m scoop".format(sys.executable))
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--hosts', '--host',
+                       help="The list of hosts. The first host will execute the "
+                            "origin. (default is 127.0.0.1)",
+                       nargs='*')
+    group.add_argument('--hostfile', help="The hostfile name")
+    parser.add_argument('--path', '-p',
+                        help="The path to the executable on remote hosts "
+                             "(default is local directory)",
+                        default=os.getcwd())
+    parser.add_argument('--nice',
+                        type=int,
+                        help="*nix niceness level (-20 to 19) to run the "
+                             "executable")
+    parser.add_argument('--verbose', '-v',
+                        action='count',
+                        help="Verbosity level of this launch script (-vv for "
+                               "more)",
+                        default=0)
+    parser.add_argument('--log',
+                        help="The file to log the output. (default is stdout)",
+                        default=None)
+    parser.add_argument('-n',
+                        help="Total number of workers to launch on the hosts. "
+                             "Workers are spawned sequentially over the hosts. "
+                             "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
+                             "first host and 1 on the second.) (default: Number of"
+                             "CPUs on current machine)",
+                        type=int)
+    parser.add_argument('-e',
+                        help="Activate ssh tunnels to route toward the broker "
+                             "sockets over remote connections (may eliminate "
+                             "routing problems and activate encryption but "
+                             "slows down communications)",
+                        action='store_true')
+    parser.add_argument('--broker-hostname',
+                        nargs=1,
+                        help="The externally routable broker hostname / ip "
+                             "(defaults to the local hostname)",
+                        default=[utils.getCurrentHostname()])
+    parser.add_argument('--python-executable',
+                        nargs=1,
+                        help="The python executable with which to execute the "
+                             "script",
+                        default=[sys.executable])
+    parser.add_argument('--pythonpath',
+                        nargs=1,
+                        help="The PYTHONPATH environment variable (default is "
+                             "current PYTHONPATH)",
+                        default=[os.environ.get('PYTHONPATH', '')])
+    parser.add_argument('--debug',
+                        help="Turn on the debuging",
+                        action='store_true')
+    parser.add_argument('executable',
+                        nargs=1,
+                        help='The executable to start with SCOOP')
+    parser.add_argument('args',
+                        nargs=argparse.REMAINDER,
+                        help='The arguments to pass to the executable',
+                        default=[])
+    return parser
 
-if __name__ == "__main__":
+
+def main():
+    """Execution of the SCOOP module. Parses its command-line arguments and
+    launch needed resources."""
+    # Generate a argparse parser and parse the command-line arguments
+    parser = makeParser()
+    args = parser.parse_args()
+
+    # Get a list of resources to launch worker(s) on
     hosts = utils.getHosts(args.hostfile, args.hosts)
     if args.n:
         n = args.n
@@ -350,13 +360,19 @@ if __name__ == "__main__":
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
                    "Use the '-n' flag to set it manually.")
+
+    # Launch SCOOP
     scoopLaunching = launchScoop(hosts, n, args.verbose,
                                  args.python_executable, args.broker_hostname,
                                  args.executable, args.args, args.e, args.log,
                                  args.path, args.debug, args.nice,
                                  utils.getEnv())
     try:
-        code = scoopLaunching.run()
+        rootTaskExitCode = scoopLaunching.run()
     finally:
         scoopLaunching.close()
-    exit(code)
+    exit(rootTaskExitCode)
+
+
+if __name__ == "__main__":
+    main()
