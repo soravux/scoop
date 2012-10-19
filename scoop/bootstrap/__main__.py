@@ -51,9 +51,9 @@ def makeParser():
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
-parser.add_argument('--profile',
-                     help="Activate the profiler",
-                     action='store_true')
+    parser.add_argument('--profile',
+                        help="Activate the profiler",
+                        action='store_true')
     parser.add_argument('executable',
                         nargs=1,
                         help='The executable to start with scoop')
