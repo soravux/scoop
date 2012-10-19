@@ -38,7 +38,7 @@ def calcPi(workers, tries):
     piValue = 4. * sum(expr) / float(workers * tries)
     totalTime = time() - bt
     print("pi = " + str(piValue))
-    print("total time {}".format(totalTime))
+    print("total time: " + str(totalTime))
     return piValue
 
 if __name__ == "__main__":
