@@ -221,8 +221,6 @@ class ScoopApp(object):
         # Launching the local broker, repeat until it works
         logging.debug("Initialising local broker.")
         self.startBroker()
-        logging.debug("Local broker launched on ports {0}, {1}"
-                      ".".format(self.brokerPort, self.infoPort))
 
         # Launch the workers
         rootProcess="Local"
