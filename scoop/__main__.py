@@ -166,7 +166,7 @@ class ScoopApp(object):
 
 
         # Checking if the broker if externally routable
-        if self.brokerHostname in utils.localHostnames and \
+        if self.brokerHostname in ("127.0.0.1", "localhost", "::1") and \
                 len(hosts) > 1 and \
                 not self.tunnel:
             raise Exception("\n"
