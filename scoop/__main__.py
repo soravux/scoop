@@ -166,7 +166,7 @@ class ScoopApp(object):
 
 
         # Checking if the broker if externally routable
-        if self.brokerHostname in utils.localHostnames and \
+        if self.brokerHostname in ("127.0.0.1", "localhost", "::1") and \
                 len(hosts) > 1 and \
                 not self.tunnel:
             raise Exception("\n"
@@ -221,8 +221,6 @@ class ScoopApp(object):
         # Launching the local broker, repeat until it works
         logging.debug("Initialising local broker.")
         self.startBroker()
-        logging.debug("Local broker launched on ports {0}, {1}"
-                      ".".format(self.brokerPort, self.infoPort))
 
         # Launch the workers
         rootProcess="Local"
@@ -281,6 +279,8 @@ class ScoopApp(object):
             while len(data) > 0:
                 sys.stdout.write(data)
                 data = rootProcess.stdout.read(1)
+            # TODO: self.errors
+        # TODO: print others than self
 
     def close(self):
         # Ensure everything is cleaned up on exit
