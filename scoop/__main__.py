@@ -346,7 +346,8 @@ def makeParser():
                              "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
                              "first host and 1 on the second.) (default: Number of"
                              "CPUs on current machine)",
-                        type=int)
+                        type=int,
+                        metavar="NumberOfWorkers")
     parser.add_argument('--tunnel',
                         help="Activate ssh tunnels to route toward the broker "
                              "sockets over remote connections (may eliminate "

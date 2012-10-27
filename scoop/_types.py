@@ -71,7 +71,7 @@ class Future(object):
     other futures."""
     rank = itertools.count()
     def __init__(self, parentId, callable, *args, **kargs):
-        """Initialize a new future."""
+        """Initialize a new Future."""
         self.id = FutureId(scoop.worker, next(Future.rank))
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
@@ -105,7 +105,6 @@ class Future(object):
                                        self.args,
                                        self.resultValue)
 
-    
     def _switch(self, future):
         """Switch greenlet."""
         scoop._control.current = self
@@ -287,13 +286,12 @@ class FutureQueue(object):
         for future in to_remove:
             del self.inprogress[future.id]
         for future in self.socket.recvFuture():
-            # TODO: Memleak here?
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
                 scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
                 for callback in scoop._control.futureDict[future.id].callback:
                     try:
-                        callback.future(scoop._control.futureDict[future.id])
+                        callback(scoop._control.futureDict[future.id])
                     except:
                         pass
                 self.append(scoop._control.futureDict[future.id])
