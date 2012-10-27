@@ -73,7 +73,12 @@ def runFuture(future):
         debug_stats[future.id]['start_time'].append(time.time())
     future.waitTime = future.stopWatch.get()
     future.stopWatch.reset()
-    future.executor = (scoop.worker, next(reduction.sequence))
+    # Get callback Group ID and assign the broker-wide unique executor ID
+    try:
+        uniqueReference = [cb.groupID for cb in future.callback][0]
+    except IndexError:
+        uniqueReference = None
+    future.executor = (scoop.worker, next(reduction.sequence[uniqueReference]), uniqueReference)
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
     except Exception as err:
