@@ -18,7 +18,7 @@ from __future__ import print_function
 from collections import deque, defaultdict
 import greenlet
 import os
-from ._types import Future, FutureId, FutureQueue
+from ._types import Future, FutureId, FutureQueue, CallbackType
 from functools import partial
 import scoop
 
@@ -70,6 +70,7 @@ def runFuture(future):
         debug_stats[future.id]['start_time'].append(time.time())
     future.waitTime = future.stopWatch.get()
     future.stopWatch.reset()
+    future.executor = scoop.worker
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
     except Exception as err:
@@ -97,9 +98,10 @@ def runFuture(future):
         QueueLength.append((t, execQueue.timelen(execQueue)))
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    if future.parentId.worker == scoop.worker:
-        for callback in future.callback:
-            try: callback(future)
+    for callback in future.callback:
+        if future.parentId.worker == scoop.worker or \
+        callback.callbackType == CallbackType.universal:
+            try: callback.func(future)
             except: pass # Ignored callback exception as stated in PEP 3148
 
     # Delete references to the future
