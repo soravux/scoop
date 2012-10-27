@@ -71,7 +71,7 @@ class NotStartedProperly(Exception):
 
     
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
-callbackEntry = namedtuple('callbackEntry', ['func', 'callbackType'])
+callbackEntry = namedtuple('callbackEntry', ['func', 'callbackType', 'groupID'])
 class Future(object):
     """This class encapsulates an independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
@@ -179,7 +179,8 @@ class Future(object):
         :returns: The exception raised by the call."""
         return self.exceptionValue
 
-    def add_done_callback(self, callable, inCallbackType=CallbackType.standard):
+    def add_done_callback(self, callable, inCallbackType=CallbackType.standard,
+                          inCallbackGroup=None):
         """Attach a callable to the future that will be called when the future
         is cancelled or finishes running. Callable will be called with the
         future as its only argument.
@@ -191,7 +192,7 @@ class Future(object):
 
         If the future has already completed or been cancelled then callable will
         be called immediately."""
-        self.callback.append(callbackEntry(callable, inCallbackType))
+        self.callback.append(callbackEntry(callable, inCallbackType, inCallbackGroup))
 
     def _delete(self):
         # Do we need this?

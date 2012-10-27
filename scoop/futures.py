@@ -19,6 +19,7 @@ from __future__ import print_function
 import os
 from collections import namedtuple
 from functools import partial
+import itertools
 
 import scoop
 from scoop._types import Future, NotStartedProperly, CallbackType
@@ -33,6 +34,7 @@ _AS_COMPLETED = '_AS_COMPLETED'
 
 # This is the greenlet for running the controller logic.
 _controller = None
+callbackGroupID = itertools.count()
 
 def _startup(rootFuture, *args, **kargs):
     """Initializes the SCOOP environment.
@@ -151,6 +153,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
               mapped data sequentially ordered."""
     kargs.pop('timeout', None)
     launches = []
+    thisCallbackGroupID = next(callbackGroupID)
     for args in zip(*iterables):
         try:
             child = Future(control.current.id, mapFunc, *args, **kargs)
@@ -161,7 +164,8 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
                                      "information in the documentation.")
         child = Future(control.current.id, mapFunc, *args, **kargs)
         child.add_done_callback(partial(reduction, operation=reductionOp),
-                                inCallbackType=CallbackType.universal)
+                                inCallbackType=CallbackType.universal,
+                                inCallbackGroup=thisCallbackGroupID)
         control.futureDict[control.current.id].children.append(child)
         control.execQueue.append(child)
         launches.append(child)
@@ -187,11 +191,13 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
         version of SCOOP]. If None, then there is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
         passed to the callable object.
-        
+
     :returns: The final return value of the reduction function applied to every
               mapped data."""
     # TODO: make DRY with submit
     launches = []
+    # Set a callback group ID for the Futures generated within this scope
+    thisCallbackGroupID = (control.current.id, next(callbackGroupID))
     for args in zip(*iterables):
         try:
             child = Future(control.current.id, mapFunc, *args, **kargs)
@@ -202,13 +208,14 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
                                      "information in the documentation.")
         child = Future(control.current.id, mapFunc, *args, **kargs)
         child.add_done_callback(partial(reduction, operation=reductionOp),
-                                inCallbackType=CallbackType.universal)
+                                inCallbackType=CallbackType.universal,
+                                inCallbackGroup=thisCallbackGroupID)
         control.futureDict[control.current.id].children.append(child)
         control.execQueue.append(child)
         launches.append(child)
     workerResults = {}
     for future in sorted(_waitAll(*launches), key=lambda x: x.executor[1]):
-        workerResults[future.executor[0]] = future.result()
+        workerResults[(future.executor[0], future.executor[2])] = future.result()
     return reduce(reductionOp, workerResults.values())
 
 def submit(func, *args, **kargs):

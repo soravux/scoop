@@ -15,13 +15,21 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import itertools
+from collections import defaultdict
 
-# TODO: dictionary
-total = 0
-sequence = itertools.count()
+# Contains the reduction of every child ran on this worker
+total = {}
+# Set the number of ran futures for a given group
+sequence = defaultdict(itertools.count)
 
 def reduction(inFuture, operation):
-    """Generic reduction method. Subclass it to """
+    """Generic reduction method. Subclass it (using partial() is recommended)
+    to specify an operation or enhance its features if needed."""
     global total
-    total = operation(inFuture.result(), total)
-    inFuture.resultValue = total
+    try:
+        uniqueReference = [cb.groupID for cb in inFuture.callback]
+    except IndexError:
+        raise Exception("Could not find reduction reference.")
+    total[uniqueReference[0]] = operation(inFuture.result(),
+                                          total.get(uniqueReference[0], 0))
+    inFuture.resultValue = total[uniqueReference[0]]
