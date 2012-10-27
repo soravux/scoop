@@ -114,9 +114,10 @@ def main():
         from scoop import futures
         import cProfile
         cProfile.run("""futures._startup(functools.partial(runpy.run_path,
-                                       executable,
+                                       "{0}",
                                        init_globals=globals(),
-                                       run_name="__main__"))""",
+                                       run_name="__main__"))""".format(
+                                           executable),
                                        scoop.WORKER_NAME)
 
 if __name__ == "__main__":

@@ -80,7 +80,7 @@ class Future(object):
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new Future."""
         self.id = FutureId(scoop.worker, next(Future.rank))
-        self.executor = None
+        self.executor = None              # id of executor
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
