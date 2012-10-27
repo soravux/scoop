@@ -129,35 +129,28 @@ def map(func, *iterables, **kargs):
         yield future.resultValue
 
 def mapScan(mapFunc, reductionOp, *iterables, **kargs):
-    """Equivalent to 
-    `map(func, \*iterables, ...)
-    <http://docs.python.org/library/functions.html#map>`_ 
-    but *func* is executed asynchronously
-    and several calls to func may be made concurrently. The returned iterator
-    raises a TimeoutError if *__next__()* is called and the result isn't available
-    after timeout seconds from the original call to *map()* [To be done in future
-    version of SCOOP]. If timeout is not
-    specified or None then there is no limit to the wait time. If a call raises
-    an exception then that exception will be raised when its value is retrieved
-    from the iterator.
+    """Exectues the :meth:`~scoop.futures.map` function and then applies a
+    reduction function to its result.
 
-    :param mapFunc: Any picklable callable object (function or class object with 
-        *__call__* method); this object will be called to execute the Futures. 
-        The callable must return a value. 
-    :param reductionOp: Any picklable callable object (function or class object with 
-        *__call__* method); this object will be called to execute the Futures. 
-        The callable must return a value. 
+    :param mapFunc: Any picklable callable object (function or class object with
+        *__call__* method); this object will be called to execute the Futures.
+        The callable must return a value.
+    :param reductionOp: Any picklable callable object (function or class object
+        with *__call__* method); this object will be called to reduce the
+        Futures results. The callable must return a value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait [To be done in future 
         version of SCOOP]. If None, then there is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
-        passed to the callable object. 
+        passed to the callable object.
         
-    :returns: A generator of map results, each corresponding to one map 
-        iteration."""
-    # TODO: make DRY with submit
+    :returns: Every return value of the reduction function applied to every
+              mapped data sequentially ordered."""
+    kargs.pop('timeout', None)
+    for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
+        yield future.resultValue
     launches = []
     for args in zip(*iterables):
         try:
@@ -179,34 +172,25 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
     return workerResults
 
 def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
-    """Equivalent to 
-    `map(func, \*iterables, ...)
-    <http://docs.python.org/library/functions.html#map>`_ 
-    but *func* is executed asynchronously
-    and several calls to func may be made concurrently. The returned iterator
-    raises a TimeoutError if *__next__()* is called and the result isn't available
-    after timeout seconds from the original call to *map()* [To be done in future
-    version of SCOOP]. If timeout is not
-    specified or None then there is no limit to the wait time. If a call raises
-    an exception then that exception will be raised when its value is retrieved
-    from the iterator.
+    """Exectues the :meth:`~scoop.futures.map` function and then applies a
+    reduction function to its result.
 
-    :param mapFunc: Any picklable callable object (function or class object with 
-        *__call__* method); this object will be called to execute the Futures. 
-        The callable must return a value. 
-    :param reductionOp: Any picklable callable object (function or class object with 
-        *__call__* method); this object will be called to execute the Futures. 
-        The callable must return a value. 
+    :param mapFunc: Any picklable callable object (function or class object with
+        *__call__* method); this object will be called to execute the Futures.
+        The callable must return a value.
+    :param reductionOp: Any picklable callable object (function or class object
+        with *__call__* method); this object will be called to reduce the
+        Futures results. The callable must return a value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait [To be done in future 
         version of SCOOP]. If None, then there is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
-        passed to the callable object. 
+        passed to the callable object.
         
-    :returns: A generator of map results, each corresponding to one map 
-        iteration."""
+    :returns: The final return value of the reduction function applied to every
+              mapped data."""
     # TODO: make DRY with submit
     launches = []
     for args in zip(*iterables):
