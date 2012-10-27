@@ -3,6 +3,12 @@
 from setuptools import setup
 
 import scoop
+import sys
+
+# Backports installation
+extraPackages = []
+if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+    extraPackages = ['scoop.backports']
 
 
 setup(name='scoop',
@@ -18,7 +24,7 @@ setup(name='scoop',
                         'argparse>=1.1'],
       packages=['scoop',
                 'scoop.bootstrap',
-                'scoop.broker'],
+                'scoop.broker'] + extraPackages,
       platforms=['any'],
       keywords=['distributed algorithms',
                 'parallel programming',
