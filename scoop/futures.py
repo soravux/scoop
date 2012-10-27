@@ -15,10 +15,14 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
+
 import os
 from collections import namedtuple
+from functools import partial
+
 import scoop
-from scoop._types import Future, NotStartedProperly
+from scoop._types import Future, NotStartedProperly, CallbackType
+from scoop.reduction import reduction
 from scoop import _control as control
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
@@ -61,7 +65,7 @@ def _startup(rootFuture, *args, **kargs):
             pass
         with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
                 scoop.BROKER_NAME.decode(), 'wb') as f:
-            pickle.dump(control.stats, f)
+            pickle.dump(control.debug_stats, f)
         with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'wb') as f:
             pickle.dump(control.QueueLength, f)
     return result
@@ -123,6 +127,106 @@ def map(func, *iterables, **kargs):
     kargs.pop('timeout', None)
     for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
         yield future.resultValue
+
+def mapScan(mapFunc, reductionOp, *iterables, **kargs):
+    """Equivalent to 
+    `map(func, \*iterables, ...)
+    <http://docs.python.org/library/functions.html#map>`_ 
+    but *func* is executed asynchronously
+    and several calls to func may be made concurrently. The returned iterator
+    raises a TimeoutError if *__next__()* is called and the result isn't available
+    after timeout seconds from the original call to *map()* [To be done in future
+    version of SCOOP]. If timeout is not
+    specified or None then there is no limit to the wait time. If a call raises
+    an exception then that exception will be raised when its value is retrieved
+    from the iterator.
+
+    :param mapFunc: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Futures. 
+        The callable must return a value. 
+    :param reductionOp: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Futures. 
+        The callable must return a value. 
+    :param iterables: Iterable objects; each will be zipped to form an iterable
+        of arguments tuples that will be passed to the callable object as a
+        separate Future.
+    :param timeout: The maximum number of seconds to wait [To be done in future 
+        version of SCOOP]. If None, then there is no limit on the wait time.
+    :param kargs: A dictionary of additional keyword arguments that will be 
+        passed to the callable object. 
+        
+    :returns: A generator of map results, each corresponding to one map 
+        iteration."""
+    # TODO: make DRY with submit
+    launches = []
+    for args in zip(*iterables):
+        try:
+            child = Future(control.current.id, mapFunc, *args, **kargs)
+        except AttributeError:
+            raise NotStartedProperly("SCOOP was not started properly.\n"
+                                     "Be sure to start your program with the "
+                                     "'-m scoop' parameter. You can find further "
+                                     "information in the documentation.")
+        child = Future(control.current.id, mapFunc, *args, **kargs)
+        child.add_done_callback(partial(reduction, operation=reductionOp),
+                                inCallbackType=CallbackType.universal)
+        control.futureDict[control.current.id].children.append(child)
+        control.execQueue.append(child)
+        launches.append(child)
+    workerResults = {}
+    for future in _waitAll(*launches):
+        workerResults.setdefault(future.executor, []).append(future.result())
+    return workerResults
+
+def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
+    """Equivalent to 
+    `map(func, \*iterables, ...)
+    <http://docs.python.org/library/functions.html#map>`_ 
+    but *func* is executed asynchronously
+    and several calls to func may be made concurrently. The returned iterator
+    raises a TimeoutError if *__next__()* is called and the result isn't available
+    after timeout seconds from the original call to *map()* [To be done in future
+    version of SCOOP]. If timeout is not
+    specified or None then there is no limit to the wait time. If a call raises
+    an exception then that exception will be raised when its value is retrieved
+    from the iterator.
+
+    :param mapFunc: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Futures. 
+        The callable must return a value. 
+    :param reductionOp: Any picklable callable object (function or class object with 
+        *__call__* method); this object will be called to execute the Futures. 
+        The callable must return a value. 
+    :param iterables: Iterable objects; each will be zipped to form an iterable
+        of arguments tuples that will be passed to the callable object as a
+        separate Future.
+    :param timeout: The maximum number of seconds to wait [To be done in future 
+        version of SCOOP]. If None, then there is no limit on the wait time.
+    :param kargs: A dictionary of additional keyword arguments that will be 
+        passed to the callable object. 
+        
+    :returns: A generator of map results, each corresponding to one map 
+        iteration."""
+    # TODO: make DRY with submit
+    launches = []
+    for args in zip(*iterables):
+        try:
+            child = Future(control.current.id, mapFunc, *args, **kargs)
+        except AttributeError:
+            raise NotStartedProperly("SCOOP was not started properly.\n"
+                                     "Be sure to start your program with the "
+                                     "'-m scoop' parameter. You can find further "
+                                     "information in the documentation.")
+        child = Future(control.current.id, mapFunc, *args, **kargs)
+        child.add_done_callback(partial(reduction, operation=reductionOp),
+                                inCallbackType=CallbackType.universal)
+        control.futureDict[control.current.id].children.append(child)
+        control.execQueue.append(child)
+        launches.append(child)
+    workerResults = {}
+    for future in sorted(_waitAll(*launches), key=lambda x: x.executor[1]):
+        workerResults[future.executor[0]] = future.result()
+    return reduce(reductionOp, workerResults.values())
 
 def submit(func, *args, **kargs):
     """Submit an independent parallel :class:`scoop._types.Future` that will 
@@ -288,6 +392,7 @@ def shutdown(wait=True):
     pass
 
 def _scan(func, args):
+    # TODO: What's this again?
     if len(args) == 2:
         return _join(submit(func, args[0], args[1]))
     elif len(args) == 3:

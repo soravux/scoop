@@ -16,11 +16,14 @@
 #
 from __future__ import print_function
 from collections import deque, defaultdict
-import greenlet
 import os
-from ._types import Future, FutureId, FutureQueue, CallbackType
 from functools import partial
+
+import greenlet
+
+from ._types import Future, FutureId, FutureQueue, CallbackType
 import scoop
+import reduction
 
 # Future currently running in greenlet
 current = None
@@ -70,7 +73,7 @@ def runFuture(future):
         debug_stats[future.id]['start_time'].append(time.time())
     future.waitTime = future.stopWatch.get()
     future.stopWatch.reset()
-    future.executor = scoop.worker
+    future.executor = (scoop.worker, next(reduction.sequence))
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
     except Exception as err:
