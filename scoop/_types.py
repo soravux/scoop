@@ -23,6 +23,12 @@ import scoop
 from scoop._comm import ZMQCommunicator, Shutdown
 
 
+class CallbackType:
+    """Enum des types de groupes."""
+    standard = "standard"
+    universal = "universal"
+
+
 # This class encapsulates a stopwatch that returns elapse time in seconds. 
 class StopWatch(object):
     # initialize stopwatch.
@@ -65,6 +71,7 @@ class NotStartedProperly(Exception):
 
     
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
+callbackEntry = namedtuple('callbackEntry', ['func', 'callbackType'])
 class Future(object):
     """This class encapsulates an independent future that can be executed in parallel.
     A future can spawn other parallel futures which themselves can recursively spawn
@@ -73,6 +80,7 @@ class Future(object):
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new Future."""
         self.id = FutureId(scoop.worker, next(Future.rank))
+        self.executor = None
         self.parentId = parentId          # id of parent
         self.index = None                 # parent index for result
         self.callable = callable          # callable object
@@ -171,7 +179,7 @@ class Future(object):
         :returns: The exception raised by the call."""
         return self.exceptionValue
 
-    def add_done_callback(self, callable):
+    def add_done_callback(self, callable, inCallbackType=CallbackType.standard):
         """Attach a callable to the future that will be called when the future
         is cancelled or finishes running. Callable will be called with the
         future as its only argument.
@@ -183,7 +191,7 @@ class Future(object):
 
         If the future has already completed or been cancelled then callable will
         be called immediately."""
-        self.callback.append(callable)
+        self.callback.append(callbackEntry(callable, inCallbackType))
 
     def _delete(self):
         # Do we need this?
@@ -289,11 +297,13 @@ class FutureQueue(object):
             if future.done():
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
                 scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
+                scoop._control.futureDict[future.id].executor = future.executor
                 for callback in scoop._control.futureDict[future.id].callback:
-                    try:
-                        callback(scoop._control.futureDict[future.id])
-                    except:
-                        pass
+                    if callback.callbackType != CallbackType.universal:
+                        try:
+                            callback(scoop._control.futureDict[future.id])
+                        except:
+                            pass
                 self.append(scoop._control.futureDict[future.id])
                 future._delete()
             elif future.id not in scoop._control.futureDict:
