@@ -130,7 +130,8 @@ def map(func, *iterables, **kargs):
 
 def mapScan(mapFunc, reductionOp, *iterables, **kargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
-    reduction function to its result.
+    reduction function to its result while keeping intermediate reduction
+    values.
 
     :param mapFunc: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
@@ -149,8 +150,6 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
     kargs.pop('timeout', None)
-    for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
-        yield future.resultValue
     launches = []
     for args in zip(*iterables):
         try:
