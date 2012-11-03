@@ -21,23 +21,23 @@ import time
 import zmq
 import sys
 
-REQUEST    = b"REQUEST"
-TASK       = b"TASK"
-REPLY      = b"REPLY"
-SHUTDOWN   = b"SHUTDOWN"
+REQUEST = b"REQUEST"
+TASK = b"TASK"
+REPLY = b"REPLY"
+SHUTDOWN = b"SHUTDOWN"
 
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False):
         """This function initializes a broker.
-    
-        :param tSock: Task Socket Address. 
+
+        :param tSock: Task Socket Address.
         Must contain protocol, address  and port information.
-        :param mSock: Meta Socket Address. 
+        :param mSock: Meta Socket Address.
         Must contain protocol, address and port information.
         """
         self.context = zmq.Context(1)
-        
+
         self.debug = debug
 
         # zmq Socket for the tasks, replies and request.
@@ -47,7 +47,7 @@ class Broker(object):
             self.tSockPort = self.taskSocket.bind_to_random_port(tSock[:-2])
         else:
             self.taskSocket.bind(tSock)
-        
+
         # zmq Socket for the shutdown TODO this is temporary
         self.infoSocket = self.context.socket(zmq.PUB)
         self.infoSockPort = 0
@@ -60,17 +60,17 @@ class Broker(object):
         self.poller = zmq.Poller()
         self.poller.register(self.taskSocket, zmq.POLLIN)
         self.poller.register(self.infoSocket, zmq.POLLIN)
-        
+
         # init statistics
         if self.debug:
             self.stats = []
-        
+
         # Two cases are important and must be optimised:
         # - The search of unassigned task
-        # - The search of available workers 
+        # - The search of available workers
         # These represent when the broker must deal the communications the
         # fastest. Other cases, the broker isn't flooded with urgent messages.
-        
+
         # Initializing the queue of workers and tasks
         # The busy workers variable will contain a dict (map) of workers: task
         self.available_workers = deque()
@@ -79,7 +79,8 @@ class Broker(object):
     def run(self):
         while True:
             socks = dict(self.poller.poll(-1))
-            if self.taskSocket in socks.keys() and socks[self.taskSocket] == zmq.POLLIN:
+            if self.taskSocket in socks.keys() and \
+                    socks[self.taskSocket] == zmq.POLLIN:
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
                 # Broker received a new task
@@ -92,7 +93,7 @@ class Broker(object):
                         self.unassigned_tasks.append(task)
                     else:
                         self.taskSocket.send_multipart([address, TASK, task])
-                        
+
                 # Broker received a request for task
                 elif msg_type == REQUEST:
                     address = msg[0]
@@ -102,20 +103,23 @@ class Broker(object):
                         self.available_workers.append(address)
                     else:
                         self.taskSocket.send_multipart([address, TASK, task])
-                
+
                 # Broker received an answer needing delivery
                 elif msg_type == REPLY:
                     address = msg[3]
                     task = msg[2]
                     self.taskSocket.send_multipart([address, REPLY, task])
-                   
+
                 elif msg_type == SHUTDOWN:
                     self.shutdown()
                     break
-                    
+
                 if self.debug:
-                    self.stats.append((time.time(), msg_type, len(self.unassigned_tasks), len(self.available_workers)))
-                    
+                    self.stats.append((time.time(),
+                                       msg_type,
+                                       len(self.unassigned_tasks),
+                                       len(self.available_workers)))
+
     def getPorts(self):
         return (self.tSockPort, self.infoSockPort)
 
@@ -134,10 +138,10 @@ class Broker(object):
         self.taskSocket.close()
         self.infoSocket.close()
         self.context.term()
-        
+
         # Write down statistics about this run if asked
         if self.debug:
-            import os, pickle
+            import os
             import pickle
             try:
                 os.mkdir('debug')

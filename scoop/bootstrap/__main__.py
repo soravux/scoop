@@ -81,9 +81,7 @@ def main():
     scoop.META_ADDRESS = args.metaAddress.encode()
     scoop.SIZE = args.size
     scoop.DEBUG = args.debug
-    scoop.IS_ORIGIN = args.origin
     scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
-    scoop.VALID = True
 
     profile = True if args.profile else False
 
