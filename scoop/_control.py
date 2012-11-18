@@ -23,7 +23,6 @@ import greenlet
 
 from ._types import Future, FutureId, FutureQueue, CallbackType
 import scoop
-import reduction
 
 # Future currently running in greenlet
 current = None
@@ -78,7 +77,9 @@ def runFuture(future):
         uniqueReference = [cb.groupID for cb in future.callback][0]
     except IndexError:
         uniqueReference = None
-    future.executor = (scoop.worker, next(reduction.sequence[uniqueReference]), uniqueReference)
+    future.executor = (scoop.worker,
+                       next(scoop.reduction.sequence[uniqueReference]),
+                       uniqueReference)
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
     except Exception as err:

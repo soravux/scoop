@@ -18,7 +18,7 @@ from __future__ import print_function
 
 import os
 from collections import namedtuple
-from functools import partial
+from functools import partial, reduce
 import itertools
 
 import scoop
