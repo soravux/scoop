@@ -147,7 +147,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
     :param timeout: The maximum number of seconds to wait [To be done in future 
         version of SCOOP]. If None, then there is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
-        passed to the callable object.
+        passed to the mapFunc callable object.
         
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
@@ -190,7 +190,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
     :param timeout: The maximum number of seconds to wait [To be done in future 
         version of SCOOP]. If None, then there is no limit on the wait time.
     :param kargs: A dictionary of additional keyword arguments that will be 
-        passed to the callable object.
+        passed to the mapFunc callable object.
 
     :returns: The final return value of the reduction function applied to every
               mapped data."""
@@ -380,14 +380,3 @@ def shutdown(wait=True):
     
     :param wait: Unapplied parameter."""
     pass
-
-def _scan(func, args):
-    # TODO: What's this again?
-    if len(args) == 2:
-        return _join(submit(func, args[0], args[1]))
-    elif len(args) == 3:
-        return _join(submit(func, args[2], _join(submit(func, args[0],
-                                                args[1]))))
-    else:
-        return _join(submit(func, _scan(func, args[0:len(args)//2]),
-            _scan(func, args[len(args)//2:len(args) + 1])))
