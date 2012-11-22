@@ -50,5 +50,5 @@ scoop.BROKER_ADDRESS    String value. Address of the socket communicating work i
 scoop.META_ADDRESS      String value. Address of the socket communicating meta information.
 scoop.SIZE              Integer value. Size of the current worker pool.
 scoop.DEBUG             Boolean value. True if debug mode is enabled, false otherwise.
-scoop.worker            2-tuple. Unique identifier of the current instance on the pool.
+scoop.worker            2-tuple. Unique identifier of the current instance in the pool.
 ====================    ====================================================================

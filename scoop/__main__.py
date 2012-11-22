@@ -36,7 +36,7 @@ except AttributeError:
 class ScoopApp(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
             executable, arguments, tunnel, log, path, debug, nice, env, profile,
-            python_path):
+            pythonPath):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
                                                "specify one host.")
@@ -46,7 +46,7 @@ class ScoopApp(object):
 
         # launch information
         self.python_executable = python_executable[0]
-        self.pythonpath = python_path
+        self.pythonpath = pythonPath
         self.n = n
         self.tunnel = tunnel
         self.executable = executable[0]
@@ -202,7 +202,7 @@ class ScoopApp(object):
         else:
             brokerString = ("{pythonExec} -m scoop.broker.__main__ --tPort {brokerPort}"
                             " --mPort {infoPort}")
-            for i in range(5000,10000,2):
+            for i in range(5000, 10000, 2):
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 broker = subprocess.Popen(ssh_command + [self.brokerHostname] +
                         [brokerString.format(brokerPort = i, infoPort =i+1,
