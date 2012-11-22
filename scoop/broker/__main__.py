@@ -20,13 +20,18 @@ from scoop.broker.broker import Broker
 import argparse
 
 
-if __name__=="__main__":
-    parser = argparse.ArgumentParser(description='Starts the broker on the current computer')
-    parser.add_argument('--tPort', help='The port of the task socket',
-                        default = "*")
-    parser.add_argument('--mPort', help="The port of the info socket",
-                        default = "*")
-    parser.add_argument('--debug', help="Activate the debug", action='store_true')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Starts the broker on the"
+                                                 "current computer")
+    parser.add_argument('--tPort',
+                        help='The port of the task socket',
+                        default="*")
+    parser.add_argument('--mPort',
+                        help="The port of the info socket",
+                        default="*")
+    parser.add_argument('--debug',
+                        help="Activate the debug",
+                        action='store_true')
 
     args = parser.parse_args()
     thisBroker = Broker("tcp://*:" + args.tPort,
