@@ -85,9 +85,6 @@ class ZMQCommunicator(object):
                                     pickle.dumps(scoop.worker,
                                                  pickle.HIGHEST_PROTOCOL)])
 
-    #def recvVariable(self):
-        #manager.Manager.element()
-
     def sendRequest(self):
         self.socket.send(b"REQUEST")
 
