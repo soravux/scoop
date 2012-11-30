@@ -200,13 +200,18 @@ class ScoopApp(object):
             logging.debug("Local broker launched on ports {0}, {1}"
                           ".".format(self.brokerPort, self.infoPort))
         else:
+            # TODO: Fusion with other remote launching
+            # TODO: Populate self.createdRemoteConn
             brokerString = ("{pythonExec} -m scoop.broker.__main__ --tPort {brokerPort}"
                             " --mPort {infoPort}")
             for i in range(5000, 10000, 2):
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                broker = subprocess.Popen(ssh_command + [self.brokerHostname] +
-                        [brokerString.format(brokerPort = i, infoPort =i+1,
-                            pythonExec = self.python_executable)])
+                broker = subprocess.Popen(ssh_command
+                    + [self.brokerHostname]
+                    + [brokerString.format(brokerPort=i,
+                                           infoPort=i+1,
+                                           pythonExec=self.python_executable)]
+                )
                 if broker.poll() is not None:
                     continue
                 else:
@@ -231,11 +236,14 @@ class ScoopApp(object):
                     "local" if hostname in utils.localHostnames else "remote",
                     " origin" if self.workersLeft == 1 else "",
                     self.workersLeft,
-                    hostname))
+                    hostname,
+                    )
+                )
                 if hostname in utils.localHostnames:
                     # Launching the workers
                     self.createdSubprocesses.append(
-                        subprocess.Popen(self.launchLocal()))
+                        subprocess.Popen(self.launchLocal())
+                    )
                 else:
                     # If the host is remote, connect with ssh
                     command.append(self.launchForeign())
@@ -248,10 +256,13 @@ class ScoopApp(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.brokerPort),
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
-                    hostname,
-                    "bash -c 'ps -o pgid= -p $BASHPID && {0} &'".format(" & ".join(command))],
-                                         stdin=subprocess.PIPE,
-                                         stdout=subprocess.PIPE)
+                        hostname,
+                        "bash -c 'ps -o pgid= -p $BASHPID && echo Poulet && {0} &'".format(
+                            " & ".join(command))
+                    ],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                )
                 self.createdRemoteConn[shell] = [hostname]
                 if self.workersLeft == 0:
                     rootProcess = shell
@@ -275,12 +286,16 @@ class ScoopApp(object):
         if rootProcess == "Local":
             self.errors = self.createdSubprocesses[-1].wait()
         else:
-            data = rootProcess.stdout.read(1)
-            while len(data) > 0:
-                sys.stdout.write(data)
-                data = rootProcess.stdout.read(1)
-            # TODO: self.errors
-        # TODO: print others than self
+            # Process stdout first, then the whole stderr at the end
+            for stream in [rootProcess.stdout, rootProcess.stderr]:
+                data = stream.read(1)
+                while len(data) > 0:
+                    # Should not rely on utf-8 codec
+                    # TODO: write stderr in sys.stderr
+                    sys.stdout.write(data.decode("utf-8"))
+                    sys.stdout.flush()
+                    data = stream.read(1)
+        # TODO: print others than root
 
     def close(self):
         # Ensure everything is cleaned up on exit
@@ -417,6 +432,8 @@ def main():
                         args.pythonpath[0])
     try:
         rootTaskExitCode = scoopApp.run()
+    except Exception as e:
+        print('Error while launching SCOOP subprocesses: {0}'.format(e))
     finally:
         scoopApp.close()
     exit(rootTaskExitCode)

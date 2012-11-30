@@ -98,7 +98,17 @@ def main():
 
     # import the user module into the global dictionary
     # equivalent to from {user_module} import *
-    user_module = __import__(os.path.basename(executable)[:-3])
+    try:
+        user_module = __import__(os.path.basename(executable)[:-3])
+    except ImportError as e:
+        # Could not find 
+        sys.stderr.write('{0}\nIn path: {1}\n'.format(
+            str(e),
+            sys.path[-1],
+            )
+        )
+        sys.stderr.flush()
+        sys.exit(-1)
     try:
         attrlist = user_module.__all__
     except AttributeError:
@@ -106,21 +116,28 @@ def main():
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
 
+    # Start the user program
+    from scoop import futures
     if not profile:
-        # Start the user program
-        from scoop import futures
-        futures._startup(functools.partial(runpy.run_path,
-                                           executable,
-                                           init_globals=globals(),
-                                           run_name="__main__"))
+        futures._startup(
+            functools.partial(
+                runpy.run_path,
+                executable,
+                init_globals=globals(),
+                run_name="__main__"
+            )
+        )
     else:
-        from scoop import futures
         import cProfile
-        cProfile.run("""futures._startup(functools.partial(runpy.run_path,
-                        "{0}",
-                        init_globals=globals(),
-                        run_name="__main__"))""".format(executable),
-                     scoop.WORKER_NAME)
+        cProfile.run("""futures._startup(
+                functools.partial(
+                    runpy.run_path,
+                   "{0}",
+                   init_globals=globals(),
+                   run_name="__main__",
+                )
+            )""".format(executable),
+            scoop.WORKER_NAME)
 
 if __name__ == "__main__":
     main()
