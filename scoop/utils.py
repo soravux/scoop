@@ -38,7 +38,7 @@ def brokerHostname(hosts):
 
 
 def groupTogether(inList):
-    # TODO: This algorithm is not efficient
+    # TODO: This algorithm is not efficient, use itertools.groupby()
     retVal = []
     alreadyDone = []
     for index, element in enumerate(inList):

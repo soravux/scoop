@@ -15,16 +15,17 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
 from collections import deque
 import time
 import zmq
 import sys
 
+INIT = b"INIT"
 REQUEST = b"REQUEST"
 TASK = b"TASK"
 REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
+VARIABLE = b"VARIABLE"
 
 
 class Broker(object):
@@ -73,8 +74,10 @@ class Broker(object):
 
         # Initializing the queue of workers and tasks
         # The busy workers variable will contain a dict (map) of workers: task
-        self.available_workers = deque()
-        self.unassigned_tasks = deque()
+        self.availableWorkers = deque()
+        self.unassignedTasks = deque()
+        # Shared variables containing {workerID:{varName:varVal},}
+        self.sharedVariables = {}
 
     def run(self):
         while True:
@@ -83,32 +86,39 @@ class Broker(object):
                     socks[self.taskSocket] == zmq.POLLIN:
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
-                # Broker received a new task
+
+                # New task inbound
                 if msg_type == TASK:
                     returnAddress = msg[0]
                     task = msg[2]
                     try:
-                        address = self.available_workers.popleft()
+                        address = self.availableWorkers.popleft()
                     except IndexError:
-                        self.unassigned_tasks.append(task)
+                        self.unassignedTasks.append(task)
                     else:
                         self.taskSocket.send_multipart([address, TASK, task])
 
-                # Broker received a request for task
+                # Request for task
                 elif msg_type == REQUEST:
                     address = msg[0]
                     try:
-                        task = self.unassigned_tasks.pop()
+                        task = self.unassignedTasks.pop()
                     except IndexError:
-                        self.available_workers.append(address)
+                        self.availableWorkers.append(address)
                     else:
                         self.taskSocket.send_multipart([address, TASK, task])
 
-                # Broker received an answer needing delivery
+                # Answer needing delivery
                 elif msg_type == REPLY:
                     address = msg[3]
                     task = msg[2]
                     self.taskSocket.send_multipart([address, REPLY, task])
+
+                # Shared variable to distribute
+                elif msg_type == VARIABLE:
+                    address = msg[3]
+                    variable = msg[2]
+                    self.infoSocket.send_multipart([VARIABLE, variable, address])
 
                 elif msg_type == SHUTDOWN:
                     self.shutdown()
@@ -117,8 +127,8 @@ class Broker(object):
                 if self.debug:
                     self.stats.append((time.time(),
                                        msg_type,
-                                       len(self.unassigned_tasks),
-                                       len(self.available_workers)))
+                                       len(self.unassignedTasks),
+                                       len(self.availableWorkers)))
 
     def getPorts(self):
         return (self.tSockPort, self.infoSockPort)

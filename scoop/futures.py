@@ -57,7 +57,6 @@ def _startup(rootFuture, *args, **kargs):
         result = _controller.switch(rootFuture, *args, **kargs)
     except scoop._comm.Shutdown:
         result = None
-        # close sockets:
         control.execQueue.shutdown()
     if scoop.DEBUG:
         import pickle

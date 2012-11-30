@@ -15,6 +15,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
+from . import manager
 import zmq
 import scoop
 import time
@@ -39,17 +40,24 @@ class ZMQCommunicator(object):
 
         # socket for the shutdown signal
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
-        if not scoop.IS_ORIGIN:
-            self.infoSocket.connect(scoop.META_ADDRESS)
-            self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
-            self.poller.register(self.infoSocket, zmq.POLLIN)
+        self.infoSocket.connect(scoop.META_ADDRESS)
+        self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
+        self.poller.register(self.infoSocket, zmq.POLLIN)
+
+        # TODO: Send an INIT to get all previously set variables
 
     def _poll(self, timeout):
         socks = dict(self.poller.poll(timeout))
-        if self.infoSocket in socks:
-            raise Shutdown("Closing the communication")
-        else:
-            return self.socket in socks
+        while self.infoSocket in socks:
+            msg = self.infoSocket.recv_multipart()
+            if msg[0] == b"SHUTDOWN" and scoop.IS_ORIGIN is False:
+                raise Shutdown("Shutdown received")
+            elif msg[0] == b"VARIABLE":
+                key = pickle.loads(msg[2])
+                value = pickle.loads(msg[1])
+                manager.Manager.elements[key] = value
+            socks = dict(self.poller.poll(timeout))
+        return self.socket in socks
 
     def _recv(self):
         msg = self.socket.recv_multipart()
@@ -69,6 +77,16 @@ class ZMQCommunicator(object):
                                     pickle.dumps(future,
                                                  pickle.HIGHEST_PROTOCOL),
                                     future.id.worker[0]])
+
+    def sendVariable(self, element):
+        self.socket.send_multipart([b"VARIABLE",
+                                    pickle.dumps(element,
+                                                 pickle.HIGHEST_PROTOCOL),
+                                    pickle.dumps(scoop.worker,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
+    #def recvVariable(self):
+        #manager.Manager.element()
 
     def sendRequest(self):
         self.socket.send(b"REQUEST")
