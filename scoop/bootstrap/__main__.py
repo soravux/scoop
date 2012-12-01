@@ -15,8 +15,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-
-from __future__ import print_function
 import sys
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
@@ -65,6 +63,9 @@ def makeParser():
                         nargs=argparse.REMAINDER,
                         help='The arguments to pass to the executable',
                         default=[])
+    parser.add_argument('--echoGroup',
+                        help="Echo the process Group ID before launch",
+                        action='store_true')
     return parser
 
 
@@ -95,6 +96,11 @@ def main():
     # Add the user arguments to argv
     sys.argv = sys.argv[:1]
     sys.argv += args.args
+
+    # Show the current process Group ID if asked
+    if args.echoGroup:
+        sys.stdout.write(str(os.getpgrp()) + "\n")
+        sys.stdout.flush()
 
     # import the user module into the global dictionary
     # equivalent to from {user_module} import *

@@ -112,11 +112,14 @@ class ScoopApp(object):
     def launchForeign(self):
         pythonpath = ("export PYTHONPATH={0} "
                       "&&".format(self.pythonpath) if self.pythonpath else '')
-        return ("{pythonpath} cd {remotePath} && {nice} {pythonExecutable} -m "
-                "scoop.bootstrap.__main__ --workerName worker{workersLeft} "
-                "--brokerName broker --brokerAddress tcp://{brokerHostname}:"
-                "{brokerPort} --metaAddress tcp://{brokerHostname}:"
-                "{infoPort} --size {n} {origin} {debug} {profile} {executable} "
+        return ("{pythonpath} cd {remotePath} && {nice} {pythonExecutable} "
+                "-m scoop.bootstrap.__main__ "
+                "--echoGroup "
+                "--workerName worker{workersLeft} "
+                "--brokerName broker "
+                "--brokerAddress tcp://{brokerHostname}:{brokerPort} "
+                "--metaAddress tcp://{brokerHostname}:{infoPort} "
+                "--size {n} {origin} {debug} {profile} {executable} "
                 "{arguments}").format(remotePath = self.path, 
                     pythonpath = pythonpath,
                     nice='nice -n {0}'.format(self.nice)
@@ -263,8 +266,7 @@ class ScoopApp(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
                         hostname,
-                        "bash -c 'ps -o pgid= -p $BASHPID && {0} &'".format(
-                            " & ".join(command))
+                        " ".join(command)
                     ],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
@@ -286,7 +288,10 @@ class ScoopApp(object):
 
         # Get group id from remote connections
         for thisRemote in self.createdRemoteConn.keys():
-            GID = thisRemote.stdout.readline().strip().decode("utf-8")
+            try:
+                GID = int(thisRemote.stdout.readline().strip())
+            except ValueError:
+                continue
             self.createdRemoteConn[thisRemote].append(GID)
 
         # Wait for the root program
