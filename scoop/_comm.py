@@ -14,7 +14,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
 from . import manager
 import zmq
 import scoop
@@ -66,7 +65,7 @@ class ZMQCommunicator(object):
             elif msg[0] == b"VARIABLE":
                 key = pickle.loads(msg[2])
                 value = pickle.loads(msg[1])
-                manager.Manager.elements.get(key, {}).update(value)
+                manager.Manager.elements[key].update(value)
             socks = dict(self.poller.poll(0))
 
     def recvFuture(self):

@@ -26,7 +26,7 @@ from time import time
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
 def test(tries):
-    print(manager.Manager.elements)
+    print("Data in shared variables: ", manager.Manager.elements)
     return sum(hypot(random(), random()) < 1 for _ in range(tries))
 
 
@@ -52,4 +52,7 @@ if __name__ == "__main__":
                           6: 'Test6',
                           7: 'Test7',
                          }
+    myManager['secondVar'] = "Hello World!"
+    # TODO: This could be interesting
+    #myManager['remoteExec'] = test
     dataPi = calcPi(10, 5000)
