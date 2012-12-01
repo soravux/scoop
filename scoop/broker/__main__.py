@@ -15,7 +15,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
 from scoop.broker.broker import Broker
 import argparse
 
@@ -32,8 +31,17 @@ if __name__ == "__main__":
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
-
+    parser.add_argument('--echoGroup',
+                        help="Echo the process Group ID before launch",
+                        action='store_true')
     args = parser.parse_args()
+
+    if args.echoGroup:
+        import os
+        import sys
+        sys.stdout.write(str(os.getpgrp() + "\n"))
+        sys.stdout.flush()
+
     thisBroker = Broker("tcp://*:" + args.tPort,
                         "tcp://*:" + args.mPort,
                         debug=args.debug)
