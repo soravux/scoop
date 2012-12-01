@@ -44,10 +44,22 @@ class ZMQCommunicator(object):
         self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
         self.poller.register(self.infoSocket, zmq.POLLIN)
 
-        # TODO: Send an INIT to get all previously set variables
+        # Send an INIT to get all previously set variables
+        self.socket.send(b"INIT")
+        manager.Manager.elements = pickle.loads(self.socket.recv())
+        print(manager.Manager.elements)
 
     def _poll(self, timeout):
+        self.pumpInfoSocket()
         socks = dict(self.poller.poll(timeout))
+        return self.socket in socks
+
+    def _recv(self):
+        msg = self.socket.recv_multipart()
+        return pickle.loads(msg[1])
+
+    def pumpInfoSocket(self):
+        socks = dict(self.poller.poll(0))
         while self.infoSocket in socks:
             msg = self.infoSocket.recv_multipart()
             if msg[0] == b"SHUTDOWN" and scoop.IS_ORIGIN is False:
@@ -55,13 +67,8 @@ class ZMQCommunicator(object):
             elif msg[0] == b"VARIABLE":
                 key = pickle.loads(msg[2])
                 value = pickle.loads(msg[1])
-                manager.Manager.elements[key] = value
-            socks = dict(self.poller.poll(timeout))
-        return self.socket in socks
-
-    def _recv(self):
-        msg = self.socket.recv_multipart()
-        return pickle.loads(msg[1])
+                manager.Manager.elements.get(key, {}).update(value)
+            socks = dict(self.poller.poll(0))
 
     def recvFuture(self):
         while self._poll(0):

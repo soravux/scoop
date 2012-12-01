@@ -19,6 +19,10 @@ from collections import deque
 import time
 import zmq
 import sys
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 INIT = b"INIT"
 REQUEST = b"REQUEST"
@@ -119,6 +123,19 @@ class Broker(object):
                     address = msg[3]
                     variable = msg[2]
                     self.infoSocket.send_multipart([VARIABLE, variable, address])
+                    self.sharedVariables.get(
+                        address, {}
+                    ).update(
+                        pickle.loads(variable)
+                    )
+
+                # Initialize the variables of a new worker
+                elif msg_type == INIT:
+                    address = msg[0]
+                    self.taskSocket.send_multipart([
+                        address,
+                        pickle.dumps(self.sharedVariables),
+                    ])
 
                 elif msg_type == SHUTDOWN:
                     self.shutdown()
