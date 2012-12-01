@@ -47,7 +47,6 @@ class ZMQCommunicator(object):
         # Send an INIT to get all previously set variables
         self.socket.send(b"INIT")
         manager.Manager.elements = pickle.loads(self.socket.recv())
-        print(manager.Manager.elements)
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
