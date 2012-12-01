@@ -236,7 +236,7 @@ hostfile or in your hostlist, you can use the :option:`-n` parameter.
     If :option:`-n` if less than the sum of workers specified in the hostfile
     or hostlist, the workers are launched in batch by host until the parameter
     is reached.
-    This behaviour may ignore latters hosts.
+    This behavior may ignore latters hosts.
 
     If :option:`-n` if more than the sum of workers specified in the hostfile
     or hostlist, the remaining workers are distributed using a Round-Robin
