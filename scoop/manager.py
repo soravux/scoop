@@ -23,9 +23,12 @@ class Manager(object):
     elements = {}
 
     def __getitem__(self, key):
+        # Enforce retrieval of currently awaiting variables
+        _control.execQueue.socket.pumpInfoSocket()
         return Manager.elements.get(key)
 
     def __setitem__(self, key, value):
         # TODO: Import that elsewhere
         from . import _control
+        # if value == None, remove from dictionary
         _control.execQueue.socket.sendVariable({key: value})
