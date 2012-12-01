@@ -20,7 +20,8 @@
 class Manager(object):
     """Variable passing interface"""
     # Shared variables containing {workerID:{varName:varVal},}
-    elements = {}
+    # Will be initialized by the broker
+    elements = None
 
     def __getitem__(self, key):
         # Enforce retrieval of currently awaiting variables

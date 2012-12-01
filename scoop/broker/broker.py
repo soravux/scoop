@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from collections import deque
+from collections import deque, defaultdict
 import time
 import zmq
 import sys
@@ -81,15 +81,22 @@ class Broker(object):
         self.availableWorkers = deque()
         self.unassignedTasks = deque()
         # Shared variables containing {workerID:{varName:varVal},}
-        self.sharedVariables = {}
+        self.sharedVariables = defaultdict(dict)
 
     def run(self):
         while True:
             socks = dict(self.poller.poll(-1))
-            if self.taskSocket in socks.keys() and \
-                    socks[self.taskSocket] == zmq.POLLIN:
+            if (self.taskSocket in socks.keys()
+                    and socks[self.taskSocket] == zmq.POLLIN):
+
                 msg = self.taskSocket.recv_multipart()
                 msg_type = msg[1]
+
+                if self.debug:
+                    self.stats.append((time.time(),
+                                       msg_type,
+                                       len(self.unassignedTasks),
+                                       len(self.availableWorkers)))
 
                 # New task inbound
                 if msg_type == TASK:
@@ -122,12 +129,16 @@ class Broker(object):
                 elif msg_type == VARIABLE:
                     address = msg[3]
                     variable = msg[2]
-                    self.infoSocket.send_multipart([VARIABLE, variable, address])
-                    self.sharedVariables.get(
-                        address, {}
-                    ).update(
-                        pickle.loads(variable)
-                    )
+                    try:
+                        self.sharedVariables[address].update(
+                            pickle.loads(variable)
+                        )
+                    except PickleError:
+                        # Just forget the bad variable
+                        continue
+                    self.infoSocket.send_multipart([VARIABLE,
+                                                    variable,
+                                                    address])
 
                 # Initialize the variables of a new worker
                 elif msg_type == INIT:
@@ -140,12 +151,6 @@ class Broker(object):
                 elif msg_type == SHUTDOWN:
                     self.shutdown()
                     break
-
-                if self.debug:
-                    self.stats.append((time.time(),
-                                       msg_type,
-                                       len(self.unassignedTasks),
-                                       len(self.availableWorkers)))
 
     def getPorts(self):
         return (self.tSockPort, self.infoSockPort)
