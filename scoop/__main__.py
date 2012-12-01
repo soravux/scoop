@@ -315,6 +315,7 @@ class ScoopApp(object):
                     sys.stdout.write(data.decode("utf-8"))
                     sys.stdout.flush()
                     data = stream.read(1)
+            self.errors = rootProcess.wait()
         # TODO: print others than root
 
     def close(self):
