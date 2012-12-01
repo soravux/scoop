@@ -201,23 +201,29 @@ class ScoopApp(object):
                           ".".format(self.brokerPort, self.infoPort))
         else:
             # TODO: Fusion with other remote launching
-            # TODO: Populate self.createdRemoteConn
-            brokerString = ("{pythonExec} -m scoop.broker.__main__ --tPort {brokerPort}"
-                            " --mPort {infoPort}")
+            brokerString = ("{pythonExec} -m scoop.broker.__main__ "
+                            "--tPort {brokerPort} "
+                            "--mPort {infoPort} "
+                            "--echoGroup")
             for i in range(5000, 10000, 2):
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 broker = subprocess.Popen(ssh_command
                     + [self.brokerHostname]
                     + [brokerString.format(brokerPort=i,
                                            infoPort=i+1,
-                                           pythonExec=self.python_executable)]
+                                           pythonExec=self.python_executable)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
                 )
+                # TODO: This condition is not doing what it's supposed
                 if broker.poll() is not None:
                     continue
                 else:
                     self.brokerPort, self.infoPort = i, i+1
                     self.createdSubprocesses.append(broker)
+                    self.createdRemoteConn[broker] = [self.brokerHostname]
                     break
+
             logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
                           ".".format(self.brokerPort, self.infoPort,
                               self.brokerHostname))
@@ -257,11 +263,12 @@ class ScoopApp(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
                         hostname,
-                        "bash -c 'ps -o pgid= -p $BASHPID && echo Poulet && {0} &'".format(
+                        "bash -c 'ps -o pgid= -p $BASHPID && {0} &'".format(
                             " & ".join(command))
                     ],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                 )
                 self.createdRemoteConn[shell] = [hostname]
                 if self.workersLeft == 0:
@@ -279,7 +286,7 @@ class ScoopApp(object):
 
         # Get group id from remote connections
         for thisRemote in self.createdRemoteConn.keys():
-            GID = thisRemote.stdout.readline().strip()
+            GID = thisRemote.stdout.readline().strip().decode("utf-8")
             self.createdRemoteConn[thisRemote].append(GID)
 
         # Wait for the root program
@@ -316,7 +323,8 @@ class ScoopApp(object):
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 subprocess.Popen(ssh_command + [
                     data[0],
-                    "bash -c 'kill -9 -{0} &>/dev/null'".format(data[1])]).wait()
+                    "bash -c 'kill -9 -{0} &>/dev/null'".format(data[1])]
+                ).wait()
             else:
                 logging.info('Zombie process left!')
 
@@ -433,7 +441,7 @@ def main():
     try:
         rootTaskExitCode = scoopApp.run()
     except Exception as e:
-        print('Error while launching SCOOP subprocesses: {0}'.format(e))
+        print('Error while launching SCOOP subprocesses: {0}'.format(str(e)))
     finally:
         scoopApp.close()
     exit(rootTaskExitCode)

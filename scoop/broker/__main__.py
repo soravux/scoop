@@ -39,7 +39,7 @@ if __name__ == "__main__":
     if args.echoGroup:
         import os
         import sys
-        sys.stdout.write(str(os.getpgrp() + "\n"))
+        sys.stdout.write(str(os.getpgrp()) + "\n")
         sys.stdout.flush()
 
     thisBroker = Broker("tcp://*:" + args.tPort,
