@@ -337,10 +337,10 @@ class ScoopApp(object):
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 subprocess.Popen(ssh_command + [
                     data[0],
-                    "bash -c 'kill -9 -{0} &>/dev/null'".format(data[1])]
+                    "kill -9 -{0} &>/dev/null".format(data[1])]
                 ).wait()
             else:
-                logging.info('Zombie process left!')
+                logging.info('Possibly Zombie(s) process(es) left!')
 
         logging.info('Finished destroying spawned subprocesses.')
         exit(self.errors)
