@@ -109,32 +109,36 @@ class ScoopApp(object):
         c.extend(self.args)
         return c
 
-    def launchForeign(self):
+    def launchForeign(self, echoGroup=False, brokerIsLocalhost=False):
         pythonpath = ("export PYTHONPATH={0} "
                       "&&".format(self.pythonpath) if self.pythonpath else '')
+        broker = "127.0.0.1" if brokerIsLocalhost else self.brokerHostname
         return ("{pythonpath} cd {remotePath} && {nice} {pythonExecutable} "
                 "-m scoop.bootstrap.__main__ "
-                "--echoGroup "
+                "{echoGroup}"
                 "--workerName worker{workersLeft} "
                 "--brokerName broker "
                 "--brokerAddress tcp://{brokerHostname}:{brokerPort} "
                 "--metaAddress tcp://{brokerHostname}:{infoPort} "
                 "--size {n} {origin} {debug} {profile} {executable} "
-                "{arguments}").format(remotePath = self.path, 
-                    pythonpath = pythonpath,
+                "{arguments}").format(
+                    remotePath=self.path, 
+                    pythonpath=pythonpath,
                     nice='nice -n {0}'.format(self.nice)
                     if self.nice is not None else '',
                     origin='--origin' if self.workersLeft == 1 else '',
                     debug='--debug' if self.debug else '',
                     profile='--profile' if self.profile else '',
                     pythonExecutable=self.python_executable,
+                    echoGroup='--echoGroup ' if echoGroup else '',
                     workersLeft=self.workersLeft,
-                    brokerHostname=self.brokerHostname,
+                    brokerHostname=broker,
                     brokerPort=self.brokerPort,
                     infoPort=self.infoPort,
                     n=self.n,
                     executable=self.executable,
-                    arguments=" ".join(self.args))
+                    arguments=" ".join(self.args)
+                )
 
     def divideHosts(self, hosts):
         """Divide the workers accross hosts."""
@@ -144,7 +148,7 @@ class ScoopApp(object):
         if self.n > maximumWorkers:
             logging.info("The -n flag is set at {0} workers, which is higher "
                          "than the maximum number of workers ({1}) specified "
-                         "by the hostfile.\nThis behaviour may degrade the "
+                         "by the hostfile.\nThis behavior may degrade the "
                          "performances of scoop for cpu-bound operations."
                          "".format(self.n, maximumWorkers))
             index = 0
@@ -255,7 +259,11 @@ class ScoopApp(object):
                     )
                 else:
                     # If the host is remote, connect with ssh
-                    command.append(self.launchForeign())
+                    command.append(self.launchForeign(
+                        echoGroup=n == 0,
+                        brokerIsLocalhost=hostname == self.brokerHostname,
+                        )
+                    )
                 self.workersLeft -= 1
             # Launch every remote hosts in the same time
             if len(command) != 0:
@@ -266,7 +274,7 @@ class ScoopApp(object):
                         '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
                 shell = subprocess.Popen(ssh_command + [
                         hostname,
-                        " ".join(command)
+                        " & ".join(command)
                     ],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
