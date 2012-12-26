@@ -14,7 +14,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from . import manager
+from . import shared
 import zmq
 import scoop
 import time
@@ -45,7 +45,7 @@ class ZMQCommunicator(object):
 
         # Send an INIT to get all previously set variables
         self.socket.send(b"INIT")
-        manager.Manager.elements = pickle.loads(self.socket.recv())
+        shared.elements = pickle.loads(self.socket.recv())
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
@@ -65,7 +65,7 @@ class ZMQCommunicator(object):
             elif msg[0] == b"VARIABLE":
                 key = pickle.loads(msg[2])
                 value = pickle.loads(msg[1])
-                manager.Manager.elements[key].update(value)
+                shared.elements[key].update(value)
             socks = dict(self.poller.poll(0))
 
     def recvFuture(self):
@@ -84,6 +84,7 @@ class ZMQCommunicator(object):
                                     future.id.worker[0]])
 
     def sendVariable(self, element):
+        # TODO: try, if not working, send code, if not import, if not copy.
         self.socket.send_multipart([b"VARIABLE",
                                     pickle.dumps(element,
                                                  pickle.HIGHEST_PROTOCOL),
