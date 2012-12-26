@@ -16,6 +16,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from scoop.broker.broker import Broker
+from signal import signal, SIGTERM, SIGKILL, SIGINT
 import argparse
 
 
@@ -45,6 +46,12 @@ if __name__ == "__main__":
     thisBroker = Broker("tcp://*:" + args.tPort,
                         "tcp://*:" + args.mPort,
                         debug=args.debug)
+
+    signal(SIGTERM,
+           lambda signum, stack_frame: thisBroker.shutdown())
+    signal(SIGINT,
+           lambda signum, stack_frame: thisBroker.shutdown())
+
     try:
         thisBroker.run()
     finally:
