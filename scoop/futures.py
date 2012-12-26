@@ -169,8 +169,11 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
         control.execQueue.append(child)
         launches.append(child)
     workerResults = {}
+    # Execute the task
     for future in _waitAll(*launches):
         workerResults.setdefault(future.executor, []).append(future.result())
+    # Cleanup phase
+    control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return workerResults
 
 def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
@@ -213,8 +216,11 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
         control.execQueue.append(child)
         launches.append(child)
     workerResults = {}
+    # Execute the task
     for future in sorted(_waitAll(*launches), key=lambda x: x.executor[1]):
         workerResults[(future.executor[0], future.executor[2])] = future.result()
+    # Cleanup phase
+    control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return reduce(reductionOp, workerResults.values())
 
 def submit(func, *args, **kargs):

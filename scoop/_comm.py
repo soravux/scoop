@@ -66,6 +66,8 @@ class ZMQCommunicator(object):
                 key = pickle.loads(msg[2])
                 value = pickle.loads(msg[1])
                 shared.elements[key].update(value)
+            elif msg[0] == b"ERASEBUFFER":
+                scoop.reduction.cleanGroupID(pickle.loads(msg[1]))
             socks = dict(self.poller.poll(0))
 
     def recvFuture(self):
@@ -89,6 +91,11 @@ class ZMQCommunicator(object):
                                     pickle.dumps(element,
                                                  pickle.HIGHEST_PROTOCOL),
                                     pickle.dumps(scoop.worker,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
+    def eraseBuffer(self, groupID):
+        self.socket.send_multipart([b"ERASEBUFFER",
+                                    pickle.dumps(groupID,
                                                  pickle.HIGHEST_PROTOCOL)])
 
     def sendRequest(self):
