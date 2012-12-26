@@ -30,6 +30,7 @@ TASK = b"TASK"
 REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
+ERASEBUFFER = b"ERASEBUFFER"
 
 
 class Broker(object):
@@ -147,6 +148,13 @@ class Broker(object):
                         address,
                         pickle.dumps(self.sharedVariables),
                     ])
+
+                # Clean the buffers when a coherent (mapReduce/mapScan)
+                # operation terminates
+                elif msg_type == ERASEBUFFER:
+                    groupID = msg[2]
+                    self.infoSocket.send_multipart([ERASEBUFFER,
+                                                    groupID])
 
                 elif msg_type == SHUTDOWN:
                     self.shutdown()

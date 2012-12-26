@@ -21,7 +21,7 @@ if __name__ == '__main__':
     )
 
     serialTime = time.time()
-    res = sum(map(abc, list([a] * a for a in range(1000))))
+    res = sum(map(manipulateData, list([a] * a for a in range(1000))))
     serialTime = time.time() - serialTime
     print("Executed serially in: {0:.3f}s with result: {1}".format(
         serialTime,

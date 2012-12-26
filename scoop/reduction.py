@@ -33,3 +33,10 @@ def reduction(inFuture, operation):
     total[uniqueReference[0]] = operation(inFuture.result(),
                                           total.get(uniqueReference[0], 0))
     inFuture.resultValue = total[uniqueReference[0]]
+
+def cleanGroupID(inGroupID):
+    global total
+    try:
+        del total[inGroupID]
+    except KeyError:
+        pass
