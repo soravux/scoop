@@ -20,13 +20,13 @@ Example of manager use
 
 from math import hypot
 from random import random
-from scoop import futures, manager
+from scoop import futures, shared
 from time import time
 
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
 def test(tries):
-    print("Data in shared variables: ", manager.Manager.elements)
+    print("Data in shared variables: ", shared.elements)
     return sum(hypot(random(), random()) < 1 for _ in range(tries))
 
 
@@ -43,16 +43,15 @@ def calcPi(workers, tries):
     return piValue
 
 if __name__ == "__main__":
-    myManager = manager.Manager()
-    myManager['myVar'] = {1: 'Test1',
-                          2: 'Test2',
-                          3: 'Test3',
-                          4: 'Test4',
-                          5: 'Test5',
-                          6: 'Test6',
-                          7: 'Test7',
-                         }
-    myManager['secondVar'] = "Hello World!"
-    # TODO: This could be interesting
-    #myManager['remoteExec'] = test
+    shared.shareConstant(myVar={1: 'Test1',
+                           2: 'Test2',
+                           3: 'Test3',
+                           4: 'Test4',
+                           5: 'Test5',
+                           6: 'Test6',
+                           7: 'Test7',
+                           })
+    shared.shareConstant(secondVar="Hello World!")
+    # Un-comment the following line will give a TypeError
+    #shared.shareConstant(myVar="Variable re-assignation")
     dataPi = calcPi(10, 5000)
