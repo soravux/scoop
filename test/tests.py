@@ -133,8 +133,21 @@ def funcSub(n):
     return f.result()
 
 
-def funcScan(l):
-    return futures._scan(operator.add, l)
+def funcMapScan(l):
+    resultat = futures.mapScan(func4,
+                               operator.add,
+                               l)
+    time.sleep(0.3)
+    _control.execQueue.socket.pumpInfoSocket()
+    return resultat
+
+def funcMapReduce(l):
+    resultat = futures.mapReduce(func4,
+                                 operator.add,
+                                 l)
+    time.sleep(0.3)
+    _control.execQueue.socket.pumpInfoSocket()
+    return resultat
 
 
 def main(n):
@@ -359,11 +372,29 @@ class TestApi(TestScoopCommon):
         self.assertTrue(futures._startup(funcCallback))
 
 
+class TestCoherent(TestScoopCommon):
+    def __init(self, *args, **kwargs):
+        super(TestApi, self).__init(*args, **kwargs)
+
+    def test_mapReduce(self):
+        result = futures._startup(funcMapReduce, [10, 20, 30])
+        self.assertEqual(result, 1400)
+        print(scoop.reduction.total)
+        self.assertEqual(len(scoop.reduction.total), 0)
+
+    def test_mapScan(self):
+        result = futures._startup(funcMapScan, [10, 20, 30])
+        self.assertEqual(sum((sum(a) for a in result.values())), 2500)
+        print(scoop.reduction.total)
+        self.assertEqual(len(scoop.reduction.total), 0)
+
+
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
     complex = unittest.TestLoader().loadTestsFromTestCase(TestMultiFunction)
     api = unittest.TestLoader().loadTestsFromTestCase(TestApi)
     utils = unittest.TestLoader().loadTestsFromTestCase(TestUtils)
+    coherent = unittest.TestLoader().loadTestsFromTestCase(TestCoherent)
     if len(sys.argv) > 1:
         if sys.argv[1] == "simple":
             unittest.TextTestRunner(verbosity=2).run(simple)
@@ -373,6 +404,8 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
             unittest.TextTestRunner(verbosity=2).run(api)
         elif sys.argv[1] == "utils":
             unittest.TextTestRunner(verbosity=2).run(utils)
+        elif sys.argv[1] == "coherent":
+            unittest.TextTestRunner(verbosity=2).run(coherent)
     else:
         unittest.main()
 elif __name__ == '__main__':
