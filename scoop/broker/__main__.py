@@ -16,7 +16,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from scoop.broker.broker import Broker
-from signal import signal, SIGTERM, SIGKILL, SIGINT
+from signal import signal, SIGTERM, SIGINT
 import argparse
 
 

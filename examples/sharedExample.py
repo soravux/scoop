@@ -15,18 +15,21 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-Example of manager use
+Example of shared constants use.
 """
 
 from math import hypot
 from random import random
 from scoop import futures, shared
 from time import time
+import scoop
 
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
 def test(tries):
-    print("Data in shared variables: ", shared.elements)
+    myRemoteFonc = shared.getConstant('mySharedFunction')
+    myRemoteFonc('Example Parameter')
+    print(shared.getConstant('myVar')[2])
     return sum(hypot(random(), random()) < 1 for _ in range(tries))
 
 
@@ -42,16 +45,24 @@ def calcPi(workers, tries):
     print("total time: " + str(totalTime))
     return piValue
 
+
+def myFunc(parameter):
+    print('Hello World from {0}!'.format(scoop.worker))
+    print(parameter)
+
+
+class exampleClass(object):
+    pass
+
+
 if __name__ == "__main__":
-    shared.shareConstant(myVar={1: 'Test1',
-                           2: 'Test2',
-                           3: 'Test3',
-                           4: 'Test4',
-                           5: 'Test5',
-                           6: 'Test6',
-                           7: 'Test7',
-                           })
+    shared.shareConstant(myVar={1: 'Example 1',
+                                2: 'Example 2',
+                                3: 'Example 3',
+                               })
     shared.shareConstant(secondVar="Hello World!")
-    # Un-comment the following line will give a TypeError
+    shared.shareConstant(mySharedFunction=myFunc)
+    
+    # Un-commenting the following line will give a TypeError
     #shared.shareConstant(myVar="Variable re-assignation")
     dataPi = calcPi(10, 5000)

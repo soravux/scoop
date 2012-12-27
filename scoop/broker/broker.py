@@ -134,7 +134,7 @@ class Broker(object):
                         self.sharedVariables[address].update(
                             pickle.loads(variable)
                         )
-                    except PickleError:
+                    except pickle.PickleError:
                         # Just forget the bad variable
                         continue
                     self.infoSocket.send_multipart([VARIABLE,

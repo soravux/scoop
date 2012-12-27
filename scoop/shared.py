@@ -17,34 +17,59 @@
 #
 
 import itertools
+from functools import reduce
+from . import encapsulation
 
 elements = None
 
 
+def ensureAtomicity(fn):
+    def wrapper(*args, **kwargs):
+        # TODO: Import that elsewhere
+        from . import _control
+
+        # Enforce retrieval of currently awaiting constants
+        _control.execQueue.socket.pumpInfoSocket()
+
+        for key, value in kwargs.items():
+            # Object name existence check
+            if key in itertools.chain(*(elem.keys() for elem in elements.values())):
+                raise TypeError("This constant already exists: {0}.".format(key))
+            
+        # Call the function
+        fn(*args, **kwargs)
+
+        # Wait for element propagation
+        import time
+        import scoop
+        while all(key in elements[scoop.worker] for key in kwargs.keys()) is not True:
+            # Enforce retrieval of currently awaiting constants
+            _control.execQueue.socket.pumpInfoSocket()
+            # TODO: Make previous blocking instead of sleep
+            time.sleep(0.1)
+
+        # Atomicity check
+        elementNames = list(itertools.chain(*(elem.keys() for elem in elements.values())))
+        if len(elementNames) != len(set(elementNames)):
+            raise TypeError("This constant already exists: {0}.".format(key))
+
+    return wrapper
+
+
+@ensureAtomicity
 def shareConstant(**kwargs):
     # TODO: Import that elsewhere
     from . import _control
-
-    # Enforce retrieval of currently awaiting constants
-    _control.execQueue.socket.pumpInfoSocket()
+    
+    sendVariable = _control.execQueue.socket.sendVariable
 
     for key, value in kwargs.items():
-        # Sanity check
-        if key in itertools.chain(*(elem.keys() for elem in elements.values())):
-            raise TypeError("This constant already exists: {0}.".format(key))
-
         # Propagate the constant
-        # TODO: atomicity
-        _control.execQueue.socket.sendVariable({key: value})
-
-    import time
-    import scoop
-    while all(key in elements[scoop.worker] for key in kwargs.keys()) is not True:
-        # Enforce retrieval of currently awaiting constants
-        _control.execQueue.socket.pumpInfoSocket()
-        # TODO: Make previous blocking instead of sleep
-        time.sleep(0.1)
-
+        if hasattr(value, '__code__'):
+            sendVariable(key, encapsulation.FunctionEncapsulation(value))
+        # TODO: file-like objects with encapsulation.ExternalEncapsulation
+        else:
+            sendVariable(key, value)
 
 def getConstant(key):
     # TODO: Import that elsewhere
@@ -52,4 +77,15 @@ def getConstant(key):
 
     # Enforce retrieval of currently awaiting constants
     _control.execQueue.socket.pumpInfoSocket()
-    return elements.get(key)
+
+    # TODO: Wait for propagation
+    constants = dict(reduce(lambda x, y: list(x.items()) + list(y.items()), elements.values()))
+    result = constants.get(key)
+    
+    # Update the global scope of the function to match the current module
+    if hasattr(result, '__code__'):
+        import inspect
+        frm = inspect.stack()[1]
+        mod = inspect.getmodule(frm[0])
+        result.__globals__.update(mod.__dict__)
+    return  result
