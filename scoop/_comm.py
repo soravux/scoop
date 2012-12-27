@@ -14,7 +14,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from . import shared
+from . import shared, encapsulation
 import zmq
 import scoop
 import time
@@ -66,9 +66,17 @@ class ZMQCommunicator(object):
                 key = pickle.loads(msg[2])
                 value = pickle.loads(msg[1])
                 shared.elements[key].update(value)
+                self.convertVariable(key, value)
             elif msg[0] == b"ERASEBUFFER":
                 scoop.reduction.cleanGroupID(pickle.loads(msg[1]))
             socks = dict(self.poller.poll(0))
+
+    def convertVariable(self, key, value):
+        if isinstance(list(value.values())[0],
+                      encapsulation.FunctionEncapsulation):
+            shared.elements[key].update({
+                list(value.keys())[0]: list(value.values())[0].getFunction()
+            })
 
     def recvFuture(self):
         while self._poll(0):
@@ -85,10 +93,9 @@ class ZMQCommunicator(object):
                                                  pickle.HIGHEST_PROTOCOL),
                                     future.id.worker[0]])
 
-    def sendVariable(self, element):
-        # TODO: try, if not working, send code, if not import, if not copy.
+    def sendVariable(self, key, value):
         self.socket.send_multipart([b"VARIABLE",
-                                    pickle.dumps(element,
+                                    pickle.dumps({key: value},
                                                  pickle.HIGHEST_PROTOCOL),
                                     pickle.dumps(scoop.worker,
                                                  pickle.HIGHEST_PROTOCOL)])

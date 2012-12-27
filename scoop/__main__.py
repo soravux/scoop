@@ -335,6 +335,7 @@ class ScoopApp(object):
         for shell, data in self.createdRemoteConn.items():
             if len(data) > 1:
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+                # TODO: This is bash-only
                 subprocess.Popen(ssh_command + [
                     data[0],
                     "kill -9 -{0} &>/dev/null".format(data[1])]
