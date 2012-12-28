@@ -268,12 +268,11 @@ class ScoopApp(object):
         logging.debug('Destroying remote elements...')
         for shell, data in self.createdRemoteConn.items():
             if len(data) > 1:
-                #remoteSSHLaunch
-                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                # TODO: This is bash-only
-                subprocess.Popen(ssh_command + [
+                subprocessHandling.remoteSSHLaunch(
                     data[0],
-                    "kill -9 -{0} &>/dev/null".format(data[1])]
+                    "kill -9 -{0} &>/dev/null".format(data[1]),
+                    (self.broker.brokerPort, self.broker.infoPort)
+                        if self.tunnel else None,
                 ).wait()
             else:
                 logging.info('Possibly Zombie(s) process(es) left!')
@@ -283,6 +282,7 @@ class ScoopApp(object):
 
 def makeParser():
     """Create the SCOOP module arguments parser."""
+    # TODO: Add environment variable (all + selection)
     parser = argparse.ArgumentParser(description="Starts a parallel program using "
                                                  "SCOOP.",
                                      prog="{0} -m scoop".format(sys.executable))

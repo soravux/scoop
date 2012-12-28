@@ -58,7 +58,8 @@ class ZMQCommunicator(object):
         if (not hasattr(thisFuture.callable, '__call__')
         and not thisFuture.done()):
             # TODO: Also check in root module globals
-            thisFuture.callable = shared.getConstant(thisFuture.callable)
+            thisFuture.callable = shared.getConstant(thisFuture.callable,
+                                                     blocking=False)
         return thisFuture
 
     def pumpInfoSocket(self):
@@ -95,14 +96,14 @@ class ZMQCommunicator(object):
                 list(value.keys())[0]: result
             })
 
-
     def recvFuture(self):
         while self._poll(0):
             yield self._recv()
 
     def sendFuture(self, future):
         try:
-            if shared.getConstant(future.callable.__name__):
+            if shared.getConstant(future.callable.__name__,
+                                  blocking=False):
                 # Enforce name reference passing if already shared
                 raise pickle.PicklingError()
             self.socket.send_multipart([b"TASK",
