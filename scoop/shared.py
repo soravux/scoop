@@ -19,6 +19,7 @@
 import itertools
 from functools import reduce
 from . import encapsulation
+import time
 
 elements = None
 
@@ -71,15 +72,19 @@ def shareConstant(**kwargs):
         else:
             sendVariable(key, value)
 
-def getConstant(key):
+def getConstant(key, blocking=True):
     # TODO: Import that elsewhere
     from . import _control
 
-    # Enforce retrieval of currently awaiting constants
-    _control.execQueue.socket.pumpInfoSocket()
+    while True:
+        # Enforce retrieval of currently awaiting constants
+        _control.execQueue.socket.pumpInfoSocket()
 
-    # TODO: Wait for propagation
-    constants = dict(reduce(lambda x, y: x + list(y.items()),
-                            elements.values(),
-                            []))
+        # Constants concatenation
+        constants = dict(reduce(lambda x, y: x + list(y.items()),
+                                elements.values(),
+                                []))
+        if constants.get(key) is not None or not blocking:
+            break
+        time.sleep(0.1)
     return constants.get(key)
