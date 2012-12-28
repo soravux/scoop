@@ -34,10 +34,6 @@ def myFunc(parameter):
     return parameter + 1
 
 
-class exampleClass(object):
-    pass
-
-
 if __name__ == "__main__":
     # Populate the shared constants
     shared.shareConstant(myVar={1: 'First element',
@@ -47,7 +43,7 @@ if __name__ == "__main__":
     shared.shareConstant(secondVar="Hello World!")
     shared.shareConstant(mySharedFunction=myFunc)
 
-    # Use the previously defined function
+    # Use the previously defined shared function
     print(list(futures.map(mySharedFunction, range(10))))
     
     # Un-commenting the following line will give a TypeError
