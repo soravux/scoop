@@ -14,8 +14,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-
-from __future__ import print_function
 import scoop
 scoop.DEBUG = False
 
@@ -411,7 +409,7 @@ class TestCoherent(TestScoopCommon):
 
     def test_mapScan(self):
         result = futures._startup(funcMapScan, [10, 20, 30])
-        self.assertEqual(list(result.values())[-1][-1], 1400)
+        self.assertEqual(max(max(a for a in list(result.values()))), 1400)
         self.assertEqual(len(scoop.reduction.total), 0)
 
 
