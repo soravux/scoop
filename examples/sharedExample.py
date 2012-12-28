@@ -16,10 +16,8 @@
 #
 """
 Example of shared constants use.
+This example is based on the piCalc example.
 """
-
-from math import hypot
-from random import random
 from scoop import futures, shared
 from time import time
 import scoop
@@ -27,18 +25,26 @@ import scoop
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
 def test(tries):
+    from math import hypot
+    from random import random
+
+    # Examples of function and constant retrieval
     myRemoteFonc = shared.getConstant('mySharedFunction')
     myRemoteFonc('Example Parameter')
     print(shared.getConstant('myVar')[2])
+
+    # Monte-Carlo evaluation
     return sum(hypot(random(), random()) < 1 for _ in range(tries))
 
 
 # Calculates pi with a Monte-Carlo method. This function calls the function
-# test "n" times with an argument of "t". Scoop dispatches these 
+# test "n" times with an argument of "t". SCOOP dispatches these 
 # functions interactively accross the available ressources.
 def calcPi(workers, tries):
     bt = time()
-    expr = futures.map(test, [tries] * workers)
+    # Evaluation function retrieval at runtime
+    piCalcTestFunction = shared.getConstant('piCalcTestFunction')
+    expr = futures.map(piCalcTestFunction, [tries] * workers)
     piValue = 4. * sum(expr) / float(workers * tries)
     totalTime = time() - bt
     print("pi = " + str(piValue))
@@ -56,12 +62,13 @@ class exampleClass(object):
 
 
 if __name__ == "__main__":
-    shared.shareConstant(myVar={1: 'Example 1',
-                                2: 'Example 2',
-                                3: 'Example 3',
+    shared.shareConstant(myVar={1: 'First element',
+                                2: 'Second element',
+                                3: 'Third element',
                                })
     shared.shareConstant(secondVar="Hello World!")
     shared.shareConstant(mySharedFunction=myFunc)
+    shared.shareConstant(piCalcTestFunction=test)
     
     # Un-commenting the following line will give a TypeError
     #shared.shareConstant(myVar="Variable re-assignation")
