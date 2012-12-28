@@ -55,7 +55,9 @@ class ZMQCommunicator(object):
     def _recv(self):
         msg = self.socket.recv_multipart()
         thisFuture = pickle.loads(msg[1])
-        if not hasattr(thisFuture.callable, '__call__'):
+        if (not hasattr(thisFuture.callable, '__call__')
+        and not thisFuture.done()):
+            # TODO: Also check in root module globals
             thisFuture.callable = shared.getConstant(thisFuture.callable)
         return thisFuture
 
