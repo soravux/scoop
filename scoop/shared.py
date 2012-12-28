@@ -80,12 +80,4 @@ def getConstant(key):
 
     # TODO: Wait for propagation
     constants = dict(reduce(lambda x, y: list(x.items()) + list(y.items()), elements.values()))
-    result = constants.get(key)
-    
-    # Update the global scope of the function to match the current module
-    if hasattr(result, '__code__'):
-        import inspect
-        frm = inspect.stack()[1]
-        mod = inspect.getmodule(frm[0])
-        result.__globals__.update(mod.__dict__)
-    return  result
+    return constants.get(key)

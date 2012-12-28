@@ -54,7 +54,10 @@ class ZMQCommunicator(object):
 
     def _recv(self):
         msg = self.socket.recv_multipart()
-        return pickle.loads(msg[1])
+        thisFuture = pickle.loads(msg[1])
+        if not hasattr(thisFuture.callable, '__call__'):
+            thisFuture.callable = shared.getConstant(thisFuture.callable)
+        return thisFuture
 
     def pumpInfoSocket(self):
         socks = dict(self.poller.poll(0))
@@ -74,20 +77,41 @@ class ZMQCommunicator(object):
     def convertVariable(self, key, value):
         if isinstance(list(value.values())[0],
                       encapsulation.FunctionEncapsulation):
+            result = list(value.values())[0].getFunction()
+
+            # Update the global scope of the function to match the current module
+            # TODO: Rework this not to be dependent on runpy / bootstrap call 
+            # stack
+            import inspect
+            frm = inspect.stack()[-5]
+            mod = inspect.getmodule(frm[0])
+            result.__name__ = list(value.keys())[0]
+            result.__globals__.update(mod.__dict__)
+            setattr(mod, list(value.keys())[0], result)
             shared.elements[key].update({
-                list(value.keys())[0]: list(value.values())[0].getFunction()
+                list(value.keys())[0]: result
             })
+
 
     def recvFuture(self):
         while self._poll(0):
             yield self._recv()
 
     def sendFuture(self, future):
-        self.socket.send_multipart([b"TASK",
-                                    pickle.dumps(future,
-                                                 pickle.HIGHEST_PROTOCOL)])
+        try:
+            self.socket.send_multipart([b"TASK",
+                                        pickle.dumps(future,
+                                                     pickle.HIGHEST_PROTOCOL)])
+        except pickle.PicklingError:
+            previousCallback = future.callable
+            future.callable = future.callable.__name__
+            self.socket.send_multipart([b"TASK",
+                                        pickle.dumps(future,
+                                                     pickle.HIGHEST_PROTOCOL)])
+            future.callable = previousCallback
 
     def sendResult(self, future):
+        future.callable = None
         self.socket.send_multipart([b"REPLY",
                                     pickle.dumps(future,
                                                  pickle.HIGHEST_PROTOCOL),
