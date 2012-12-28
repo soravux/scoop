@@ -1,7 +1,8 @@
-0.6.0-RC2 (2012/12/  )
+0.6.0-RC2 (2012/12/28)
 
-+ Added: Shared variables
++ Added: Shared constants and functions
 + Added: Examples for newly available features
++ Added: Support for interactive sessions
 
 0.6.0-RC1 (2012/11/22)
 ----------------------
