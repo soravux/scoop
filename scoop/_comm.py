@@ -84,6 +84,7 @@ class ZMQCommunicator(object):
             # Update the global scope of the function to match the current module
             # TODO: Rework this not to be dependent on runpy / bootstrap call 
             # stack
+            # TODO: Builtins doesn't work
             import inspect
             frm = inspect.stack()[-5]
             mod = inspect.getmodule(frm[0])
@@ -101,6 +102,9 @@ class ZMQCommunicator(object):
 
     def sendFuture(self, future):
         try:
+            if shared.getConstant(future.callable.__name__):
+                # Enforce name reference passing if already shared
+                raise pickle.PicklingError()
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])

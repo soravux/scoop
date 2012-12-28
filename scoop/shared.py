@@ -79,7 +79,7 @@ def getConstant(key):
     _control.execQueue.socket.pumpInfoSocket()
 
     # TODO: Wait for propagation
-    constants = dict(reduce(lambda x, y: list(x.items()) + list(y.items()),
+    constants = dict(reduce(lambda x, y: x + list(y.items()),
                             elements.values(),
-                            {}))
+                            []))
     return constants.get(key)
