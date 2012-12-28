@@ -141,6 +141,7 @@ def funcMapScan(l):
     _control.execQueue.socket.pumpInfoSocket()
     return resultat
 
+
 def funcMapReduce(l):
     resultat = futures.mapReduce(func4,
                                  operator.add,
@@ -149,6 +150,33 @@ def funcMapReduce(l):
     _control.execQueue.socket.pumpInfoSocket()
     return resultat
 
+
+def funcUseSharedConstant():
+    assert shared.getConstant('myVar') == {1: 'Example 1',
+                                          2: 'Example 2',
+                                          3: 'Example 3',
+                                         }
+    assert shared.getConstant('secondVar') == "Hello World!"
+
+
+def funcUseSharedFunction():
+    assert shared.getConstant('myRemoteFunc')(5) == 5 * 5
+
+
+def funcSharedConstant(l):
+    shared.shareConstant(myVar={1: 'Example 1',
+                                2: 'Example 2',
+                                3: 'Example 3',
+                               })
+    shared.shareConstant(secondVar="Hello World!")
+    for _ in range(100):
+        futures.submit(funcUseSharedConstant)
+
+
+def funcSharedFunction(l):
+    shared.shareConstant(myRemoteFunc=func4)
+    for _ in range(100):
+        futures.submit(funcUseSharedFunction)
 
 def main(n):
     task = futures.submit(func0, n)
@@ -374,18 +402,31 @@ class TestApi(TestScoopCommon):
 
 class TestCoherent(TestScoopCommon):
     def __init(self, *args, **kwargs):
-        super(TestApi, self).__init(*args, **kwargs)
+        super(TestCoherent, self).__init(*args, **kwargs)
 
     def test_mapReduce(self):
         result = futures._startup(funcMapReduce, [10, 20, 30])
         self.assertEqual(result, 1400)
-        print(scoop.reduction.total)
         self.assertEqual(len(scoop.reduction.total), 0)
 
     def test_mapScan(self):
         result = futures._startup(funcMapScan, [10, 20, 30])
-        self.assertEqual(sum((sum(a) for a in result.values())), 2500)
-        print(scoop.reduction.total)
+        self.assertEqual(list(result.values())[-1][-1], 1400)
+        self.assertEqual(len(scoop.reduction.total), 0)
+
+
+class TestShared(TestScoopCommon):
+    def __init(self, *args, **kwargs):
+        super(TestShared, self).__init(*args, **kwargs)
+
+    def test_shareConstant(self):
+        result = futures._startup(funcMapReduce, [10, 20, 30])
+        self.assertEqual(result, 1400)
+        self.assertEqual(len(scoop.reduction.total), 0)
+
+    def test_shareFunction(self):
+        result = futures._startup(funcMapScan, [10, 20, 30])
+        funcUseSharedFunction
         self.assertEqual(len(scoop.reduction.total), 0)
 
 
