@@ -225,6 +225,7 @@ class FutureQueue(object):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
         else:
+            # TODO: Make it dependent on the network latency
             self.lowwatermark  = 0.01
             self.highwatermark = 0.01
         

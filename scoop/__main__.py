@@ -23,7 +23,9 @@ import subprocess
 import time
 import logging
 from scoop import utils
-from threading import Thread
+from scoop.launch.workerLaunch import localWorker, remoteWorker
+from scoop.launch.brokerLaunch import localBroker, remoteBroker
+from scoop.launch import subprocessHandling
 import signal
 
 try:
@@ -64,7 +66,8 @@ class ScoopApp(object):
             self.verbose = 2
         verbose_levels = {0: logging.WARNING,
                           1: logging.INFO,
-                          2: logging.DEBUG}
+                          2: logging.DEBUG,
+                         }
         logging.basicConfig(filename=log,
                             level=verbose_levels[self.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s '
@@ -85,60 +88,6 @@ class ScoopApp(object):
 
         self.divideHosts(hosts)
 
-    def launchLocal(self):
-        c = [self.python_executable,
-             "-m", "scoop.bootstrap.__main__",
-             "--workerName", "worker{0}".format(self.workersLeft),
-             "--brokerName", "broker",
-             "--brokerAddress",
-             "tcp://{0}:{1}".format(self.brokerHostname,
-                                    self.brokerPort),
-             "--metaAddress",
-             'tcp://{0}:{1}'.format(self.brokerHostname,
-                                    self.infoPort),
-             "--size", str(self.n)]
-        if self.workersLeft == 1:
-            c.append("--origin")
-        if self.debug:
-            logging.debug('Set debug on')
-            c.append("--debug")
-        if self.profile:
-            logging.info('Setting profile on')
-            c.append("--profile")
-        c.append(self.executable)
-        c.extend(self.args)
-        return c
-
-    def launchForeign(self, echoGroup=False, brokerIsLocalhost=False):
-        pythonpath = ("export PYTHONPATH={0} "
-                      "&&".format(self.pythonpath) if self.pythonpath else '')
-        broker = "127.0.0.1" if brokerIsLocalhost else self.brokerHostname
-        return ("{pythonpath} cd {remotePath} && {nice} {pythonExecutable} "
-                "-m scoop.bootstrap.__main__ "
-                "{echoGroup}"
-                "--workerName worker{workersLeft} "
-                "--brokerName broker "
-                "--brokerAddress tcp://{brokerHostname}:{brokerPort} "
-                "--metaAddress tcp://{brokerHostname}:{infoPort} "
-                "--size {n} {origin} {debug} {profile} {executable} "
-                "{arguments}").format(
-                    remotePath=self.path, 
-                    pythonpath=pythonpath,
-                    nice='nice -n {0}'.format(self.nice)
-                    if self.nice is not None else '',
-                    origin='--origin' if self.workersLeft == 1 else '',
-                    debug='--debug' if self.debug else '',
-                    profile='--profile' if self.profile else '',
-                    pythonExecutable=self.python_executable,
-                    echoGroup='--echoGroup ' if echoGroup else '',
-                    workersLeft=self.workersLeft,
-                    brokerHostname=broker,
-                    brokerPort=self.brokerPort,
-                    infoPort=self.infoPort,
-                    n=self.n,
-                    executable=self.executable,
-                    arguments=" ".join(self.args)
-                )
 
     def divideHosts(self, hosts):
         """Divide the workers accross hosts."""
@@ -194,56 +143,25 @@ class ScoopApp(object):
                     number - 1 if worker == hosts[-1][0] else str(number),
                     "+ origin" if worker == hosts[-1][0] else ""))
 
-    def startBroker(self):
-        """Starts a broker on random unoccupied port(s)"""
-        logging.debug("Starting the broker on host {0}".format(self.brokerHostname))
-        if self.brokerHostname in utils.localHostnames:
-            from scoop.broker import Broker
-            self.localBroker = Broker(debug=self.debug)
-            self.brokerPort, self.infoPort = self.localBroker.getPorts()
-            self.localBrokerProcess = Thread(target=self.localBroker.run)
-            self.localBrokerProcess.daemon = True
-            self.localBrokerProcess.start()
-            logging.debug("Local broker launched on ports {0}, {1}"
-                          ".".format(self.brokerPort, self.infoPort))
-        else:
-            # TODO: Fusion with other remote launching
-            brokerString = ("{pythonExec} -m scoop.broker.__main__ "
-                            "--tPort {brokerPort} "
-                            "--mPort {infoPort} "
-                            "--echoGroup")
-            for i in range(5000, 10000, 2):
-                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                broker = subprocess.Popen(ssh_command
-                    + [self.brokerHostname]
-                    + [brokerString.format(brokerPort=i,
-                                           infoPort=i+1,
-                                           pythonExec=self.python_executable)],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                )
-                # TODO: This condition is not doing what it's supposed
-                if broker.poll() is not None:
-                    continue
-                else:
-                    self.brokerPort, self.infoPort = i, i+1
-                    self.createdSubprocesses.append(broker)
-                    self.createdRemoteConn[broker] = [self.brokerHostname]
-                    break
-
-            logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
-                          ".".format(self.brokerPort, self.infoPort,
-                              self.brokerHostname))
 
     def run(self):
         # Launching the local broker, repeat until it works
-        logging.debug("Initialising local broker.")
-        self.startBroker()
+        # TODO: Convert createdRemoteConn to references to baseRemote-derived
+        # classes
+        logging.debug("Initialising broker on host {0}"
+                      "".format(self.brokerHostname))
+        if self.brokerHostname in utils.localHostnames:
+            self.broker = localBroker(debug=self.debug)
+        else:
+            self.broker = remoteBroker(self.brokerHostname,
+                                       self.python_executable)
+            self.createdSubprocesses.append(self.broker.shell)
+            self.createdRemoteConn[self.broker.shell] = [self.brokerHostname]
 
         # Launch the workers
         rootProcess="Local"
         for hostname, nbworkers in self.hosts:
-            command = []
+            remoteHost = remoteWorker()
             for n in range(min(nbworkers, self.workersLeft)):
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
                     "local" if hostname in utils.localHostnames else "remote",
@@ -255,35 +173,51 @@ class ScoopApp(object):
                 if hostname in utils.localHostnames:
                     # Launching the workers
                     self.createdSubprocesses.append(
-                        subprocess.Popen(self.launchLocal())
+                        localWorker(self.workersLeft,
+                                    self.n,
+                                    self.python_executable,
+                                    self.executable,
+                                    self.args,
+                                    'tcp://{0}:{1}'.format(self.brokerHostname,
+                                                           self.broker.brokerPort),
+                                    'tcp://{0}:{1}'.format(self.brokerHostname,
+                                                           self.broker.infoPort),
+                                    self.debug,
+                                    self.profile,
+                                    )
                     )
                 else:
                     # If the host is remote, connect with ssh
-                    command.append(self.launchForeign(
+                    remoteHost.addWorker(
+                        self.path,
+                        self.pythonpath,
+                        self.nice,
+                        self.workersLeft,
+                        self.debug,
+                        self.profile,
+                        self.python_executable,
+                        self.executable,
+                        self.args,
+                        self.brokerHostname,
+                        (self.broker.brokerPort, self.broker.infoPort),
+                        self.n,
                         echoGroup=n == 0,
                         brokerIsLocalhost=hostname == self.brokerHostname,
-                        )
                     )
                 self.workersLeft -= 1
             # Launch every remote hosts in the same time
-            if len(command) != 0:
-                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                if self.tunnel:
-                    ssh_command += [
-                        '-R {0}:127.0.0.1:{0}'.format(self.brokerPort),
-                        '-R {0}:127.0.0.1:{0}'.format(self.infoPort)]
-                shell = subprocess.Popen(ssh_command + [
-                        hostname,
-                        " & ".join(command)
-                    ],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+            if len(remoteHost.getCommand()) != 0:
+                shell = subprocessHandling.remoteSSHLaunch(
+                    hostname,
+                    remoteHost.getCommand(),
+                    (self.broker.brokerPort, self.broker.infoPort)
+                        if self.tunnel else None,
+                    stdWhere='PIPE',
                 )
                 self.createdRemoteConn[shell] = [hostname]
                 if self.workersLeft == 0:
                     rootProcess = shell
-                command = []
+                remoteHost = remoteWorker()
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
                 break
@@ -334,6 +268,7 @@ class ScoopApp(object):
         logging.debug('Destroying remote elements...')
         for shell, data in self.createdRemoteConn.items():
             if len(data) > 1:
+                #remoteSSHLaunch
                 ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
                 # TODO: This is bash-only
                 subprocess.Popen(ssh_command + [
