@@ -19,42 +19,19 @@ Example of shared constants use.
 This example is based on the piCalc example.
 """
 from scoop import futures, shared
-from time import time
 import scoop
-
-# A range is used in this function for python3. If you are using python2, a
-# xrange might be more efficient.
-def test(tries):
-    from math import hypot
-    from random import random
-
-    # Examples of function and constant retrieval
-    myRemoteFonc = shared.getConstant('mySharedFunction')
-    myRemoteFonc('Example Parameter')
-    print(shared.getConstant('myVar')[2])
-
-    # Monte-Carlo evaluation
-    return sum(hypot(random(), random()) < 1 for _ in range(tries))
-
-
-# Calculates pi with a Monte-Carlo method. This function calls the function
-# test "n" times with an argument of "t". SCOOP dispatches these 
-# functions interactively accross the available ressources.
-def calcPi(workers, tries):
-    bt = time()
-    # Evaluation function retrieval at runtime
-    piCalcTestFunction = shared.getConstant('piCalcTestFunction')
-    expr = futures.map(piCalcTestFunction, [tries] * workers)
-    piValue = 4. * sum(expr) / float(workers * tries)
-    totalTime = time() - bt
-    print("pi = " + str(piValue))
-    print("total time: " + str(totalTime))
-    return piValue
 
 
 def myFunc(parameter):
+    """This function will be executed on the remote host even if it was not
+       available at launch."""
     print('Hello World from {0}!'.format(scoop.worker))
-    print(parameter)
+
+    # It is possible to get a constant anywhere
+    print(shared.getConstant('myVar')[2])
+
+    # Parameters are handled as usual
+    return parameter + 1
 
 
 class exampleClass(object):
@@ -62,14 +39,17 @@ class exampleClass(object):
 
 
 if __name__ == "__main__":
+    # Populate the shared constants
     shared.shareConstant(myVar={1: 'First element',
                                 2: 'Second element',
                                 3: 'Third element',
                                })
     shared.shareConstant(secondVar="Hello World!")
     shared.shareConstant(mySharedFunction=myFunc)
-    shared.shareConstant(piCalcTestFunction=test)
+
+    # Use the previously defined function
+    print(list(futures.map(mySharedFunction, range(10))))
     
     # Un-commenting the following line will give a TypeError
+    # since re-defining a constant is not allowed.
     #shared.shareConstant(myVar="Variable re-assignation")
-    dataPi = calcPi(10, 5000)
