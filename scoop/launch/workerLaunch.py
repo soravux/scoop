@@ -16,6 +16,8 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import subprocess
+import logging
+
 from . import subprocessHandling
 
 
