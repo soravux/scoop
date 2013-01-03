@@ -40,6 +40,7 @@ def localWorker(workerNum, size, pythonExecutable, executable, args,
         c.append("--profile")
     c.append(executable)
     c.extend(args)
+    logging.debug("localWorker: going to start %s" % c)
     return subprocess.Popen(c)
 
 class remoteWorker(subprocessHandling.baseRemote):
@@ -52,7 +53,8 @@ class remoteWorker(subprocessHandling.baseRemote):
         pythonpath = ("export PYTHONPATH={0} "
                       "&&".format(pythonPath) if pythonPath else '')
         broker = "127.0.0.1" if brokerIsLocalhost else brokerHostname
-        self.command += [(
+
+        c = (
             "{pythonpath} cd {remotePath} && {nice} {pythonExecutable} "
             "-m scoop.bootstrap.__main__ "
             "{echoGroup}"
@@ -78,7 +80,9 @@ class remoteWorker(subprocessHandling.baseRemote):
                 n=size,
                 executable=executable,
                 arguments=" ".join(args)
-        )]
+        )
+        logging.debug("addWorker: adding %s" % c)
+        self.command.append(c)
 
     def getCommand(self):
         return self.command
