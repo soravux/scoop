@@ -37,7 +37,7 @@ def remoteSSHLaunch(hostname, command, tunnelPorts=None, stdWhere=False):
                        ]
     return subprocess.Popen(sshCommand
                             + [hostname]
-                            + [" & ".join(command)],
+                            + [command],
                             stdin=subprocess.PIPE if stdWhere else None,
                             stdout=subprocess.PIPE if stdWhere else None,
                             stderr=subprocess.PIPE if stdWhere else None,

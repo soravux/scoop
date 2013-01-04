@@ -21,7 +21,20 @@ import os
 import re
 import socket
 
-localHostnames = ["127.0.0.1", socket.getfqdn().split('.')[0], "localhost"]
+loopbackReferences = [
+    "127.0.0.1",
+    "localhost",
+    "::1",
+]
+
+localHostnames = loopbackReferences + [
+    socket.getfqdn().split('.')[0],
+]
+
+localHostnames.extend([
+    ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
+        if not ip.startswith("127.")][:1]
+)
 
 
 def brokerHostname(hosts):
