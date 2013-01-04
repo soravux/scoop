@@ -1,4 +1,17 @@
+0.6.0 (2013/01/  )
+------------------
+
++ Improved: Network handling
++ Improved: Debugging output
++ Changed: Default verbosity is now level 1
++ Added: --quiet flag
++ Added: Nicing levels for local workers
+
+Special thanks to:
++ Stijn De Weirdt <stijn.deweirdt <at> gmail.com>
+
 0.6.0-RC2 (2012/12/28)
+----------------------
 
 + Added: Shared constants and functions
 + Added: Examples for newly available features
@@ -9,7 +22,7 @@
 
 + Fixed: Backported modules conflicting with Python 3 installation
 + Fixed: Memory leak in the Futures queues
-+ Improved: Time-based future buffer (instead of number-based)
++ Improved: Time-based future buffer (instead of count-based)
 + Improved: Cleaning remote workers after termination
 + Added: Remote broker launching
 + Added: mapReduce and mapScan functions
