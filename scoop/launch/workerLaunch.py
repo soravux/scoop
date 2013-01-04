@@ -21,9 +21,13 @@ import logging
 from . import subprocessHandling
 
 
-def localWorker(workerNum, size, pythonExecutable, executable, args,
+def localWorker(nice, workerNum, size, pythonExecutable, executable, args,
                 brokerAddress, infoAddress, debug, profiling):
-    c = [pythonExecutable,
+    c = []
+    if nice is not None:
+        c.extend(['nice', '-n', '{0}'.format(nice)])
+    c.extend([
+         pythonExecutable,
          "-m", "scoop.bootstrap.__main__",
          "--workerName", "worker{0}".format(workerNum),
          "--brokerName", "broker",
@@ -31,7 +35,8 @@ def localWorker(workerNum, size, pythonExecutable, executable, args,
          brokerAddress,
          "--metaAddress",
          infoAddress,
-         "--size", str(size)]
+         "--size", str(size)
+         ])
     if workerNum == 1:
         c.append("--origin")
     if debug:
@@ -42,7 +47,7 @@ def localWorker(workerNum, size, pythonExecutable, executable, args,
         c.append("--profile")
     c.append(executable)
     c.extend(args)
-    logging.debug("localWorker: going to start %s" % c)
+    logging.debug("Launching locally '{0}'".format(" ".join(c)))
     return subprocess.Popen(c)
 
 class remoteWorker(subprocessHandling.baseRemote):
@@ -56,8 +61,9 @@ class remoteWorker(subprocessHandling.baseRemote):
                       "&&".format(pythonPath) if pythonPath else '')
         broker = "127.0.0.1" if brokerIsLocalhost else brokerHostname
 
+
         c = (
-            "{pythonpath} cd {remotePath} && {nice} {pythonExecutable} "
+            "{nice} {pythonExecutable} "
             "-m scoop.bootstrap.__main__ "
             "{echoGroup}"
             "--workerName worker{workersLeft} "
@@ -66,8 +72,6 @@ class remoteWorker(subprocessHandling.baseRemote):
             "--metaAddress tcp://{brokerHostname}:{infoPort} "
             "--size {n} {origin} {debug} {profile} {executable} "
             "{arguments}").format(
-                remotePath=path,
-                pythonpath=pythonPath,
                 nice='nice -n {0}'.format(nice)
                 if nice is not None else '',
                 origin='--origin' if workerNum == 1 else '',
@@ -83,8 +87,18 @@ class remoteWorker(subprocessHandling.baseRemote):
                 executable=executable,
                 arguments=" ".join(args)
         )
-        logging.debug("addWorker: adding %s" % c)
+        if len(self.command) == 0:
+            # If it is the first worker on the host, change directory
+            self.command.append("{pythonpath} cd {remotePath} && (".format(
+                remotePath=path,
+                pythonpath=pythonPath,
+            ))
+        else:
+            # If not the first, add an amperstand for background execution
+            self.command.append("&")
         self.command.append(c)
 
     def getCommand(self):
-        return self.command
+        if self.command:
+            return self.command + [")"]
+        return []

@@ -83,7 +83,7 @@ class ScoopApp(object):
         self.brokerHostname = '127.0.0.1' if self.tunnel else brokerHostname
         logging.debug('Using hostname/ip: "{0}" as external broker '
                       'reference.'.format(self.brokerHostname))
-        logging.info('The python executable to execute the program with is: '
+        logging.debug('The python executable to execute the program with is: '
                      '{0}.'.format(self.python_executable))
 
         self.divideHosts(hosts)
@@ -122,34 +122,32 @@ class ScoopApp(object):
 
 
         # Checking if the broker if externally routable
-        if self.brokerHostname in ("127.0.0.1", "localhost", "::1") and \
+        if self.brokerHostname in utils.loopbackReferences and \
                 len(hosts) > 1 and \
                 not self.tunnel:
             raise Exception("\n"
                             "Could not find route from external worker to the "
                             "broker: Unresolvable hostname or IP address.\n "
                             "Please specify your externally routable hostname "
-                            "or IP using the --broker-hostname parameter.")
+                            "or IP using the --broker-hostname parameter or "
+                            " use the --tunnel flag.")
 
         hosts.reverse()
         self.hosts = hosts
 
         # Show worker distribution
-        if self.verbose > 1:
-            logging.info('Worker distribution: ')
-            for worker, number in reversed(self.hosts):
-                logging.info('   {0}:\t{1} {2}'.format(
-                    worker,
-                    number - 1 if worker == hosts[-1][0] else str(number),
-                    "+ origin" if worker == hosts[-1][0] else ""))
+        logging.info('Worker distribution: ')
+        for worker, number in reversed(self.hosts):
+            logging.info('   {0}:\t{1} {2}'.format(
+                worker,
+                number - 1 if worker == hosts[-1][0] else str(number),
+                "+ origin" if worker == hosts[-1][0] else ""))
 
 
     def run(self):
         # Launching the local broker, repeat until it works
         # TODO: Convert createdRemoteConn to references to baseRemote-derived
         # classes
-        logging.debug("Initialising broker on host {0}"
-                      "".format(self.brokerHostname))
         if self.brokerHostname in utils.localHostnames:
             self.broker = localBroker(debug=self.debug)
         else:
@@ -173,7 +171,8 @@ class ScoopApp(object):
                 if hostname in utils.localHostnames:
                     # Launching the workers
                     self.createdSubprocesses.append(
-                        localWorker(self.workersLeft,
+                        localWorker(self.nice,
+                                    self.workersLeft,
                                     self.n,
                                     self.python_executable,
                                     self.executable,
@@ -207,6 +206,11 @@ class ScoopApp(object):
                 self.workersLeft -= 1
             # Launch every remote hosts in the same time
             if len(remoteHost.getCommand()) != 0:
+                logging.debug("{0}: Launching '{1}'".format(
+                    hostname,
+                    " ".join(remoteHost.getCommand())
+                    )
+                )
                 shell = subprocessHandling.remoteSSHLaunch(
                     hostname,
                     remoteHost.getCommand(),
@@ -250,7 +254,6 @@ class ScoopApp(object):
                     sys.stdout.flush()
                     data = stream.read(1)
             self.errors = rootProcess.wait()
-        # TODO: print others than root
 
     def close(self):
         # Ensure everything is cleaned up on exit
@@ -274,8 +277,13 @@ class ScoopApp(object):
                     (self.broker.brokerPort, self.broker.infoPort)
                         if self.tunnel else None,
                 ).wait()
+                sys.stdout.write(shell.stdout.read().decode("utf-8"))
+                sys.stderr.write(shell.stderr.read().decode("utf-8"))
             else:
-                logging.info('Possibly Zombie(s) process(es) left!')
+                logging.info('Zombie process(es) possibly left!')
+
+        sys.stdout.flush()
+        sys.stderr.flush()
 
         logging.info('Finished destroying spawned subprocesses.')
         exit(self.errors)
@@ -307,8 +315,10 @@ def makeParser():
     parser.add_argument('--verbose', '-v',
                         action='count',
                         help="Verbosity level of this launch script (-vv for "
-                               "more)",
-                        default=0)
+                             "more)",
+                        default=1)
+    parser.add_argument('--quiet', '-q',
+                        action='store_true')
     parser.add_argument('--log',
                         help="The file to log the output. (default is stdout)",
                         default=None,
@@ -381,7 +391,7 @@ def main():
         args.broker_hostname = [utils.brokerHostname(hosts)]
 
     # Launch SCOOP
-    scoopApp = ScoopApp(hosts, n, args.verbose,
+    scoopApp = ScoopApp(hosts, n, args.verbose if not args.quiet else 0,
                         args.python_interpreter,
                         args.broker_hostname[0],
                         args.executable, args.args, args.tunnel,

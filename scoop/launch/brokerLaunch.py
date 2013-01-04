@@ -51,6 +51,7 @@ class remoteBroker(subprocessHandling.baseRemote):
                                       )],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
             # TODO: This condition is not doing what it's supposed
             if self.shell.poll() is not None:
