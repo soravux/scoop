@@ -29,7 +29,7 @@ def localWorker(nice, workerNum, size, pythonExecutable, executable, args,
     c.extend([
          pythonExecutable,
          "-m", "scoop.bootstrap.__main__",
-         "--workerName", "worker{0}".format(workerNum),
+         "--workerName", str(workerNum),
          "--brokerName", "broker",
          "--brokerAddress",
          brokerAddress,
@@ -66,7 +66,7 @@ class remoteWorker(subprocessHandling.baseRemote):
             "{nice} {pythonExecutable} "
             "-m scoop.bootstrap.__main__ "
             "{echoGroup}"
-            "--workerName worker{workersLeft} "
+            "--workerName {workersLeft} "
             "--brokerName broker "
             "--brokerAddress tcp://{brokerHostname}:{brokerPort} "
             "--metaAddress tcp://{brokerHostname}:{infoPort} "
