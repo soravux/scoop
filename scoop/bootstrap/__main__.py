@@ -35,7 +35,7 @@ def makeParser():
                         help="To specify that the worker is the origin",
                         action='store_true')
     parser.add_argument('--workerName', help="The name of the worker",
-                        default="worker0")
+                        default="0")
     parser.add_argument('--brokerName', help="The name of the broker",
                         default="broker")
     parser.add_argument('--brokerAddress',
@@ -83,6 +83,9 @@ def main():
     scoop.SIZE = args.size
     scoop.DEBUG = args.debug
     scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
+
+    if scoop.DEBUG:
+        from scoop import _debug
 
     profile = True if args.profile else False
 

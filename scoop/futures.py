@@ -64,10 +64,11 @@ def _startup(rootFuture, *args, **kargs):
             os.makedirs("debug")
         except:
             pass
-        with open("debug/" + scoop.WORKER_NAME.decode() + "-" +
-                scoop.BROKER_NAME.decode(), 'wb') as f:
+        with open("debug/{0}".format("-".join(scoop.DEBUG_IDENTIFIER
+                                     )), 'wb') as f:
             pickle.dump(control.debug_stats, f)
-        with open("debug/" + scoop.WORKER_NAME.decode() + "-QUEUE", 'wb') as f:
+        with open("debug/{0}-QUEUE".format("-".join(scoop.DEBUG_IDENTIFIER
+                                           )), 'wb') as f:
             pickle.dump(control.QueueLength, f)
     return result
 
