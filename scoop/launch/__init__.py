@@ -31,7 +31,20 @@ launchingArguments = namedtuple(
      ]
 )
 
+
 class Host(object):
+    """Represents an accessible computing resource.
+       Can be remote (ssh via netowrk) or represent localhost."""
+    BOOTSTRAP_MODULE = 'scoop.bootstrap.__main__'
+    BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+    LAUNCHING_ARGUMENTS = namedtuple(
+        'launchingArguments',
+        ['path', 'pythonPath', 'nice', 'workerNum', 'debug', 'profiling',
+         'pythonExecutable', 'executable', 'args', 'brokerHostname',
+         'brokerPorts', 'size',
+         ]
+    )
+
     def __init__(self, hostname="localhost"):
         self.workersArguments = []
         self.hostname = hostname
@@ -43,26 +56,27 @@ class Host(object):
         )
 
     def isLocal(self):
+        """Is the current host the localhost?"""
         return self.hostname in utils.localHostnames
 
     def addWorker(self, path, pythonPath, nice, affinity, workerNum, debug,
              profiling, pythonExecutable, executable, args, brokerHostname,
              brokerPorts, size):
-        #if self.isLocal():
+        """Add a worker assignation"""
         self.workersArguments.append(
-            launchingArguments(path=path,
-                               pythonPath=pythonPath,
-                               nice=nice,
-                               workerNum=workerNum,
-                               debug=debug,
-                               profiling=profiling,
-                               pythonExecutable=pythonExecutable,
-                               executable=executable,
-                               args=args,
-                               brokerHostname=brokerHostname,
-                               brokerPorts=brokerPorts,
-                               size=size,
-                               )
+            self.LAUNCHING_ARGUMENTS(path=path,
+                                     pythonPath=pythonPath,
+                                     nice=nice,
+                                     workerNum=workerNum,
+                                     debug=debug,
+                                     profiling=profiling,
+                                     pythonExecutable=pythonExecutable,
+                                     executable=executable,
+                                     args=args,
+                                     brokerHostname=brokerHostname,
+                                     brokerPorts=brokerPorts,
+                                     size=size,
+                                     )
         )
 
 
@@ -70,59 +84,73 @@ class Host(object):
         # replace remoteSSHLaunch
         pass
 
-    def getWorkerCommand(self, workerID=None):
+    def _getWorkerCommandList(self, workerID):
+        """Generate the workerCommand as list"""
         worker = self.workersArguments[workerID]
-        pythonpath = ("export PYTHONPATH={0} "
-                      "&&".format(worker.pythonPath) if worker.pythonPath else '')
+
+        c = ['(']
+        if worker.pythonPath:
+            # TODO: do we really want to set PYTHONPATH='' if not defined??
+            c.extend(["export", "PYTHONPATH={0}:\$PYTHONPATH".format(worker.pythonPath), '&&'])
+
+        c.extend(['cd', worker.path, '&&'])
+        c.append('(')
+
+        if worker.nice is not None:
+            c.extend(['nice', '-n', str(worker.nice)])
+
+        c.extend([worker.pythonExecutable, '-m', self.BOOTSTRAP_MODULE])
+
         # If broker is on localhost
         if self.hostname == worker.brokerHostname:
             broker = "127.0.0.1"
         else:
             broker = worker.brokerHostname
-
         # If host is not localhost, echo group process
         if not self.isLocal() and workerID == 0:
-            echoGroup = "--echoGroup "
-        else:
-            echoGroup = ''
+            c.append("--echoGroup ")
 
-        c = (
-            "({pythonpath} cd {remotePath} && ("
-            "{nice} {pythonExecutable} "
-            "-m scoop.bootstrap.__main__ "
-            "{echoGroup}"
-            "--workerName {workersLeft} "
-            "--brokerName broker "
-            "--brokerAddress tcp://{brokerHostname}:{brokerPort} "
-            "--metaAddress tcp://{brokerHostname}:{infoPort} "
-            "--size {n} {origin}{debug}{profile}{executable} "
-            "{arguments}))").format(
-                remotePath=worker.path,
-                pythonpath=pythonpath,
-                nice='nice -n {0}'.format(worker.nice)
-                if worker.nice is not None else '',
-                origin='--origin ' if worker.workerNum == 1 else '',
-                debug='--debug ' if worker.debug else '',
-                profile='--profile ' if worker.profiling else '',
-                pythonExecutable=worker.pythonExecutable,
-                echoGroup=echoGroup,
-                workersLeft=worker.workerNum,
-                brokerHostname=broker,
-                brokerPort=worker.brokerPorts[0],
-                infoPort=worker.brokerPorts[1],
-                n=worker.size,
-                executable=worker.executable,
-                arguments=" ".join(worker.args)
-        )
+        c.extend(['--workerName', str(worker.workerNum)])
+
+        c.extend(['--brokerName', 'broker'])
+        c.extend(['--brokerAddress',
+                  'tcp://{brokerHostname}:{brokerPort}'.format(brokerHostname=broker,
+                                                               brokerPort=worker.brokerPorts[0])
+                  ])
+        c.extend(['--metaAddress',
+                  'tcp://{brokerHostname}:{infoPort}'.format(brokerHostname=broker,
+                                                             infoPort=worker.brokerPorts[1])
+                  ])
+        c.extend(['--size', str(worker.size)])
+        if worker.workerNum == 1:
+            c.append('--origin')
+        if worker.debug:
+            c.append('--debug')
+        if worker.profiling:
+            c.append('--profile')
+
+        c.append(worker.executable)
+        c.extend(worker.args)
+
+        c.append(')')  # closes nice
+        c.append(')')  # closes initial
+
+        return c
+
+    def getWorkerCommand(self, workerID=None):
+        """Retrieves the working launching shell command."""
+        c = (" ".join(self._getWorkerCommandList(workerID)))
         return c
 
     def getCommand(self):
+        """Retrieves the shell command to launch every worker on this host."""
         command = []
         for workerID, worker in enumerate(self.workersArguments):
             command.append(self.getWorkerCommand(workerID))
         return " & ".join(command)
 
     def launch(self, tunnelPorts=None, stdPipe=False):
+        """Launch every worker assigned on this host."""
         if self.isLocal():
             spawnedProcesses = []
             for workerID, workerToLaunch in enumerate(self.workersArguments):
@@ -131,7 +159,7 @@ class Host(object):
                     subprocess.Popen(
                         c,
                         shell=True,
-                        #stdin=subprocess.PIPE if stdPipe else None,
+                        # stdin=subprocess.PIPE if stdPipe else None,
                         stdout=subprocess.PIPE if stdPipe else None,
                         stderr=subprocess.PIPE if stdPipe else None,
                     )
@@ -139,7 +167,7 @@ class Host(object):
             return spawnedProcesses
         else:
             # Launching remotely
-            sshCommand = baseSSH
+            sshCommand = self.baseSSH
             if tunnelPorts is not None:
                 sshCommand += [
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),
@@ -148,7 +176,7 @@ class Host(object):
             return [subprocess.Popen(sshCommand
                                     + [self.hostname]
                                     + [self.getCommand()],
-                                    #stdin=subprocess.PIPE if stdPipe else None,
+                                    # stdin=subprocess.PIPE if stdPipe else None,
                                     stdout=subprocess.PIPE if stdPipe else None,
                                     stderr=subprocess.PIPE if stdPipe else None,
                                    )]

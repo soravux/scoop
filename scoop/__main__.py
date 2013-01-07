@@ -40,6 +40,9 @@ except AttributeError:
 
 
 class ScoopApp(object):
+    """SCOOP application. Coordinates the launches."""
+    LAUNCH_HOST_CLASS = Host
+
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
             executable, arguments, tunnel, log, path, debug, nice, affinity,
             env, profile, pythonPath):
@@ -93,7 +96,7 @@ class ScoopApp(object):
         self.divideHosts(hosts)
 
         self.hostsConn = []
- 
+
     def getAffinity(self, n):
         """Return the cpu affinity based on specified algorithm
             n : workerindex on current node
@@ -155,8 +158,27 @@ class ScoopApp(object):
                 number - 1 if worker == hosts[-1][0] else str(number),
                 "+ origin" if worker == hosts[-1][0] else ""))
 
+    def _run_addWorker_args(self):
+        """Create the arguments to pass to the addWorker call"""
+        args = (
+                self.path,
+                self.pythonpath,
+                self.nice,
+                self.affinity,
+                self.workersLeft,
+                self.debug,
+                self.profile,
+                self.python_executable,
+                self.executable,
+                self.args,
+                self.brokerHostname,
+                (self.broker.brokerPort, self.broker.infoPort),
+                self.n,
+                )
+        return args
 
     def run(self):
+        """Launch the broker and every worker assigned on every hosts."""
         # Launching the local broker, repeat until it works
         # TODO: Convert createdRemoteConn to references to baseRemote-derived
         # classes
@@ -170,7 +192,7 @@ class ScoopApp(object):
 
         # Launch the workers
         for hostname, nbworkers in self.hosts:
-            self.hostsConn.append(Host(hostname))
+            self.hostsConn.append(self.LAUNCH_HOST_CLASS(hostname))
             for n in range(min(nbworkers, self.workersLeft)):
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
                     "local" if hostname in utils.localHostnames else "remote",
@@ -180,21 +202,8 @@ class ScoopApp(object):
                     )
                 )
 
-                self.hostsConn[-1].addWorker(
-                    self.path,
-                    self.pythonpath,
-                    self.nice,
-                    self.affinity,
-                    self.workersLeft,
-                    self.debug,
-                    self.profile,
-                    self.python_executable,
-                    self.executable,
-                    self.args,
-                    self.brokerHostname,
-                    (self.broker.brokerPort, self.broker.infoPort),
-                    self.n,
-                )
+                add_args = self._run_addWorker_args()
+                self.hostsConn[-1].addWorker(*add_args)
                 self.workersLeft -= 1
 
             # Launch every workers at the same time
@@ -256,6 +265,7 @@ class ScoopApp(object):
         logging.info('Root process is done.')
 
     def close(self):
+        """Remote connection cleanup."""
         # Ensure everything is cleaned up on exit
         logging.debug('Destroying local elements...')
         # Kill the broker last
