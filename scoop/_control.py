@@ -34,7 +34,7 @@ execQueue = None
 class _stat(deque):
     def __init__(self, *args, **kargs):
         self._sum = 0
-        super(_stat, self).__init__(*args,maxlen = 10, **kargs)
+        super(_stat, self).__init__(*args, maxlen=10, **kargs)
 
     def appendleft(self, x):
         if len(self) >= self.maxlen:
@@ -53,16 +53,16 @@ if scoop.DEBUG:
     list_defaultdict = partial(defaultdict, list)
     debug_stats = defaultdict(list_defaultdict)
     QueueLength = []
-    
+
 def delFuture(futureId, parentId):
     try:
         del futureDict[futureId]
     except KeyError:
         pass
     try:
-        while futureId in (a.id for a in futureDict[parentId].children):
-            toDel = [a.id for a in futureDict[parentId].children].index(futureId)
-            futureDict[parentId].children.pop(toDel)
+        toDel = [idx for idx, a in enumerate(futureDict[parentId].children) if a.id == futureId]
+        for idx in toDel[::-1]:  # largest first
+            futureDict[parentId].children.pop(idx)
     except KeyError:
         pass
 
@@ -111,7 +111,7 @@ def runFuture(future):
         if future.parentId.worker == scoop.worker or \
         callback.callbackType == CallbackType.universal:
             try: callback.func(future)
-            except: pass # Ignored callback exception as stated in PEP 3148
+            except: pass  # Ignored callback exception as stated in PEP 3148
 
     # Delete references to the future
     future._delete()
@@ -122,21 +122,21 @@ def runFuture(future):
 def runController(callable, *args, **kargs):
     global execQueue
     # initialize and run root future
-    rootId = FutureId(-1,0)
-    
+    rootId = FutureId(-1, 0)
+
     # initialise queue
     if execQueue is None:
         execQueue = FutureQueue()
-    
+
     # launch future if origin or try to pickup a future if slave worker
     if scoop.IS_ORIGIN:
         future = Future(rootId, callable, *args, **kargs)
     else:
         future = execQueue.pop()
-        
+
     future.greenlet = greenlet.greenlet(runFuture)
     future = future._switch(future)
-    
+
     while future.parentId != rootId or not future.done() or not scoop.IS_ORIGIN:
         # process future
         if future.done():
