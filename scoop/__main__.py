@@ -15,6 +15,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
+# Global imports
 import argparse
 import os
 import sys
@@ -22,11 +23,14 @@ import socket
 import subprocess
 import time
 import logging
+import traceback
+import signal
+
+# Local imports
 from scoop import utils
-from scoop.launch.workerLaunch import localWorker, remoteWorker
+from scoop.launch import Host
 from scoop.launch.brokerLaunch import localBroker, remoteBroker
 from scoop.launch import subprocessHandling
-import signal
 
 try:
     signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
@@ -37,8 +41,8 @@ except AttributeError:
 
 class ScoopApp(object):
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, tunnel, log, path, debug, nice, env, profile,
-            pythonPath):
+            executable, arguments, tunnel, log, path, debug, nice, affinity,
+            env, profile, pythonPath):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
                                                "specify one host.")
@@ -57,9 +61,9 @@ class ScoopApp(object):
         self.path = path
         self.debug = debug
         self.nice = nice
+        self.affinity = affinity
         self.profile = profile
-        self.errors  = None
-
+        self.errors = None
 
         # Logging configuration
         if self.verbose > 2:
@@ -88,6 +92,14 @@ class ScoopApp(object):
 
         self.divideHosts(hosts)
 
+        self.hostsConn = []
+ 
+    def getAffinity(self, n):
+        """Return the cpu affinity based on specified algorithm
+            n : workerindex on current node
+        """
+        if self.affinity is None:
+            return None
 
     def divideHosts(self, hosts):
         """Divide the workers accross hosts."""
@@ -95,7 +107,7 @@ class ScoopApp(object):
 
         # If specified amount of workers is greater than sum of each specified.
         if self.n > maximumWorkers:
-            logging.info("The -n flag is set at {0} workers, which is higher "
+            logging.debug("The -n flag is set at {0} workers, which is higher "
                          "than the maximum number of workers ({1}) specified "
                          "by the hostfile.\nThis behavior may degrade the "
                          "performances of scoop for cpu-bound operations."
@@ -108,7 +120,7 @@ class ScoopApp(object):
 
         # If specified amount of workers if lower than sum of each specified.
         elif self.n < maximumWorkers:
-            logging.info("The -n flag is set at {0} workers, which is lower "
+            logging.debug("The -n flag is set at {0} workers, which is lower "
                          "than the maximum number of workers ({1}) specified "
                          "by the hostfile."
                          "".format(self.n, maximumWorkers))
@@ -157,9 +169,8 @@ class ScoopApp(object):
             self.createdRemoteConn[self.broker.shell] = [self.brokerHostname]
 
         # Launch the workers
-        rootProcess="Local"
         for hostname, nbworkers in self.hosts:
-            remoteHost = remoteWorker()
+            self.hostsConn.append(Host(hostname))
             for n in range(min(nbworkers, self.workersLeft)):
                 logging.debug('Initialising {0}{1} worker {2} [{3}].'.format(
                     "local" if hostname in utils.localHostnames else "remote",
@@ -168,62 +179,45 @@ class ScoopApp(object):
                     hostname,
                     )
                 )
-                if hostname in utils.localHostnames:
-                    # Launching the workers
-                    self.createdSubprocesses.append(
-                        localWorker(self.nice,
-                                    self.workersLeft,
-                                    self.n,
-                                    self.python_executable,
-                                    self.executable,
-                                    self.args,
-                                    'tcp://{0}:{1}'.format(self.brokerHostname,
-                                                           self.broker.brokerPort),
-                                    'tcp://{0}:{1}'.format(self.brokerHostname,
-                                                           self.broker.infoPort),
-                                    self.debug,
-                                    self.profile,
-                                    )
-                    )
-                else:
-                    # If the host is remote, connect with ssh
-                    remoteHost.addWorker(
-                        self.path,
-                        self.pythonpath,
-                        self.nice,
-                        self.workersLeft,
-                        self.debug,
-                        self.profile,
-                        self.python_executable,
-                        self.executable,
-                        self.args,
-                        self.brokerHostname,
-                        (self.broker.brokerPort, self.broker.infoPort),
-                        self.n,
-                        echoGroup=n == 0,
-                        brokerIsLocalhost=hostname == self.brokerHostname,
-                    )
+
+                self.hostsConn[-1].addWorker(
+                    self.path,
+                    self.pythonpath,
+                    self.nice,
+                    self.affinity,
+                    self.workersLeft,
+                    self.debug,
+                    self.profile,
+                    self.python_executable,
+                    self.executable,
+                    self.args,
+                    self.brokerHostname,
+                    (self.broker.brokerPort, self.broker.infoPort),
+                    self.n,
+                )
                 self.workersLeft -= 1
-            # Launch every remote hosts in the same time
-            if len(remoteHost.getCommand()) != 0:
-                logging.debug("{0}: Launching '{1}'".format(
-                    hostname,
-                    " ".join(remoteHost.getCommand())
-                    )
+
+            # Launch every workers at the same time
+            logging.debug("{0}: Launching '{1}'".format(
+                hostname,
+                self.hostsConn[-1].getCommand(),
                 )
-                shell = subprocessHandling.remoteSSHLaunch(
-                    hostname,
-                    remoteHost.getCommand(),
-                    (self.broker.brokerPort, self.broker.infoPort)
-                        if self.tunnel else None,
-                    stdWhere='PIPE',
-                )
-                self.createdRemoteConn[shell] = [hostname]
-                if self.workersLeft == 0:
-                    rootProcess = shell
-                remoteHost = remoteWorker()
+            )
+            shells = self.hostsConn[-1].launch(
+                (self.broker.brokerPort,
+                 self.broker.infoPort)
+                    if self.tunnel else None,
+                stdPipe=not self.hostsConn[-1].isLocal(),
+            )
+            if self.hostsConn[-1].isLocal():
+                for shell in shells:
+                    self.createdSubprocesses.append(shell)
+            else:
+                for shell in shells:
+                    self.createdRemoteConn[shell] = [hostname]
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
+                rootProcess = shells[-1]
                 break
 
         # Ensure everything is started normaly
@@ -237,23 +231,29 @@ class ScoopApp(object):
             try:
                 GID = int(thisRemote.stdout.readline().strip())
             except ValueError:
+                logging.info("Could not get process information for host "
+                             "{0}.".format(
+                                self.createdRemoteConn[thisRemote][0],
+                                )
+                             )
                 continue
             self.createdRemoteConn[thisRemote].append(GID)
 
         # Wait for the root program
-        if rootProcess == "Local":
+        if self.hostsConn[-1].isLocal():
             self.errors = self.createdSubprocesses[-1].wait()
         else:
             # Process stdout first, then the whole stderr at the end
-            for stream in [rootProcess.stdout, rootProcess.stderr]:
-                data = stream.read(1)
+            for outStream, inStream in [(sys.stdout, rootProcess.stdout),
+                                        (sys.stderr, rootProcess.stderr)]:
+                data = inStream.read(1)
                 while len(data) > 0:
                     # Should not rely on utf-8 codec
-                    # TODO: write stderr in sys.stderr
-                    sys.stdout.write(data.decode("utf-8"))
-                    sys.stdout.flush()
-                    data = stream.read(1)
+                    outStream.write(data.decode("utf-8"))
+                    outStream.flush()
+                    data = inStream.read(1)
             self.errors = rootProcess.wait()
+        logging.info('Root process is done.')
 
     def close(self):
         # Ensure everything is cleaned up on exit
@@ -268,19 +268,20 @@ class ScoopApp(object):
                 process.terminate()
             except OSError:
                 pass
-        logging.debug('Destroying remote elements...')
-        for shell, data in self.createdRemoteConn.items():
-            if len(data) > 1:
-                subprocessHandling.remoteSSHLaunch(
-                    data[0],
-                    "kill -9 -{0} &>/dev/null".format(data[1]),
-                    (self.broker.brokerPort, self.broker.infoPort)
-                        if self.tunnel else None,
-                ).wait()
-                sys.stdout.write(shell.stdout.read().decode("utf-8"))
-                sys.stderr.write(shell.stderr.read().decode("utf-8"))
-            else:
-                logging.info('Zombie process(es) possibly left!')
+        if len(self.createdRemoteConn):
+            logging.debug('Destroying remote elements...')
+            for shell, data in self.createdRemoteConn.items():
+                if len(data) > 1:
+                    subprocessHandling.remoteSSHLaunch(
+                        data[0],
+                        "kill -9 -{0} &>/dev/null".format(data[1]),
+                        (self.broker.brokerPort, self.broker.infoPort)
+                            if self.tunnel else None,
+                    ).wait()
+                    sys.stdout.write(shell.stdout.read().decode("utf-8"))
+                    sys.stderr.write(shell.stderr.read().decode("utf-8"))
+                else:
+                    logging.info('Zombie process(es) possibly left!')
 
         sys.stdout.flush()
         sys.stderr.flush()
@@ -312,6 +313,10 @@ def makeParser():
                         metavar="NiceLevel",
                         help="*nix niceness level (-20 to 19) to run the "
                              "executable")
+    parser.add_argument('--affinity',
+                        default=None,
+                        help="Set affinity algorithm (set through taskset) "
+                             "(POSIX OS only)")
     parser.add_argument('--verbose', '-v',
                         action='count',
                         help="Verbosity level of this launch script (-vv for "
@@ -326,9 +331,9 @@ def makeParser():
     parser.add_argument('-n',
                         help="Total number of workers to launch on the hosts. "
                              "Workers are spawned sequentially over the hosts. "
-                             "(ie. -n 3 with 2 hosts will spawn 2 workers on the "
-                             "first host and 1 on the second.) (default: Number of"
-                             "CPUs on current machine)",
+                             "(ie. -n 3 with 2 hosts will spawn 2 workers on "
+                             "the first host and 1 on the second.) (default: "
+                             "Number of CPUs on current machine)",
                         type=int,
                         metavar="NumberOfWorkers")
     parser.add_argument('--tunnel',
@@ -395,13 +400,15 @@ def main():
                         args.python_interpreter,
                         args.broker_hostname[0],
                         args.executable, args.args, args.tunnel,
-                        args.log, args.path, args.debug, args.nice,
+                        args.log, args.path,
+                        args.debug, args.nice, args.affinity,
                         utils.getEnv(), args.profile,
                         args.pythonpath[0])
     try:
         rootTaskExitCode = scoopApp.run()
     except Exception as e:
-        print('Error while launching SCOOP subprocesses: {0}'.format(str(e)))
+        logging.error('Error while launching SCOOP subprocesses:')
+        logging.error(traceback.format_exc())
     finally:
         scoopApp.close()
     exit(rootTaskExitCode)
