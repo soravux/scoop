@@ -195,17 +195,8 @@ class Future(object):
 
     def _delete(self):
         # Do we need this?
-        try:
-            del scoop._control.futureDict[self.id]
-        except KeyError:
-            pass
         if self.id in scoop._control.execQueue.inprogress:
             del scoop._control.execQueue.inprogress[self.id]
-        try:
-            if self in scoop._control.futureDict[self.parentId].children:
-                scoop._control.futureDict[self.parentId].children.remove(self)
-        except KeyError:
-            pass
         for child in self.children:
             child.exceptionValue = CancelledError()
         scoop._control.delFuture(self.id, self.parentId)
