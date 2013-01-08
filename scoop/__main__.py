@@ -234,36 +234,17 @@ class ScoopApp(object):
         logging.info('Root process is done.')
 
     def close(self):
-        """Remote connection cleanup."""
-        # Ensure everything is cleaned up on exit
-        logging.debug('Destroying local elements...')
-        # Kill the broker last
-        self.createdSubprocesses.reverse()
+        """Subprocess cleanup."""
+        # Give time to flush data if debug was on
         if self.debug:
-            # Give time to flush data
             time.sleep(5)
-        for process in self.createdSubprocesses:
-            try:
-                process.terminate()
-            except OSError:
-                pass
-        if len(self.createdRemoteConn):
-            logging.debug('Destroying remote elements...')
-            for shell, data in self.createdRemoteConn.items():
-                if len(data) > 1:
-                    subprocessHandling.remoteSSHLaunch(
-                        data[0],
-                        "kill -9 -{0} &>/dev/null".format(data[1]),
-                        (self.broker.brokerPort, self.broker.infoPort)
-                            if self.tunnel else None,
-                    ).wait()
-                    sys.stdout.write(shell.stdout.read().decode("utf-8"))
-                    sys.stderr.write(shell.stderr.read().decode("utf-8"))
-                else:
-                    logging.info('Zombie process(es) possibly left!')
 
-        sys.stdout.flush()
-        sys.stderr.flush()
+        # Terminate workers
+        for host in self.hostsConn:
+            host.close()
+
+        # Terminate the broker
+        self.broker.close()
 
         logging.info('Finished destroying spawned subprocesses.')
         exit(self.errors)
