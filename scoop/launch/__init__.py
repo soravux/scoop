@@ -48,6 +48,7 @@ class Host(object):
     def __init__(self, hostname="localhost"):
         self.workersArguments = []
         self.hostname = hostname
+        self.subprocesses = []
 
     def __repr__(self):
         return "{0} ({1} workers)".format(
@@ -152,10 +153,11 @@ class Host(object):
     def launch(self, tunnelPorts=None, stdPipe=False):
         """Launch every worker assigned on this host."""
         if self.isLocal():
-            spawnedProcesses = []
+            # Launching local workers
             for workerID, workerToLaunch in enumerate(self.workersArguments):
+                # Launch one per subprocess
                 c = self.getWorkerCommand(workerID)
-                spawnedProcesses.append(
+                self.subprocesses.append(
                     subprocess.Popen(
                         c,
                         shell=True,
@@ -164,7 +166,6 @@ class Host(object):
                         stderr=subprocess.PIPE if stdPipe else None,
                     )
                 )
-            return spawnedProcesses
         else:
             # Launching remotely
             sshCommand = self.baseSSH
@@ -173,10 +174,13 @@ class Host(object):
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[1]),
                 ]
-            return [subprocess.Popen(sshCommand
-                                    + [self.hostname]
-                                    + [self.getCommand()],
-                                    # stdin=subprocess.PIPE if stdPipe else None,
-                                    stdout=subprocess.PIPE if stdPipe else None,
-                                    stderr=subprocess.PIPE if stdPipe else None,
-                                   )]
+            self.subprocesses.append(
+                subprocess.Popen(sshCommand
+                                 + [self.hostname]
+                                 + [self.getCommand()],
+                                 # stdin=subprocess.PIPE if stdPipe else None,
+                                 stdout=subprocess.PIPE if stdPipe else None,
+                                 stderr=subprocess.PIPE if stdPipe else None,
+                )
+            )
+        return self.subprocesses
