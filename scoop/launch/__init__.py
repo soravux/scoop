@@ -170,7 +170,7 @@ class Host(object):
                 )
         else:
             # Launching remotely
-            sshCommand = self.baseSSH
+            sshCommand = self.BASE_SSH
             if tunnelPorts is not None:
                 sshCommand += [
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),
