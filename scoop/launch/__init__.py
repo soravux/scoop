@@ -17,6 +17,7 @@
 # Global imports
 from collections import namedtuple
 import logging
+import sys
 import subprocess
 
 # Local
@@ -49,6 +50,7 @@ class Host(object):
         self.workersArguments = []
         self.hostname = hostname
         self.subprocesses = []
+        self.remoteProcessGID = None
 
     def __repr__(self):
         return "{0} ({1} workers)".format(
@@ -183,4 +185,48 @@ class Host(object):
                                  stderr=subprocess.PIPE if stdPipe else None,
                 )
             )
+            # Get group id from remote connections
+            try:
+                self.remoteProcessGID = int(
+                    self.subprocesses[-1].stdout.readline().strip()
+                )
+            except ValueError:
+                logging.info("Could not get process information for host "
+                             "{0}.".format(
+                                self.createdRemoteConn[thisRemote][0],
+                                )
+                             )
         return self.subprocesses
+
+    def close(self):
+        """Connection(s) cleanup."""
+        # Ensure everything is cleaned up on exit
+        logging.debug('Destroying workers on host {0}.'.format(self.hostname))
+
+        # Terminate subprocesses
+        for process in self.subprocesses:
+            try:
+                process.terminate()
+            except OSError:
+                pass
+
+        # Send termination signal to remaining workers
+        if not self.isLocal() and self.remoteProcessGID is None:
+                logging.info("Zombie process(es) possibly left on "
+                             "host {0}!".format(self.hostname))
+        elif not self.isLocal():
+            command = "kill -9 -{0} &>/dev/null".format(self.remoteProcessGID)
+            subprocess.Popen(self.BASE_SSH
+                             + [self.hostname]
+                             + [command],
+                             shell=True,
+            ).wait()
+
+        for process in self.subprocesses:
+            if process.stdout is not None:
+                sys.stdout.write(process.stdout.read().decode("utf-8"))
+                sys.stdout.flush()
+
+            if process.stderr is not None:
+                sys.stderr.write(process.stderr.read().decode("utf-8"))
+                sys.stderr.flush()

@@ -17,7 +17,6 @@
 #
 from threading import Thread
 import subprocess
-from . import subprocessHandling
 import logging
 
 
@@ -33,14 +32,20 @@ class localBroker(object):
         logging.debug("Local broker launched on ports {0}, {1}"
                       ".".format(self.brokerPort, self.infoPort))
 
+    def close(self):
+        pass
 
-class remoteBroker(subprocessHandling.baseRemote):
+
+class remoteBroker(object):
+    BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+
     def __init__(self, hostname, pythonExecutable):
         """Starts a broker on the specified hostname on unoccupied ports"""
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
                         "--tPort {brokerPort} "
                         "--mPort {infoPort} "
                         "--echoGroup ")
+        self.hostname = hostname
         for i in range(5000, 10000, 2):
             ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
             self.shell = subprocess.Popen(ssh_command
@@ -49,7 +54,7 @@ class remoteBroker(subprocessHandling.baseRemote):
                                        infoPort=i + 1,
                                        pythonExec=pythonExecutable,
                                       )],
-                stdin=subprocess.PIPE,
+                # stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
@@ -62,9 +67,43 @@ class remoteBroker(subprocessHandling.baseRemote):
         else:
             raise Exception("Could not successfully launch the remote broker.")
 
+        try:
+            self.remoteProcessGID = int(self.shell.stdout.readline().strip())
+        except ValueError:
+            self.remoteProcessGID = None
+
         logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
                       ".".format(self.brokerPort,
                                  self.infoPort,
                                  hostname,
                                  )
                       )
+
+    def close(self):
+        """Connection(s) cleanup."""
+        # Ensure everything is cleaned up on exit
+        logging.debug('Destroying workers on host {0}.'.format(self.hostname))
+
+        # Terminate subprocesses
+        try:
+            self.shell.terminate()
+        except OSError:
+            pass
+
+        # Send termination signal to remaining workers
+        if not self.isLocal() and self.remoteProcessGID is None:
+                logging.info("Zombie process(es) possibly left on "
+                             "host {0}!".format(self.hostname))
+        elif not self.isLocal():
+            command = "kill -9 -{0} &>/dev/null".format(self.remoteProcessGID)
+            subprocess.Popen(self.BASE_SSH
+                             + [self.hostname]
+                             + [command],
+                             shell=True,
+            ).wait()
+
+        sys.stdout.write(self.shell.stdout.read().decode("utf-8"))
+        sys.stdout.flush()
+
+        sys.stderr.write(self.shell.stderr.read().decode("utf-8"))
+        sys.stderr.flush()

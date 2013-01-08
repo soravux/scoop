@@ -30,7 +30,6 @@ import signal
 from scoop import utils
 from scoop.launch import Host
 from scoop.launch.brokerLaunch import localBroker, remoteBroker
-from scoop.launch import subprocessHandling
 
 try:
     signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
@@ -51,7 +50,6 @@ class ScoopApp(object):
                                                "specify one host.")
         self.workersLeft = n
         self.createdSubprocesses = []
-        self.createdRemoteConn = {}
 
         # launch information
         self.python_executable = python_executable[0]
@@ -180,15 +178,11 @@ class ScoopApp(object):
     def run(self):
         """Launch the broker and every worker assigned on every hosts."""
         # Launching the local broker, repeat until it works
-        # TODO: Convert createdRemoteConn to references to baseRemote-derived
-        # classes
         if self.brokerHostname in utils.localHostnames:
             self.broker = localBroker(debug=self.debug)
         else:
             self.broker = remoteBroker(self.brokerHostname,
                                        self.python_executable)
-            self.createdSubprocesses.append(self.broker.shell)
-            self.createdRemoteConn[self.broker.shell] = [self.brokerHostname]
 
         # Launch the workers
         for hostname, nbworkers in self.hosts:
@@ -218,39 +212,14 @@ class ScoopApp(object):
                     if self.tunnel else None,
                 stdPipe=not self.hostsConn[-1].isLocal(),
             )
-            if self.hostsConn[-1].isLocal():
-                for shell in shells:
-                    self.createdSubprocesses.append(shell)
-            else:
-                for shell in shells:
-                    self.createdRemoteConn[shell] = [hostname]
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
                 rootProcess = shells[-1]
                 break
 
-        # Ensure everything is started normaly
-        for thisSubprocess in self.createdSubprocesses:
-            if thisSubprocess.poll() is not None:
-                raise Exception('Subprocess {0} terminated abnormaly.'
-                                .format(thisSubprocess))
-
-        # Get group id from remote connections
-        for thisRemote in self.createdRemoteConn.keys():
-            try:
-                GID = int(thisRemote.stdout.readline().strip())
-            except ValueError:
-                logging.info("Could not get process information for host "
-                             "{0}.".format(
-                                self.createdRemoteConn[thisRemote][0],
-                                )
-                             )
-                continue
-            self.createdRemoteConn[thisRemote].append(GID)
-
         # Wait for the root program
         if self.hostsConn[-1].isLocal():
-            self.errors = self.createdSubprocesses[-1].wait()
+            self.errors = self.hostsConn[-1].subprocesses[-1].wait()
         else:
             # Process stdout first, then the whole stderr at the end
             for outStream, inStream in [(sys.stdout, rootProcess.stdout),
