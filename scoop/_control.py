@@ -54,15 +54,27 @@ if scoop.DEBUG:
     debug_stats = defaultdict(list_defaultdict)
     QueueLength = []
 
-def delFuture(futureId, parentId):
+def delFutureById(futureId, parentId):
+    """Deleet future on id basis"""
     try:
         del futureDict[futureId]
     except KeyError:
         pass
     try:
-        toDel = [idx for idx, a in enumerate(futureDict[parentId].children) if a.id == futureId]
-        for idx in toDel[::-1]:  # largest first
-            futureDict[parentId].children.pop(idx)
+        toDel = [a for a in futureDict[parentId].children if a.id == futureId]
+        for f in toDel:
+            del futureDict[parentId].children[f]
+    except KeyError:
+        pass
+
+def delFuture(afuture):
+    """Delete future afuture"""
+    try:
+        del futureDict[afuture.id]
+    except KeyError:
+        pass
+    try:
+        del futureDict[afuture.parentId].children[afuture]
     except KeyError:
         pass
 
