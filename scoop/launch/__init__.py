@@ -133,7 +133,11 @@ class Host(object):
             c.append('--profile')
 
         c.append(worker.executable)
-        c.extend(worker.args)
+        # This trick is used to parse correctly quotes (ie. myScript.py 'arg1 "arg2" arg3')
+        # Because shell=True is set with Popen, every quote gets re-interpreted
+        # It replaces simple quotation marks with \\\" which gets evaluated to \" by
+        # the second shell which prints it out as a double quote.
+        c.extend(['"{0}"'.format(a.replace('"', '\\\"')) for a in worker.args])
 
         c.append(')')  # closes nice
         c.append(')')  # closes initial
