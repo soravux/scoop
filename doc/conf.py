@@ -68,7 +68,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SCOOP'
-copyright = u'2012, Marc Parizeau, Olivier Gagnon, Marc-André Gardner, Yannick Hold-Geoffroy'
+copyright = u'2013, Marc Parizeau, Olivier Gagnon, Marc-André Gardner, Yannick Hold-Geoffroy'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
