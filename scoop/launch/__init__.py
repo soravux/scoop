@@ -23,15 +23,6 @@ import subprocess
 # Local
 from scoop import utils
 
-baseSSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-launchingArguments = namedtuple(
-    'launchingArguments',
-    ['path', 'pythonPath', 'nice', 'workerNum', 'debug', 'profiling',
-     'pythonExecutable', 'executable', 'args', 'brokerHostname',
-     'brokerPorts', 'size',
-     ]
-)
-
 
 class Host(object):
     """Represents an accessible computing resource.
