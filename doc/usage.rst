@@ -33,7 +33,7 @@ How to use SCOOP in your code
 The philosophy of SCOOP is loosely built around the *futures* module proposed 
 by :pep:`3148`. It primarily defines a :meth:`~scoop.futures.map` and a 
 :meth:`~scoop.futures.submit` function allowing asynchroneous computation that 
-SCOOP will propagate to its workers. 
+SCOOP will propagate to its workers.
 
 Map
 ~~~
@@ -55,14 +55,14 @@ example, if you want to apply the |abs()|_ function to every number of a list::
 .. |abs()| replace:: *abs()*
 .. _abs(): http://docs.python.org/library/functions.html#abs
 
-SCOOP's :meth:`~scoop.futures.map` returns a generator retriving the results 
-in their proper order. It can thus act as a parallel substitute to the standard |map()|_, for
-instance::
+SCOOP's :meth:`~scoop.futures.map` returns a generator iterating over the
+results in the same order as its inputs. It can thus act as a parallel
+substitute to the standard |map()|_, for instance::
 
     # Script to be launched with: python -m scoop scriptName.py
     import random
     from scoop import futures
-    data = [random.randint(-1000,1000) for r in range(1000)]
+    data = [random.randint(-1000, 1000) for r in range(1000)]
 
     if __name__ == '__main__':
         # Python's standard serial function
@@ -88,6 +88,17 @@ instance::
 .. note::
     Your callable function passed to SCOOP must be picklable in its entirety.
 
+    The pickle module is limited to **top level functions and classes** as
+    stated in the 
+    `documentation <http://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_.
+
+.. note::
+    Functions executed using SCOOP must return a value.
+
+.. note::
+    Keep in mind that objects are not shared between workers and that changes
+    made to an object in a function are not seen by other workers.
+
 Submit
 ~~~~~~
 
@@ -96,12 +107,48 @@ instance.
 This allows a finer control over the Futures, such as out-of-order results 
 retrieval.
 
-.. _examples-reference:
+mapReduce
+~~~~~~~~~
+
+The :meth:`~scoop.futures.mapReduce` function of SCOOP allows to parallelize a
+reduction function after applying the aforementionned
+:meth:`~scoop.futures.map` function.
+Its result is a single element.
+
+A reduction function takes a dataset and applies a function cumulatively to it.
+For example, applying `reduce(lambda x, y: x+y, ["a", "b", "c", "d"])` would
+execute `(((("a")+"b")+"c")+"d")` give you the result `"abcd"`
+
+Read the standard Python
+`reduce <http://docs.python.org/3.0/library/functools.html#functools.reduce>`_
+function for more information.
+
+A common reduction usage consist of a sum as the following example::
+
+    # Script to be launched with: python -m scoop scriptName.py
+    import random
+    import operator
+    from scoop import futures
+    data = [random.randint(-1000, 1000) for r in range(1000)]
+    
+
+    if __name__ == '__main__':
+        # Python's standard serial function
+        serialSum = sum(map(abs, data))
+
+        # SCOOP's parallel function
+        parallelSum = futures.mapReduce(abs, operator.add, data)
+
+        assert serialSum == parallelSum
 
 .. note::
-    Functions submited to scoop must return a value. Keep in mind that objects
-    are not shared between workers and that changes made to an object in a
-    function are not made in every workers.
+    You can pass any arbitrary reduction function, not only operator ones.
+
+
+mapScan
+~~~~~~~
+
+
 
 Examples
 --------
@@ -293,6 +340,29 @@ wrap the executable part of your program using::
 This is mandatory when using parallel frameworks such as multiprocessing and 
 SCOOP. Otherwise, each worker (or equivalent) will try to execute your code 
 serially.
+
+Also, only functions or classes declared at the top level of your program are
+picklables. Here are some examples of non-working map invocations::
+
+    # Script to be launched with: python -m scoop scriptName.py
+    from scoop import futures
+
+
+    class myClass(object):
+        @staticmethod
+        define myFunction(x):
+            return x
+    
+
+    if __name__ == '__main__':
+        define mySecondFunction(x):
+            return x
+        
+        # Both of these calls won't work because Python pickle won't be able to
+        # pickle or unpickle the function references.
+        wrongCall1 = futures.map(myClass.myFunction, [1, 2, 3, 4, 5])
+        wrongCall2 = futures.map(mySecondFunction, [1, 2, 3, 4, 5])
+
    
 Evaluation laziness
 ~~~~~~~~~~~~~~~~~~~
