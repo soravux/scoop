@@ -17,9 +17,7 @@
 import scoop
 scoop.DEBUG = False
 
-from scoop import futures
-from scoop import _control
-from scoop import utils
+from scoop import futures, _control, utils, shared
 from scoop._types import FutureQueue
 import unittest
 import subprocess
@@ -150,31 +148,46 @@ def funcMapReduce(l):
 
 
 def funcUseSharedConstant():
-    assert shared.getConstant('myVar') == {1: 'Example 1',
+    # Tries on a mutable and an immutable object
+    assert shared.getConst('myVar') == {1: 'Example 1',
                                           2: 'Example 2',
                                           3: 'Example 3',
                                          }
-    assert shared.getConstant('secondVar') == "Hello World!"
+    assert shared.getConst('secondVar') == "Hello World!"
+    return True
 
 
 def funcUseSharedFunction():
-    assert shared.getConstant('myRemoteFunc')(5) == 5 * 5
+    assert shared.getConst('myRemoteFunc')(5) == 5 * 5
+    assert shared.getConst('myRemoteFunc')(25) == 25 * 25
+    return True
 
 
-def funcSharedConstant(l):
-    shared.shareConstant(myVar={1: 'Example 1',
+def funcSharedConstant():
+    shared.setConst(myVar={1: 'Example 1',
                                 2: 'Example 2',
                                 3: 'Example 3',
                                })
-    shared.shareConstant(secondVar="Hello World!")
+    shared.setConst(secondVar="Hello World!")
+    result = True
     for _ in range(100):
-        futures.submit(funcUseSharedConstant)
+        try:
+            result &= futures.submit(funcUseSharedConstant).result()
+        except AssertionError:
+            result = False
+    return result
 
 
-def funcSharedFunction(l):
-    shared.shareConstant(myRemoteFunc=func4)
+def funcSharedFunction():
+    shared.setConst(myRemoteFunc=func4)
+    result = True
     for _ in range(100):
-        futures.submit(funcUseSharedFunction)
+        try:
+            result &= futures.submit(funcUseSharedFunction).result()
+        except AssertionError:
+            result = False
+    return result
+
 
 def main(n):
     task = futures.submit(func0, n)
@@ -418,33 +431,34 @@ class TestShared(TestScoopCommon):
         super(TestShared, self).__init(*args, **kwargs)
 
     def test_shareConstant(self):
-        result = futures._startup(funcMapReduce, [10, 20, 30])
-        self.assertEqual(result, 1400)
-        self.assertEqual(len(scoop.reduction.total), 0)
+        result = futures._startup(funcSharedFunction)
+        self.assertEqual(result, True)
 
     def test_shareFunction(self):
-        result = futures._startup(funcMapScan, [10, 20, 30])
-        funcUseSharedFunction
-        self.assertEqual(len(scoop.reduction.total), 0)
+        result = futures._startup(funcSharedConstant)
+        self.assertEqual(result, True)        
 
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
-    simple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
-    complex = unittest.TestLoader().loadTestsFromTestCase(TestMultiFunction)
-    api = unittest.TestLoader().loadTestsFromTestCase(TestApi)
-    utils = unittest.TestLoader().loadTestsFromTestCase(TestUtils)
-    coherent = unittest.TestLoader().loadTestsFromTestCase(TestCoherent)
+    utSimple = unittest.TestLoader().loadTestsFromTestCase(TestSingleFunction)
+    utComplex = unittest.TestLoader().loadTestsFromTestCase(TestMultiFunction)
+    utApi = unittest.TestLoader().loadTestsFromTestCase(TestApi)
+    utUtils = unittest.TestLoader().loadTestsFromTestCase(TestUtils)
+    utCoherent = unittest.TestLoader().loadTestsFromTestCase(TestCoherent)
+    utShared = unittest.TestLoader().loadTestsFromTestCase(TestShared)
     if len(sys.argv) > 1:
         if sys.argv[1] == "simple":
-            unittest.TextTestRunner(verbosity=2).run(simple)
+            unittest.TextTestRunner(verbosity=2).run(utSimple)
         elif sys.argv[1] == "complex":
-            unittest.TextTestRunner(verbosity=2).run(complex)
+            unittest.TextTestRunner(verbosity=2).run(utComplex)
         elif sys.argv[1] == "api":
-            unittest.TextTestRunner(verbosity=2).run(api)
+            unittest.TextTestRunner(verbosity=2).run(utApi)
         elif sys.argv[1] == "utils":
-            unittest.TextTestRunner(verbosity=2).run(utils)
+            unittest.TextTestRunner(verbosity=2).run(utUtils)
         elif sys.argv[1] == "coherent":
-            unittest.TextTestRunner(verbosity=2).run(coherent)
+            unittest.TextTestRunner(verbosity=2).run(utCoherent)
+        elif sys.argv[1] == "shared":
+            unittest.TextTestRunner(verbosity=2).run(utShared)
     else:
         unittest.main()
 elif __name__ == '__main__':
