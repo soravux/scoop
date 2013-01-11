@@ -98,7 +98,7 @@ class Bootstrap(object):
         scoop.DEBUG = self.args.debug
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
 
-        if scoop.DEBUG:
+        if scoop.DEBUG or self.args.profile:
             from scoop import _debug
 
     def run(self):
@@ -152,10 +152,14 @@ class Bootstrap(object):
         if self.args.profile:
             import cProfile
             # runctx instead of run is required for local function
+            try:
+                os.makedirs("profile")
+            except:
+                pass
             cProfile.runctx("futures_startup()",
                             globals(),
                             locals(),
-                            "{0}.prof".format(scoop.WORKER_NAME)
+                            "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
                             )
         else:
             futures_startup()
