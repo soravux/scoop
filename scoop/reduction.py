@@ -40,6 +40,7 @@ def reduction(inFuture, operation):
         else:
             total[uniqueReference] = operation(total[uniqueReference],
                                                inFuture.result())
+    # TODO: This is not stable
     inFuture.resultValue = total[uniqueReferences[0]]
 
 

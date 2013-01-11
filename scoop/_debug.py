@@ -15,6 +15,9 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import scoop
+import os
+import pickle
+
 
 def getWorkerName(workerNum, width=5, prefix='worker'):
     """Return the name of the worker
@@ -24,5 +27,23 @@ def getWorkerName(workerNum, width=5, prefix='worker'):
                                         workerNum=workerNum.zfill(width),
                                         )
 
+
 scoop.DEBUG_IDENTIFIER = (getWorkerName(scoop.WORKER_NAME.decode("utf-8")),
                           scoop.BROKER_NAME.decode("utf-8"))
+
+
+def getDebugIdentifier():
+    return "-".join(scoop.DEBUG_IDENTIFIER)
+
+
+def writeWorkerDebug(debugStats, queueLength):
+    import os
+    try:
+        os.makedirs("debug")
+    except:
+        pass
+    with open("debug/{0}".format(getDebugIdentifier()), 'wb') as f:
+        pickle.dump(debugStats, f)
+    with open("debug/{0}-QUEUE".format(getDebugIdentifier()), 'wb') as f:
+        pickle.dump(queueLength, f)
+
