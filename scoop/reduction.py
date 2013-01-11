@@ -22,17 +22,26 @@ total = {}
 # Set the number of ran futures for a given group
 sequence = defaultdict(itertools.count)
 
+
 def reduction(inFuture, operation):
     """Generic reduction method. Subclass it (using partial() is recommended)
     to specify an operation or enhance its features if needed."""
     global total
+    uniqueReferences = []
     try:
-        uniqueReference = [cb.groupID for cb in inFuture.callback]
+        for cb in inFuture.callback:
+            if cb.groupID:
+                uniqueReferences.append(cb.groupID)
     except IndexError:
         raise Exception("Could not find reduction reference.")
-    total[uniqueReference[0]] = operation(inFuture.result(),
-                                          total.get(uniqueReference[0], 0))
-    inFuture.resultValue = total[uniqueReference[0]]
+    for uniqueReference in uniqueReferences:
+        if uniqueReference not in total:
+            total[uniqueReference] = inFuture.result()
+        else:
+            total[uniqueReference] = operation(total[uniqueReference],
+                                               inFuture.result())
+    inFuture.resultValue = total[uniqueReferences[0]]
+
 
 def cleanGroupID(inGroupID):
     global total
