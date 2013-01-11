@@ -8,7 +8,7 @@ The software requirements for SCOOP are as follows:
 
 * `Python <http://www.python.org/>`_ >= 2.6 or >= 3.2
 * `Greenlet <http://pypi.python.org/pypi/greenlet>`_ >= 0.3.4
-* `PyZMQ <http://www.zeromq.org/bindings:python>`_ and 
+* `pyzmq <http://www.zeromq.org/bindings:python>`_ and 
   `libzmq <http://www.zeromq.org/>`_ >= 2.2.0
 * :program:`ssh` for remote execution
 
@@ -24,8 +24,15 @@ To install SCOOP and its other dependencies, use
 
 	If you don't already have `libzmq <http://www.zeromq.org/>`_ installed in a
 	default library location, please visit the 
-	`PyZMQ installation page <http://www.zeromq.org/bindings:python/>`_ for 
+	`pyzmq installation page <http://www.zeromq.org/bindings:python/>`_ for 
 	assistance.
+
+.. note::
+    
+    If you are using Windows, you may want to install pyzmq using the installer
+    available at their 
+    `download page <https://github.com/zeromq/pyzmq/downloads>`_.
+    This installer installs libzmq alongside pyzmq.
 
 Remote usage
 ~~~~~~~~~~~~
