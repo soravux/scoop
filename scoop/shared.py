@@ -58,7 +58,7 @@ def ensureAtomicity(fn):
 
 
 @ensureAtomicity
-def shareConstant(**kwargs):
+def setConst(**kwargs):
     # TODO: Import that elsewhere
     from . import _control
     
@@ -72,10 +72,12 @@ def shareConstant(**kwargs):
         else:
             sendVariable(key, value)
 
-def getConstant(key, blocking=True):
+def getConst(key, timeout=0.1):
     # TODO: Import that elsewhere
     from . import _control
+    import time
 
+    timeStamp = time.time()
     while True:
         # Enforce retrieval of currently awaiting constants
         _control.execQueue.socket.pumpInfoSocket()
@@ -84,7 +86,7 @@ def getConstant(key, blocking=True):
         constants = dict(reduce(lambda x, y: x + list(y.items()),
                                 elements.values(),
                                 []))
-        if constants.get(key) is not None or not blocking:
-            break
-        time.sleep(0.1)
-    return constants.get(key)
+        timeoutHappened = time.time() - timeStamp > timeout
+        if constants.get(key) is not None or timeoutHappened:
+            return constants.get(key)
+        time.sleep(0.01)
