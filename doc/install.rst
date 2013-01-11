@@ -22,10 +22,10 @@ To install SCOOP and its other dependencies, use
 
 .. note::
 
-	If you don't already have `libzmq <http://www.zeromq.org/>`_ installed in a
-	default library location, please visit the 
-	`pyzmq installation page <http://www.zeromq.org/bindings:python/>`_ for 
-	assistance.
+    If you don't already have `libzmq <http://www.zeromq.org/>`_ installed in a
+    default library location, please visit the 
+    `pyzmq installation page <http://www.zeromq.org/bindings:python/>`_ for 
+    assistance.
 
 .. note::
     

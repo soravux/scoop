@@ -59,17 +59,9 @@ def _startup(rootFuture, *args, **kargs):
         result = None
         control.execQueue.shutdown()
     if scoop.DEBUG:
-        import pickle
-        try:
-            os.makedirs("debug")
-        except:
-            pass
-        with open("debug/{0}".format("-".join(scoop.DEBUG_IDENTIFIER
-                                     )), 'wb') as f:
-            pickle.dump(control.debug_stats, f)
-        with open("debug/{0}-QUEUE".format("-".join(scoop.DEBUG_IDENTIFIER
-                                           )), 'wb') as f:
-            pickle.dump(control.QueueLength, f)
+        from scoop import _debug
+        _debug.writeWorkerDebug(control.debug_stats,
+                                control.QueueLength)
     return result
 
 def _mapFuture(callable, *iterables, **kargs):
@@ -105,12 +97,11 @@ def map(func, *iterables, **kargs):
     <http://docs.python.org/library/functions.html#map>`_
     but *func* is executed asynchronously
     and several calls to func may be made concurrently. The returned iterator
-    raises a TimeoutError if *__next__()* is called and the result isn't available
-    after timeout seconds from the original call to *map()* [To be done in future
-    version of SCOOP]. If timeout is not
-    specified or None then there is no limit to the wait time. If a call raises
-    an exception then that exception will be raised when its value is retrieved
-    from the iterator.
+    raises a TimeoutError if *__next__()* is called and the result isn't
+    available after timeout seconds from the original call to *map()* [To be
+    done in future version of SCOOP]. If timeout is not specified or None then
+    there is no limit to the wait time. If a call raises an exception then that
+    exception will be raised when its value is retrieved from the iterator.
 
     :param func: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
@@ -245,6 +236,9 @@ def submit(func, *args, **kargs):
     may carry on with any further computations while the Future completes.
     Result retrieval is made via the :meth:`~scoop._types.Future.result`
     function on the Future."""
+    assert hasattr(func, "__call__"), ("The provided func parameter is not a "
+                                       "callable")
+
     try:
         child = Future(control.current.id, func, *args, **kargs)
     except AttributeError:

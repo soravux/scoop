@@ -7,8 +7,8 @@ import code
 # >>> def myExample(inVal):
 # ...     return inVal + 1
 # ...
-# >>> shared.shareConstant(myExample=myExample)
-# >>> print(list(futures.map(myExample, range(1000))))
+# >>> shared.setConst(myExample=myExample)
+# >>> print(list(futures.map(myExample, range(64))))
 # >>> exit()
 
 if __name__ == '__main__':
