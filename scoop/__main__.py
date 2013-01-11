@@ -246,8 +246,9 @@ class ScoopApp(object):
         # Terminate the broker
         self.broker.close()
 
-        logging.info('Finished destroying spawned subprocesses.')
+        logging.info('Finished cleaning spawned subprocesses.')
         exit(self.errors)
+
 
 def makeParser():
     """Create the SCOOP module arguments parser."""

@@ -82,7 +82,7 @@ class remoteBroker(object):
     def close(self):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
-        logging.debug('Destroying workers on host {0}.'.format(self.hostname))
+        logging.debug('Closing broker on host {0}.'.format(self.hostname))
 
         # Terminate subprocesses
         try:
