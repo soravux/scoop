@@ -113,9 +113,10 @@ mapReduce
 The :meth:`~scoop.futures.mapReduce` function of SCOOP allows to parallelize a
 reduction function after applying the aforementionned
 :meth:`~scoop.futures.map` function.
-Its result is a single element.
+It returns a single value.
 
-A reduction function takes a dataset and applies a function cumulatively to it.
+A reduction function takes the map results and applies a function cumulatively
+to it.
 For example, applying `reduce(lambda x, y: x+y, ["a", "b", "c", "d"])` would
 execute `(((("a")+"b")+"c")+"d")` give you the result `"abcd"`
 

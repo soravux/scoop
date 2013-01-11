@@ -139,13 +139,14 @@ relation between area and circumference, namely
    :lines: 29-31
    :linenos:
 
-As :ref:`stated previously <test-for-main-mandatory>`, you `must` wrap your
+As :ref:`previously stated <test-for-main-mandatory>`, you `must` wrap your
 code with a test for the __main__ name.
-You can now run your code using the command :program:`python -m scoop`.
 
 .. literalinclude:: ../examples/piCalcDoc.py
    :lines: 33-34
    :linenos:
+
+You can now run your code using the command :program:`python -m scoop`.
 
 
 Residual sum of squares
@@ -180,8 +181,7 @@ Its implementation is found in |rssDocFile|_:
 Overall example
 ---------------
 
-The |fullTreeFile|_ example holds a pretty good wrap-up of available
-functionnalities.
+The |fullTreeFile|_ example holds a wrap-up of available SCOOP functionnalities.
 It notably shows that SCOOP is capable of handling twisted and complex
 hierarchical requirements.
 

@@ -140,7 +140,8 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
         The callable must return a value.
     :param reductionOp: Any picklable callable object (function or class object
         with *__call__* method); this object will be called to reduce the
-        Futures results. The callable must return a value.
+        Futures results. The callable must support two parameters and return a
+        single value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
@@ -179,14 +180,16 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
 
 def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
-    reduction function to its result.
+    reduction function to its result. The reduction function will cumulatively
+    merge the results of the map function in order to get a final single value.
 
     :param mapFunc: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
         The callable must return a value.
     :param reductionOp: Any picklable callable object (function or class object
         with *__call__* method); this object will be called to reduce the
-        Futures results. The callable must return a value.
+        Futures results. The callable must support two parameters and return a
+        single value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
@@ -195,8 +198,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
     :param kargs: A dictionary of additional keyword arguments that will be
         passed to the mapFunc callable object.
 
-    :returns: The final return value of the reduction function applied to every
-              mapped data."""
+    :returns: A single value."""
     # TODO: make DRY with submit
     launches = []
     # Set a callback group ID for the Futures generated within this scope
@@ -225,7 +227,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
     return reduce(reductionOp, workerResults.values())
 
 def submit(func, *args, **kargs):
-    """Submit an independent parallel :class:`scoop._types.Future` that will
+    """Submit an independent parallel :class:`~scoop._types.Future` that will
     either run locally or remotely as `func(*args, **kargs)`.
 
     :param func: Any picklable callable object (function or class object with
@@ -238,10 +240,11 @@ def submit(func, *args, **kargs):
 
     :returns: A future object for retrieving the Future result.
 
-    On return, the Future is pending execution locally, but may also be
+    On return, the Future can be pending execution locally but may also be
     transfered remotely depending on load or on remote distributed workers. You
-    may carry on with any further computations while the Future completes. Result
-    retrieval is made via the ``result()`` function on the Future."""
+    may carry on with any further computations while the Future completes.
+    Result retrieval is made via the :meth:`~scoop._types.Future.result`
+    function on the Future."""
     try:
         child = Future(control.current.id, func, *args, **kargs)
     except AttributeError:
