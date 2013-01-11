@@ -27,8 +27,8 @@ broker to mediate their communications.
    :height: 250px
    :align: center
 
-How to use SCOOP in your code
------------------------------
+Mapping API
+-----------
 
 The philosophy of SCOOP is loosely built around the *futures* module proposed 
 by :pep:`3148`. It primarily defines a :meth:`~scoop.futures.map` and a 
@@ -107,6 +107,9 @@ instance.
 This allows a finer control over the Futures, such as out-of-order results 
 retrieval.
 
+Reduction API
+-------------
+
 mapReduce
 ~~~~~~~~~
 
@@ -149,7 +152,8 @@ A common reduction usage consist of a sum as the following example::
 mapScan
 ~~~~~~~
 
-
+Object sharing API
+------------------
 
 Examples
 --------
@@ -338,12 +342,14 @@ wrap the executable part of your program using::
 
     if __name__ == '__main__':
 
-This is mandatory when using parallel frameworks such as multiprocessing and 
-SCOOP. Otherwise, each worker (or equivalent) will try to execute your code 
-serially.
+This is mandatory when using parallel frameworks such as multiprocessing or 
+SCOOP. Every worker execute your main module with a `__name__` variable
+different than `__main__` then awaits orders given by the root node to execute
+available functions.
 
 Also, only functions or classes declared at the top level of your program are
-picklables. Here are some examples of non-working map invocations::
+picklables. This is a limitation of Python's pickle module.
+Here are some examples of non-working map invocations::
 
     # Script to be launched with: python -m scoop scriptName.py
     from scoop import futures

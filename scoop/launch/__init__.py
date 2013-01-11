@@ -196,7 +196,8 @@ class Host(object):
     def close(self):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
-        logging.debug('Destroying workers on host {0}.'.format(self.hostname))
+
+        logging.debug('Closing workers on {0}.'.format(self))
 
         # Terminate subprocesses
         for process in self.subprocesses:
