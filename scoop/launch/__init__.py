@@ -64,7 +64,7 @@ class Host(object):
         """
         try:
             la = self.LAUNCHING_ARGUMENTS(*args, **kwargs)
-        except TypeError, e:
+        except TypeError as e:
             self.log.error(("addWorker failed to convert args %s and kwargs %s "
                             "to namedtuple (requires %s arguments (names %s)") %
                             (args, kwargs, len(self.LAUNCHING_ARGUMENTS._fields),
