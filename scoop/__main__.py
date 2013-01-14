@@ -90,7 +90,7 @@ class ScoopApp(object):
 
         self.hostsConn = []
 
-    def init_logging(self,log):
+    def init_logging(self, log):
         verbose_levels = {0: logging.WARNING,
                           1: logging.INFO,
                           2: logging.DEBUG,
@@ -100,7 +100,6 @@ class ScoopApp(object):
                             format='[%(asctime)-15s] %(levelname)-7s '
                                    '%(message)s')
         self.log = logging.getLogger(self.__class__.__name__)
-
 
     def getAffinity(self, n):
         """Return the cpu affinity based on specified algorithm
@@ -163,24 +162,48 @@ class ScoopApp(object):
                 number - 1 if worker == hosts[-1][0] else str(number),
                 "+ origin" if worker == hosts[-1][0] else ""))
 
-    def _run_addWorker_args(self):
-        """Create the arguments to pass to the addWorker call"""
-        args = (
-                self.path,
-                self.pythonpath,
-                self.nice,
-                self.affinity,
-                self.workersLeft,
-                self.debug,
-                self.profile,
-                self.python_executable,
-                self.executable,
-                self.args,
-                self.brokerHostname,
-                (self.broker.brokerPort, self.broker.infoPort),
-                self.n,
-                )
-        return args
+    def _addWorker_args(self, workerinfo):
+        """Create the arguments to pass to the addWorker call.
+            The returned args and kwargs must ordered/named according to the namedtuple
+            in LAUNCH_HOST_CLASS.LAUNCHING_ARGUMENTS
+
+            both args and kwargs are supported for full flexibilty,
+            but usage of kwargs only is strongly advised
+
+            workerinfo is a dict with information that can be used to start the worker
+        """
+        args = []
+        kwargs = {
+                  'pythonPath':self.pythonpath,
+                  'path':self.path,
+                  'nice':self.nice,
+                  'affinity':self.affinity,
+                  'pythonExecutable':self.python_executable,
+                  'size':self.n,
+                  'workerNum':self.workersLeft,
+                  'brokerHostname':self.brokerHostname,
+                  'brokerPorts':(self.broker.brokerPort, self.broker.infoPort),
+                  'debug':self.debug,
+                  'profiling':self.profile,
+                  'executable':self.executable,
+                  'args':self.args,
+                  }
+        return args, kwargs
+
+    def addWorkerToHost(self, workerinfo):
+        """add a worker to current host"""
+        hostname = workerinfo['hostname']
+
+        self.log.debug('Initialising {0}{1} worker {2} [{3}].'.format(
+            "local" if hostname in utils.localHostnames else "remote",
+            " origin" if self.workersLeft == 1 else "",
+            self.workersLeft,
+            hostname,
+            )
+        )
+
+        add_args, add_kwargs = self._addWorker_args(workerinfo)
+        self.hostsConn[-1].addWorker(*add_args, **add_kwargs)
 
     def run(self):
         """Launch the broker and every worker assigned on every hosts."""
@@ -194,17 +217,13 @@ class ScoopApp(object):
         # Launch the workers
         for hostname, nbworkers in self.hosts:
             self.hostsConn.append(self.LAUNCH_HOST_CLASS(hostname))
-            for n in range(min(nbworkers, self.workersLeft)):
-                self.log.debug('Initialising {0}{1} worker {2} [{3}].'.format(
-                    "local" if hostname in utils.localHostnames else "remote",
-                    " origin" if self.workersLeft == 1 else "",
-                    self.workersLeft,
-                    hostname,
-                    )
-                )
-
-                add_args = self._run_addWorker_args()
-                self.hostsConn[-1].addWorker(*add_args)
+            total_workers_host = min(nbworkers, self.workersLeft)
+            for worker_idx_host in range(total_workers_host):
+                workerinfo = {'hostname':hostname,
+                              'total_workers_host':total_workers_host,
+                              'worker_idx_host':worker_idx_host
+                              }
+                self.addWorkerToHost(workerinfo)
                 self.workersLeft -= 1
 
             # Launch every workers at the same time

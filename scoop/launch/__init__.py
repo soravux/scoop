@@ -31,9 +31,12 @@ class Host(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
-        ['path', 'pythonPath', 'nice', 'workerNum', 'debug', 'profiling',
-         'pythonExecutable', 'executable', 'args', 'brokerHostname',
-         'brokerPorts', 'size',
+        ['pythonPath', 'path',
+         'nice', 'affinity', 'pythonExecutable',
+         'size', 'workerNum',
+         'brokerHostname', 'brokerPorts',
+         'debug', 'profiling',
+         'executable', 'args',
          ]
     )
 
@@ -54,26 +57,20 @@ class Host(object):
         """Is the current host the localhost?"""
         return self.hostname in utils.localHostnames
 
-    def addWorker(self, path, pythonPath, nice, affinity, workerNum, debug,
-             profiling, pythonExecutable, executable, args, brokerHostname,
-             brokerPorts, size):
-        """Add a worker assignation"""
-        self.workersArguments.append(
-            self.LAUNCHING_ARGUMENTS(path=path,
-                                     pythonPath=pythonPath,
-                                     nice=nice,
-                                     workerNum=workerNum,
-                                     debug=debug,
-                                     profiling=profiling,
-                                     pythonExecutable=pythonExecutable,
-                                     executable=executable,
-                                     args=args,
-                                     brokerHostname=brokerHostname,
-                                     brokerPorts=brokerPorts,
-                                     size=size,
-                                     )
-        )
+    def addWorker(self, *args, **kwargs):
+        """Add a worker assignation
+            arguments and order to pass are defined in LAUNCHING_ARGUMENTS
+            Using named args is advised.
+        """
+        try:
+            la = self.LAUNCHING_ARGUMENTS(*args, **kwargs)
+        except TypeError, e:
+            self.log.error(("addWorker failed to convert args %s and kwargs %s "
+                            "to namedtuple (requires %s arguments (names %s)") %
+                            (args, kwargs, len(self.LAUNCHING_ARGUMENTS._fields),
+                             self.LAUNCHING_ARGUMENTS._fields))
 
+        self.workersArguments.append(la)
 
     def setCommand(self):
         # replace remoteSSHLaunch
@@ -110,6 +107,7 @@ class Host(object):
         if not self.isLocal() and workerID == 0:
             c.append("--echoGroup ")
 
+        c.extend(['--size', str(worker.size)])
         c.extend(['--workerName', str(worker.workerNum)])
 
         c.extend(['--brokerName', 'broker'])
@@ -121,7 +119,6 @@ class Host(object):
                   'tcp://{brokerHostname}:{infoPort}'.format(brokerHostname=broker,
                                                              infoPort=worker.brokerPorts[1])
                   ])
-        c.extend(['--size', str(worker.size)])
         if worker.workerNum == 1:
             c.append('--origin')
         if worker.debug:
