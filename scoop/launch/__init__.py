@@ -38,6 +38,7 @@ class Host(object):
     )
 
     def __init__(self, hostname="localhost"):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.workersArguments = []
         self.hostname = hostname
         self.subprocesses = []
@@ -186,7 +187,7 @@ class Host(object):
                     self.subprocesses[-1].stdout.readline().strip()
                 )
             except ValueError:
-                logging.info("Could not get process information for host "
+                self.log.info("Could not get process information for host "
                              "{0}.".format(
                                 self.createdRemoteConn[thisRemote][0],
                                 )
@@ -197,7 +198,7 @@ class Host(object):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
 
-        logging.debug('Closing workers on {0}.'.format(self))
+        self.log.debug('Closing workers on {0}.'.format(self))
 
         # Terminate subprocesses
         for process in self.subprocesses:
@@ -208,7 +209,7 @@ class Host(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-                logging.info("Zombie process(es) possibly left on "
+                self.log.info("Zombie process(es) possibly left on "
                              "host {0}!".format(self.hostname))
         elif not self.isLocal():
             command = "kill -9 -{0} &>/dev/null".format(self.remoteProcessGID)
