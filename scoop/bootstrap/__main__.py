@@ -100,7 +100,13 @@ class Bootstrap(object):
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
 
-    def run(self):
+    def run(self, globs=None):
+        """Import user module and start __main__
+           passing globals() is required when subclassing in another module
+        """
+        if globs is None:
+            globs = globals()
+
         # get the module path in the Python path
         sys.path.append(os.path.join(os.getcwd(),
                         os.path.dirname(self.args.executable[0])))
@@ -120,7 +126,7 @@ class Bootstrap(object):
         # import the user module into the global dictionary
         # equivalent to from {user_module} import *
         try:
-            user_module = __import__(os.path.basename(executable)[:-3])
+            user_module = __import__(os.path.basename(executable)[:-3], globs)
         except ImportError as e:
             # Could not find
             sys.stderr.write('{0}\nIn path: {1}\n'.format(
@@ -135,7 +141,7 @@ class Bootstrap(object):
         except AttributeError:
             attrlist = dir(user_module)
         for attr in attrlist:
-            globals()[attr] = getattr(user_module, attr)
+            globs[attr] = getattr(user_module, attr)
         # Start the user program
         from scoop import futures
         def futures_startup():
@@ -143,7 +149,7 @@ class Bootstrap(object):
                                     functools.partial(
                                                       runpy.run_path,
                                                       executable,
-                                                      init_globals=globals(),
+                                                      init_globals=globs,
                                                       run_name="__main__"
                                                       )
                                     )
@@ -156,7 +162,7 @@ class Bootstrap(object):
             except:
                 pass
             cProfile.runctx("futures_startup()",
-                            globals(),
+                            globs,
                             locals(),
                             "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
                             )
