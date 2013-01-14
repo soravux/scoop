@@ -29,7 +29,7 @@ def myFunc(parameter):
     print('Hello World from {0}!'.format(scoop.worker))
 
     # It is possible to get a constant anywhere
-    print(shared.getConstant('myVar')[2])
+    print(shared.getConst('myVar')[2])
 
     # Parameters are handled as usual
     return parameter + 1
@@ -37,16 +37,16 @@ def myFunc(parameter):
 
 if __name__ == "__main__":
     # Populate the shared constants
-    shared.shareConstant(myVar={1: 'First element',
+    shared.setConst(myVar={1: 'First element',
                                 2: 'Second element',
                                 3: 'Third element',
                                })
-    shared.shareConstant(secondVar="Hello World!")
-    shared.shareConstant(mySharedFunction=myFunc)
+    shared.setConst(secondVar="Hello World!")
+    shared.setConst(myFunc=myFunc)
 
     # Use the previously defined shared function
-    print(list(futures.map(mySharedFunction, range(10))))
+    print(list(futures.map(myFunc, range(10))))
     
     # Un-commenting the following line will give a TypeError
     # since re-defining a constant is not allowed.
-    #shared.shareConstant(myVar="Variable re-assignation")
+    #shared.setConst(myVar="Variable re-assignation")
