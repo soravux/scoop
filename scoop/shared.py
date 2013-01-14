@@ -100,8 +100,8 @@ def getConst(name, timeout=0.1):
     """Get a constant that was shared beforehand.
 
     :param name: The name of the shared variable to retrieve.
-    :param timeout: The maximum time to wait for the propagation of the
-        variable.
+    :param timeout: The maximum time to wait in seconds for the propagation of
+        the variable.
 
     :returns: The shared object.
 
