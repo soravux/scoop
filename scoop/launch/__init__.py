@@ -32,7 +32,7 @@ class Host(object):
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
         ['pythonPath', 'path',
-         'nice', 'affinity', 'pythonExecutable',
+         'nice', 'pythonExecutable',
          'size', 'workerNum',
          'brokerHostname', 'brokerPorts',
          'debug', 'profiling',

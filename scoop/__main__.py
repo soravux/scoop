@@ -43,7 +43,7 @@ class ScoopApp(object):
     LAUNCH_HOST_CLASS = Host
 
     def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, tunnel, log, path, debug, nice, affinity,
+            executable, arguments, tunnel, log, path, debug, nice,
             env, profile, pythonPath):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
@@ -62,7 +62,6 @@ class ScoopApp(object):
         self.path = path
         self.debug = debug
         self.nice = nice
-        self.affinity = affinity
         self.profile = profile
         self.errors = None
 
@@ -100,13 +99,6 @@ class ScoopApp(object):
                             format='[%(asctime)-15s] %(levelname)-7s '
                                    '%(message)s')
         self.log = logging.getLogger(self.__class__.__name__)
-
-    def getAffinity(self, n):
-        """Return the cpu affinity based on specified algorithm
-            n : workerindex on current node
-        """
-        if self.affinity is None:
-            return None
 
     def divideHosts(self, hosts):
         """Divide the workers accross hosts."""
@@ -177,7 +169,6 @@ class ScoopApp(object):
                   'pythonPath':self.pythonpath,
                   'path':self.path,
                   'nice':self.nice,
-                  'affinity':self.affinity,
                   'pythonExecutable':self.python_executable,
                   'size':self.n,
                   'workerNum':self.workersLeft,
@@ -300,10 +291,6 @@ def makeParser():
                         metavar="NiceLevel",
                         help="*nix niceness level (-20 to 19) to run the "
                              "executable")
-    parser.add_argument('--affinity',
-                        default=None,
-                        help="Set affinity algorithm (set through taskset) "
-                             "(POSIX OS only)")
     parser.add_argument('--verbose', '-v',
                         action='count',
                         help="Verbosity level of this launch script (-vv for "
@@ -388,7 +375,7 @@ def main():
                         args.broker_hostname[0],
                         args.executable, args.args, args.tunnel,
                         args.log, args.path,
-                        args.debug, args.nice, args.affinity,
+                        args.debug, args.nice,
                         utils.getEnv(), args.profile,
                         args.pythonpath[0])
     try:
