@@ -81,7 +81,7 @@ class Host(object):
         c = []
         if worker.pythonPath:
             # TODO: do we really want to set PYTHONPATH='' if not defined??
-            c.extend(["export", "PYTHONPATH={0}:\$PYTHONPATH".format(worker.pythonPath), '&&'])
+            c.extend(["export", "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath), '&&'])
 
         c.extend(['cd', worker.path, '&&'])
         return c
