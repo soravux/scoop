@@ -24,8 +24,22 @@ import time
 elements = None
 
 
-def ensureAtomicity(fn):
+def _ensureAtomicity(fn):
+    """Ensure atomicity of passed elements on the whole worker pool"""
     def wrapper(*args, **kwargs):
+        """setConst(**kwargs)
+        Set a constant that will be shared to every workers.
+
+        :param **kwargs: One or more combination(s) key=value. Key being the
+            variable name and value the object to share.
+
+        :returns: None.
+
+        Usage: setConst(name=value)
+        """
+        # Note that the docstring is the one of setConst. This is because of
+        # sphinx.
+
         # TODO: Import that elsewhere
         from . import _control
 
@@ -57,8 +71,18 @@ def ensureAtomicity(fn):
     return wrapper
 
 
-@ensureAtomicity
+@_ensureAtomicity
 def setConst(**kwargs):
+    """setConst(**kwargs)
+    Set a constant that will be shared to every workers.
+
+    :param **kwargs: One or more combination(s) key=value. Key being the
+        variable name and value the object to share.
+
+    :returns: None.
+
+    Usage: setConst(name=value)
+    """
     # TODO: Import that elsewhere
     from . import _control
     
@@ -72,7 +96,17 @@ def setConst(**kwargs):
         else:
             sendVariable(key, value)
 
-def getConst(key, timeout=0.1):
+def getConst(name, timeout=0.1):
+    """Get a constant that was shared beforehand.
+
+    :param name: The name of the shared variable to retrieve.
+    :param timeout: The maximum time to wait for the propagation of the
+        variable.
+
+    :returns: The shared object.
+
+    Usage: value = getConst('name')
+    """
     # TODO: Import that elsewhere
     from . import _control
     import time
@@ -87,6 +121,6 @@ def getConst(key, timeout=0.1):
                                 elements.values(),
                                 []))
         timeoutHappened = time.time() - timeStamp > timeout
-        if constants.get(key) is not None or timeoutHappened:
-            return constants.get(key)
+        if constants.get(name) is not None or timeoutHappened:
+            return constants.get(name)
         time.sleep(0.01)
