@@ -149,11 +149,28 @@ A common reduction usage consist of a sum as the following example::
     You can pass any arbitrary reduction function, not only operator ones.
 
 
-mapScan
-~~~~~~~
-
 Object sharing API
 ------------------
+
+Sharing constant objects between workers is available using the
+:module:`~scoop.shared` module.
+
+Its functionnalities are summarised as such::
+
+    from scoop import futures, shared
+
+    def myParallelFunc(inValue):
+        myValue = shared.getConst('myValue')
+        return inValue + myValue
+
+
+    if __name__ == '__main__':
+        shared.setCont(myValue=5)
+        print(list(futures.map(myParallelFunc, range(10))))
+
+
+.. note::
+    A constant can only be defined once on the entire pool of workers.
 
 Examples
 --------

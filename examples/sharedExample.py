@@ -16,9 +16,10 @@
 #
 """
 Example of shared constants use.
-This example is based on the piCalc example.
+This syntetic example only showcase the shared module API.
 """
 from scoop import futures, shared
+# Import SCOOP to get access to its constants such as scoop.worker
 import scoop
 
 
