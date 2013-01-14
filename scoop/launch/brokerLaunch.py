@@ -18,6 +18,7 @@
 from threading import Thread
 import subprocess
 import logging
+import sys
 
 
 class localBroker(object):
@@ -47,8 +48,7 @@ class remoteBroker(object):
                         "--echoGroup ")
         self.hostname = hostname
         for i in range(5000, 10000, 2):
-            ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-            self.shell = subprocess.Popen(ssh_command
+            self.shell = subprocess.Popen(self.BASE_SSH
                 + [hostname]
                 + [brokerString.format(brokerPort=i,
                                        infoPort=i + 1,
@@ -84,6 +84,7 @@ class remoteBroker(object):
         """Is the current broker on the localhost?"""
         # This exists for further fusion with localBroker
         return False
+        # return self.hostname in utils.localHostnames
 
     def close(self):
         """Connection(s) cleanup."""
