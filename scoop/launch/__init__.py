@@ -95,7 +95,7 @@ class Host(object):
         c.extend([worker.pythonExecutable, '-m', self.BOOTSTRAP_MODULE])
         return c
 
-    def _WorkerCommand_options(self, worker):
+    def _WorkerCommand_options(self, worker, workerID):
         """Return list of options for bootstrap"""
         c = []
         # If broker is on localhost
@@ -103,6 +103,7 @@ class Host(object):
             broker = "127.0.0.1"
         else:
             broker = worker.brokerHostname
+
         # If host is not localhost, echo group process
         if not self.isLocal() and workerID == 0:
             c.append("--echoGroup ")
@@ -147,7 +148,7 @@ class Host(object):
 
         c.append('(')
         c.extend(self._WorkerCommand_bootstrap(worker))
-        c.extend(self._WorkerCommand_options(worker))
+        c.extend(self._WorkerCommand_options(worker, workerID))
         c.extend(self._WorkerCommand_executable(worker))
         c.append(')')
 
@@ -208,7 +209,7 @@ class Host(object):
             except ValueError:
                 self.log.info("Could not get process information for host "
                              "{0}.".format(
-                                self.createdRemoteConn[thisRemote][0],
+                                self.hostname,
                                 )
                              )
         return self.subprocesses
