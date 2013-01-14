@@ -82,7 +82,6 @@ class Bootstrap(object):
 
     def parse(self):
         # Generate a argparse parser and parse the command-line arguments
-        self.parser = self.makeParser()
         if self.parser is None:
             self.makeParser()
         self.args = self.parser.parse_args()
