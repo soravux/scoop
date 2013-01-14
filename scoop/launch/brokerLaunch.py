@@ -79,6 +79,12 @@ class remoteBroker(object):
                                  )
                       )
 
+
+    def isLocal(self):
+        """Is the current broker on the localhost?"""
+        # This exists for further fusion with localBroker
+        return False
+
     def close(self):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
