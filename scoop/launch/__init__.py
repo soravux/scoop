@@ -143,7 +143,7 @@ class Host(object):
         """Generate the workerCommand as list"""
         worker = self.workersArguments[workerID]
 
-        c = ['(']
+        c = []
         c.extend(self._WorkerCommand_environment(worker))
 
         c.append('(')
@@ -152,21 +152,23 @@ class Host(object):
         c.extend(self._WorkerCommand_executable(worker))
         c.append(')')
 
-        c.append(')')  # closes initial
-
         return c
 
     def getWorkerCommand(self, workerID=None):
         """Retrieves the working launching shell command."""
-        c = (" ".join(self._getWorkerCommandList(workerID)))
+        c = " ".join(self._getWorkerCommandList(workerID))
         return c
 
     def getCommand(self):
         """Retrieves the shell command to launch every worker on this host."""
+        # All the parenthesis insanity is to start subshells (workers) in the
+        # correct monitoring mode (no background job echo).
+        # Output: ( [launch command 1] & ) && ( [launch command 2] & ) [...]
         command = []
         for workerID, worker in enumerate(self.workersArguments):
-            command.append(self.getWorkerCommand(workerID))
-        return " & ".join(command)
+            command.append("( " + self.getWorkerCommand(workerID))
+        command[-1] += ")"
+        return " & ) && ".join(command)
 
     def launch(self, tunnelPorts=None, stdPipe=False):
         """Launch every worker assigned on this host."""
@@ -203,9 +205,8 @@ class Host(object):
             )
             # Get group id from remote connections
             try:
-                self.remoteProcessGID = int(
-                    self.subprocesses[-1].stdout.readline().strip()
-                )
+                textGID = self.subprocesses[-1].stdout.readline().strip()
+                self.remoteProcessGID = int(textGID)
             except ValueError:
                 self.log.info("Could not get process information for host "
                              "{0}.".format(
