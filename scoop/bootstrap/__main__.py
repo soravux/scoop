@@ -107,12 +107,11 @@ class Bootstrap(object):
         if globs is None:
             globs = globals()
 
-        # get the module path in the Python path
-        sys.path.append(os.path.join(os.getcwd(),
-                        os.path.dirname(self.args.executable[0])))
-
         # temp values to keep the args
         executable = self.args.executable[0]
+
+        # get the module path in the Python path
+        sys.path.append(os.path.dirname(os.path.abspath(executable)))
 
         # Add the user arguments to argv
         sys.argv = sys.argv[:1]
