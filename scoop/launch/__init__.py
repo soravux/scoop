@@ -79,23 +79,28 @@ class Host(object):
         # replace remoteSSHLaunch
         pass
 
-    def _getWorkerCommandList(self, workerID):
-        """Generate the workerCommand as list"""
-        worker = self.workersArguments[workerID]
-
-        c = ['(']
+    def _WorkerCommand_environment(self, worker):
+        """Return list of (shell) commands to prepare the environment for bootstrap"""
+        c = []
         if worker.pythonPath:
             # TODO: do we really want to set PYTHONPATH='' if not defined??
             c.extend(["export", "PYTHONPATH={0}:\$PYTHONPATH".format(worker.pythonPath), '&&'])
 
         c.extend(['cd', worker.path, '&&'])
-        c.append('(')
+        return c
 
+    def _WorkerCommand_bootstrap(self, worker):
+        """Return list commands to start the bootstrap process"""
+        c = []
         if worker.nice is not None:
             c.extend(['nice', '-n', str(worker.nice)])
 
         c.extend([worker.pythonExecutable, '-m', self.BOOTSTRAP_MODULE])
+        return c
 
+    def _WorkerCommand_options(self, worker):
+        """Return list of options for bootstrap"""
+        c = []
         # If broker is on localhost
         if self.hostname == worker.brokerHostname:
             broker = "127.0.0.1"
@@ -123,15 +128,32 @@ class Host(object):
             c.append('--debug')
         if worker.profiling:
             c.append('--profile')
+        return c
 
+    def _WorkerCommand_executable(self, worker):
+        """Return executable and any options to be executed by bootstrap"""
+        c = []
         c.append(worker.executable)
         # This trick is used to parse correctly quotes (ie. myScript.py 'arg1 "arg2" arg3')
         # Because shell=True is set with Popen, every quote gets re-interpreted
         # It replaces simple quotation marks with \\\" which gets evaluated to \" by
         # the second shell which prints it out as a double quote.
         c.extend(['"{0}"'.format(a.replace('"', '\\\"')) for a in worker.args])
+        return c
 
-        c.append(')')  # closes nice
+    def _getWorkerCommandList(self, workerID):
+        """Generate the workerCommand as list"""
+        worker = self.workersArguments[workerID]
+
+        c = ['(']
+        c.extend(self._WorkerCommand_environment(worker))
+
+        c.append('(')
+        c.extend(self._WorkerCommand_bootstrap(worker))
+        c.extend(self._WorkerCommand_options(worker))
+        c.extend(self._WorkerCommand_executable(worker))
+        c.append(')')
+
         c.append(')')  # closes initial
 
         return c
