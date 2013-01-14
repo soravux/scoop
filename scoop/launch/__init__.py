@@ -233,7 +233,7 @@ class Host(object):
                 self.log.info("Zombie process(es) possibly left on "
                              "host {0}!".format(self.hostname))
         elif not self.isLocal():
-            command = "kill -9 -{0} &>/dev/null".format(self.remoteProcessGID)
+            command = "kill -9 -{0} >&/dev/null".format(self.remoteProcessGID)
             subprocess.Popen(self.BASE_SSH
                              + [self.hostname]
                              + [command],
