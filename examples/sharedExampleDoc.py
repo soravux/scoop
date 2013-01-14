@@ -19,11 +19,11 @@ Example of shared constants use.
 This is a synthetic partition and evaluation example that should only be
 analysed for its shared module API.
 """
-from itertools import combinations_with_replacement, tee
+from itertools import product, tee
 import string
 from scoop import futures, shared
 
-HASH_TO_FIND = hash("SCOOP")
+HASH_TO_FIND = hash("SCO")
 
 
 def generateHashes(inIterator):
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     possibleCharacters.extend(' ')
 
     # Generate the solution space.
-    stringIterator = combinations_with_replacement(possibleCharacters, 5)
+    stringIterator = product(possibleCharacters, repeat=3)
 
     # Partition the solution space into iterators 
     # Keep in mind that the tee operator evaluates the whole solution space
