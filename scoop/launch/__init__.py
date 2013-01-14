@@ -237,7 +237,6 @@ class Host(object):
             subprocess.Popen(self.BASE_SSH
                              + [self.hostname]
                              + [command],
-                             shell=True,
             ).wait()
 
         for process in self.subprocesses:
