@@ -149,34 +149,6 @@ code with a test for the __main__ name.
 You can now run your code using the command :program:`python -m scoop`.
 
 
-Residual sum of squares
------------------------
-
-You can use the Residual Sum of Squares (RSS) metric to verify if two signals
-are similar to one another.
-
-The RSS is defined by the mathematical equation
-:math:`RSS = \sum_{i=1}^n (y_i - x_i)^2`.
-Put it simply, you take the difference between every element of your arrays,
-square each of these results and then sum it.
-
-Its implementation is found in |rssDocFile|_:
-
-.. |rssDocFile| replace:: :file:`examples/rssDoc.py`
-.. _rssDocFile: https://code.google.com/p/scoop/source/browse/examples/rssDoc.py
-
-.. literalinclude:: ../examples/rssDoc.py
-   :lines: 21-
-   :linenos:
-
-.. note::
-  This kind of operation is called a reduction. It involves returning
-  a single value out of multiple computations.
-
-  The SCOOP Roadmap have parallel reduction functionality and more forecasted,
-  stay tuned for updates on these.
-
-
 Sharing Constant
 ----------------
 

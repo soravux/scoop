@@ -36,30 +36,32 @@ PARALLEL_SIZE = 25000
 # Set the parallel function that will compute the Residual Sum of Squares
 # The index represent the element 
 def RSS(index):
+    # Get the data interval to compute on a given Future
     data = zip(leftSignal[index:index+PARALLEL_SIZE],
                rightSignal[index:index+PARALLEL_SIZE])
-    return sum(abs(a - b)**2 for a, b in data)
+    return sum(abs(y - x)**2 for y, x in data)
+
 
 if __name__ == "__main__":
     # Parallel with reduction call
+    # Take a beginning timestamp
     ts = time.time()
-    prresult = futures.mapReduce(RSS,
-                                 operator.add,
-                                 range(0, len(leftSignal), PARALLEL_SIZE))
-    prtime = time.time() - ts
-    print("mapReduce result obtained in {0:03f}s".format(prtime))
-
-    # Parallel call. This should get approximatively the same time as with
-    # reduction because the reduction is instant with this amount of data.
-    ts = time.time()
-    presult = sum(futures.map(RSS,
-                              range(0, len(leftSignal), PARALLEL_SIZE)))
+    # Generate indexes to pass to futures
+    indexes = range(0,
+                    len(leftSignal),
+                    PARALLEL_SIZE
+                    )
+    # Execute the RSS computation parallely
+    presult = futures.mapReduce(RSS,
+                                operator.add,
+                                indexes,
+                                )
     ptime = time.time() - ts
-    print("map result obtained in {0:03f}s".format(prtime))
+    print("mapReduce result obtained in {0:03f}s".format(ptime))
 
     # Serial
     ts = time.time()
     sresult = sum(abs(a - b)**2 for a, b in zip(leftSignal, rightSignal))
     stime = time.time() - ts
     print("Serial result obtained in {0:03f}s".format(stime))
-    assert prresult == presult == sresult
+    assert presult == sresult
