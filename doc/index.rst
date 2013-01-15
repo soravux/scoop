@@ -46,7 +46,7 @@ SCOOP can handle multiple diversified multi-layered tasks. You can submit your d
    :width: 600 px
 
 Through SCOOP, you can simultaneously execute tasks that are of different 
-nature (Discs of different colors) or different by complexity (Discs radiuses). The module will handle the physical considerations of parallelization, such as task distribution over your resources (load balancing), communications, etc.
+nature (Discs of different colors) or different by complexity (Discs radiuses). The module will handle the physical considerations of parallelization such as task distribution over your resources (load balancing), communications, etc.
 
 Applications
 ------------

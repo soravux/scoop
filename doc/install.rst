@@ -7,6 +7,7 @@ Requirements
 The software requirements for SCOOP are as follows:
 
 * `Python <http://www.python.org/>`_ >= 2.6 or >= 3.2
+* `Distribute <http://packages.python.org/distribute/>`_ >= 0.6.2
 * `Greenlet <http://pypi.python.org/pypi/greenlet>`_ >= 0.3.4
 * `pyzmq <http://www.zeromq.org/bindings:python>`_ and 
   `libzmq <http://www.zeromq.org/>`_ >= 2.2.0
@@ -21,13 +22,6 @@ To install SCOOP and its other dependencies, use
     pip install scoop
 
 .. note::
-
-    If you don't already have `libzmq <http://www.zeromq.org/>`_ installed in a
-    default library location, please visit the 
-    `pyzmq installation page <http://www.zeromq.org/bindings:python/>`_ for 
-    assistance.
-
-.. note::
     
     If you are using Windows, you may want to install pyzmq using the installer
     available at their 
@@ -39,7 +33,7 @@ Remote usage
     
 Because remote host connection needs to be done without a prompt, you must use 
 ssh keys to allow passwordless authentication.
-You should make sure that your public ssh key is contained in the ``~/.ssh/authorized_keys2`` 
+You should make sure that your public ssh key is contained in the ``~/.ssh/authorized_keys`` 
 file on the remote systems (Refer to the `ssh manual <http://www.openbsd.org/cgi-bin/man.cgi?query=ssh>`_). If you have a shared :file:`/home/` over your systems, 
 you can do as such::
     
