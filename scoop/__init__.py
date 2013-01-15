@@ -16,8 +16,8 @@
 #
 __author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
               "Yannick Hold-Geoffroy", "Felix-Antoine Fortin")
-__version__ = "0.6"
-__revision__ = "0.6.0B"
+__version__ = "0.6.0"
+__revision__ = "dev"
 
 # In case SCOOP was not initialized correctly
 DEBUG = False
