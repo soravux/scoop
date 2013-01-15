@@ -23,23 +23,25 @@ from itertools import product, tee
 import string
 from scoop import futures, shared
 
+# Create the hash to brute force
 HASH_TO_FIND = hash("SCO")
 
 
-def generateHashes(inIterator):
-    """Compute hashes."""
-    for combination in inIterator:
+def generateHashes(iterator):
+    """Compute hashes of given iterator elements"""
+    for combination in iterator:
         # Stop as soon as a worker finds the solution
         if shared.getConst('Done', timeout=0):
             return False
 
         # Compute the current combination hash
-        inString = "".join(combination).strip()
-        if hash(inString) == HASH_TO_FIND:
+        currentString = "".join(combination).strip()
+        if hash(currentString) == HASH_TO_FIND:
             # Share to every other worker that the solution has been found
             shared.setConst(Done=True)
-            return inString
-
+            return currentString
+    
+    # Report that computing has not ended
     return False
 
 
