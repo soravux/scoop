@@ -1,8 +1,8 @@
 Examples
 ========
 
-You can find the examples detailed on this page in the |exampleDirectory|_
-directory of SCOOP.
+You can find the examples detailed on this page and more in the
+|exampleDirectory|_ directory of SCOOP.
 
 .. |exampleDirectory| replace:: :file:`examples/`
 .. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
@@ -169,13 +169,23 @@ Its implementation is found in |rssDocFile|_:
    :lines: 21-
    :linenos:
 
-
 .. note::
-  This kind of operation is actually called a reduction. It involves returning
+  This kind of operation is called a reduction. It involves returning
   a single value out of multiple computations.
 
   The SCOOP Roadmap have parallel reduction functionality and more forecasted,
   stay tuned for updates on these.
+
+
+Sharing Constant
+----------------
+
+One usage of shared constants is to halt a computation when a worker has
+found a solution such as a brute forcing example.
+
+.. literalinclude:: ../examples/sharedExampleDoc.py
+   :lines: 22-
+   :linenos:
 
 
 Overall example

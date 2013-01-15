@@ -18,12 +18,17 @@ from __future__ import print_function
 from collections import deque, defaultdict
 import os
 import time
+import sys
 from functools import partial
 
 import greenlet
 
 from ._types import Future, FutureId, FutureQueue, CallbackType
 import scoop
+
+# Backporting collection features
+if sys.version_info < (2, 7):
+    from scoop.backports.newCollections import deque
 
 # Future currently running in greenlet
 current = None

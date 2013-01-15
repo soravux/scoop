@@ -12,7 +12,7 @@ Nomenclature
 Future(s)   The Future class encapsulates the asynchronous execution of a callable.
 Broker      Process dispatching Futures.
 Worker      Process executing Futures.
-Root        The worker executing the root Future.
+Root        The worker executing the root Future, your main program.
 =========== =======================================================================================================================================
 
 Architecture diagram
@@ -42,7 +42,7 @@ A |map()|_ function applies multiple parameters to a single function. For
 example, if you want to apply the |abs()|_ function to every number of a list::
 
     import random
-    data = [random.randint(-1000,1000) for r in range(1000)]
+    data = [random.randint(-1000, 1000) for r in range(1000)]
     
     # Without Map
     result = []
@@ -80,7 +80,7 @@ substitute to the standard |map()|_, for instance::
 
 .. warning::
     In your root program, you *must* check ``if __name__ == __main__`` as
-    show above.
+    shown above.
     Failure to do so will result in every worker trying to run their own 
     instance of the program. This ensures that every worker waits for 
     parallelized tasks spawned by the root worker.
@@ -88,8 +88,8 @@ substitute to the standard |map()|_, for instance::
 .. note::
     Your callable function passed to SCOOP must be picklable in its entirety.
 
-    The pickle module is limited to **top level functions and classes** as
-    stated in the 
+    Note that the pickle module is limited to
+    **top level functions and classes** as stated in the 
     `documentation <http://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_.
 
 .. note::
@@ -355,7 +355,9 @@ Program scope
 ~~~~~~~~~~~~~
 
 As a good Python practice (see :pep:`395#what-s-in-a-name`), you should always 
-wrap the executable part of your program using::
+wrap the executable part of your program using:
+
+.. code-block:: python
 
     if __name__ == '__main__':
 
@@ -366,20 +368,21 @@ available functions.
 
 Also, only functions or classes declared at the top level of your program are
 picklables. This is a limitation of Python's pickle module.
-Here are some examples of non-working map invocations::
+Here are some examples of non-working map invocations:
 
-    # Script to be launched with: python -m scoop scriptName.py
+.. code-block:: python
+
     from scoop import futures
 
 
     class myClass(object):
         @staticmethod
-        define myFunction(x):
+        def myFunction(x):
             return x
     
 
     if __name__ == '__main__':
-        define mySecondFunction(x):
+        def mySecondFunction(x):
             return x
         
         # Both of these calls won't work because Python pickle won't be able to
@@ -391,11 +394,12 @@ Here are some examples of non-working map invocations::
 Evaluation laziness
 ~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will distribute
-their Futures both locally and remotely.
+The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will
+distribute their Futures both locally and remotely.
 Futures executed locally will be computed upon access (iteration for the 
 :meth:`~scoop.futures.map` and :meth:`~scoop._types.Future.result` for 
-:meth:`~scoop.futures.submit`).Futures distributed remotely will be executed right away.
+:meth:`~scoop.futures.submit`). Futures distributed remotely will be executed
+right away.
 
 Large datasets
 ~~~~~~~~~~~~~~
