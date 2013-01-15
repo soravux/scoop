@@ -30,6 +30,7 @@ import signal
 from scoop import utils
 from scoop.launch import Host
 from scoop.launch.brokerLaunch import localBroker, remoteBroker
+import scoop
 
 try:
     signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
@@ -71,6 +72,13 @@ class ScoopApp(object):
 
         self.log = None
         self.init_logging(log)
+
+        self.log.info("SCOOP {0} {1} on Python {2}".format(
+                scoop.__version__,
+                scoop.__revision__,
+                sys.version,
+            )
+        )
 
         if env in ["PBS", "SGE"]:
             self.log.info("Detected {0} environment.".format(env))
