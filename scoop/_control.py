@@ -17,6 +17,7 @@
 from __future__ import print_function
 from collections import deque, defaultdict
 import os
+import time
 from functools import partial
 
 import greenlet
@@ -48,14 +49,23 @@ class _stat(deque):
         return float("inf")
 
 execStats = defaultdict(_stat)
+
+debug_stats = None
+QueueLength = None
 if scoop.DEBUG:
-    import time
-    list_defaultdict = partial(defaultdict, list)
-    debug_stats = defaultdict(list_defaultdict)
-    QueueLength = []
+    init_debug()
+
+def init_debug():
+    """Initialise debug_stats and QueueLength (this is not a reset)"""
+    global debug_stats
+    global QueueLength
+    if debug_stats is None:
+        list_defaultdict = partial(defaultdict, list)
+        debug_stats = defaultdict(list_defaultdict)
+        QueueLength = []
 
 def delFutureById(futureId, parentId):
-    """Deleet future on id basis"""
+    """Delete future on id basis"""
     try:
         del futureDict[futureId]
     except KeyError:
@@ -80,7 +90,10 @@ def delFuture(afuture):
 
 # This is the callable greenlet for running tasks.
 def runFuture(future):
+    global debug_stats
+    global QueueLength
     if scoop.DEBUG:
+        init_debug()  # in case _control is imported before scoop.DEBUG was set
         debug_stats[future.id]['start_time'].append(time.time())
     future.waitTime = future.stopWatch.get()
     future.stopWatch.reset()
