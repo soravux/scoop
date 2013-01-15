@@ -153,7 +153,7 @@ Object sharing API
 ------------------
 
 Sharing constant objects between workers is available using the
-:module:`~scoop.shared` module.
+:mod:`~scoop.shared` module.
 
 Its functionnalities are summarised as such::
 
