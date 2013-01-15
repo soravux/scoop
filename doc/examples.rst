@@ -170,7 +170,7 @@ Its implementation is found in |rssDocFile|_:
    :linenos:
 
 .. note::
-  This kind of operation is actually called a reduction. It involves returning
+  This kind of operation is called a reduction. It involves returning
   a single value out of multiple computations.
 
   The SCOOP Roadmap have parallel reduction functionality and more forecasted,
