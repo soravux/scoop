@@ -302,12 +302,12 @@ hostfile or in your hostlist, you can use the :option:`-n` parameter.
     The :option:`-n` parameter overrides any previously specified worker 
     amount.
 
-    If :option:`-n` if less than the sum of workers specified in the hostfile
+    If :option:`-n` is less than the sum of workers specified in the hostfile
     or hostlist, the workers are launched in batch by host until the parameter
     is reached.
     This behavior may ignore latters hosts.
 
-    If :option:`-n` if more than the sum of workers specified in the hostfile
+    If :option:`-n` is more than the sum of workers specified in the hostfile
     or hostlist, the remaining workers are distributed using a Round-Robin
     algorithm. Each host will increment its worker amount until the parameter
     is reached.
