@@ -264,7 +264,6 @@ class ScoopApp(object):
         self.broker.close()
 
         self.log.info('Finished cleaning spawned subprocesses.')
-        exit(self.errors)
 
 
 def makeParser():
@@ -385,7 +384,10 @@ def main():
         logging.error(traceback.format_exc())
     finally:
         scoopApp.close()
-    exit(rootTaskExitCode)
+
+    # Exit with the proper exit code
+    if rootTaskExitCode:
+        sys.exit(rootTaskExitCode)
 
 
 if __name__ == "__main__":
