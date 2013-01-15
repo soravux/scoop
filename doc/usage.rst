@@ -88,8 +88,8 @@ substitute to the standard |map()|_, for instance::
 .. note::
     Your callable function passed to SCOOP must be picklable in its entirety.
 
-    The pickle module is limited to **top level functions and classes** as
-    stated in the 
+    Note that the pickle module is limited to
+    **top level functions and classes** as stated in the 
     `documentation <http://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_.
 
 .. note::
