@@ -394,11 +394,12 @@ Here are some examples of non-working map invocations:
 Evaluation laziness
 ~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will distribute
-their Futures both locally and remotely.
+The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will
+distribute their Futures both locally and remotely.
 Futures executed locally will be computed upon access (iteration for the 
 :meth:`~scoop.futures.map` and :meth:`~scoop._types.Future.result` for 
-:meth:`~scoop.futures.submit`).Futures distributed remotely will be executed right away.
+:meth:`~scoop.futures.submit`). Futures distributed remotely will be executed
+right away.
 
 Large datasets
 ~~~~~~~~~~~~~~
