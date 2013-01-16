@@ -17,9 +17,16 @@
 from collections import namedtuple, deque
 import itertools
 import time
+import sys
 import greenlet
 import scoop
 from scoop._comm import ZMQCommunicator, Shutdown
+
+# Backporting collection features
+if sys.version_info < (2, 7):
+    from scoop.backports.newCollections import Counter
+else:
+    from collections import Counter
 
 
 class CallbackType:
@@ -231,7 +238,8 @@ class FutureQueue(object):
 
     def timelen(self, queue_):
         stats = scoop._control.execStats
-        return sum(stats[f.callable.__name__].mean() for f in queue_)
+        times = Counter(f.callable.__name__ for f in queue_)
+        return sum(stats[f].mean() * occur for f, occur in times.items())
 
     def append(self, future):
         """Append a future to the queue."""

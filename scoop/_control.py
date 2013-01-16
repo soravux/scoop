@@ -49,8 +49,9 @@ class _stat(deque):
         super(_stat, self).appendleft(x)
 
     def mean(self):
-        if len(self) > 3:
-            return self._sum / len(self)
+        ourSize = len(self)
+        if ourSize > 3:
+            return self._sum / ourSize
         return float("inf")
 
 execStats = defaultdict(_stat)
