@@ -222,9 +222,7 @@ class FutureQueue(object):
 
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
-        for it in (self.movable, self.ready):
-            for element in it:
-                yield element
+        return itertools.chain(self.movable, self.ready)
 
     def __len__(self):
         """Returns the length of the queue, meaning the sum of it's elements
