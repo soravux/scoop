@@ -73,10 +73,12 @@ class ScoopApp(object):
         self.log = None
         self.init_logging(log)
 
-        self.log.info("SCOOP {0} {1} on Python {2}".format(
+        self.log.info("SCOOP {0} {1} on {2} using Python {3}, API: {4}".format(
                 scoop.__version__,
                 scoop.__revision__,
-                sys.version,
+                sys.platform,
+                sys.version.replace("\n", ""),
+                sys.api_version,
             )
         )
 
