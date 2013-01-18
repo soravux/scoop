@@ -39,7 +39,7 @@ you can do as such::
     
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
-    [.ssh]$ cat id_dsa.pub >> authorized_keys2
+    [.ssh]$ cat id_dsa.pub >> authorized_keys
     
 .. note::
 
