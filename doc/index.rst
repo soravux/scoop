@@ -70,6 +70,7 @@ Manual
    usage
    examples
    api
+   contributing
    
 Indices and tables
 ==================

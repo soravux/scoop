@@ -30,7 +30,7 @@ def _ensureAtomicity(fn):
         """setConst(**kwargs)
         Set a constant that will be shared to every workers.
 
-        :param **kwargs: One or more combination(s) key=value. Key being the
+        :param \*\*kwargs: One or more combination(s) key=value. Key being the
             variable name and value the object to share.
 
         :returns: None.
