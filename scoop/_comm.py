@@ -32,6 +32,9 @@ class ZMQCommunicator(object):
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
+        if zmq.zmq_version_info() >= (3,0,0):
+            self.socket.setsockopt(zmq.RCVHWM, 0)
+            self.socket.setsockopt(zmq.SNDHWM, 0)
         self.socket.connect(scoop.BROKER_ADDRESS)
 
         self.poller = zmq.Poller()
@@ -41,6 +44,9 @@ class ZMQCommunicator(object):
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
         self.infoSocket.connect(scoop.META_ADDRESS)
         self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
+        if zmq.zmq_version_info() >= (3,0,0):
+            self.infoSocket.setsockopt(zmq.RCVHWM, 0)
+            self.infoSocket.setsockopt(zmq.SNDHWM, 0)
         self.poller.register(self.infoSocket, zmq.POLLIN)
 
         # Send an INIT to get all previously set variables

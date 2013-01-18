@@ -62,6 +62,12 @@ class Broker(object):
         else:
             self.infoSocket.bind(mSock)
 
+        if zmq.zmq_version_info() >= (3,0,0):
+            self.taskSocket.setsockopt(zmq.SNDHWM, 0)
+            self.taskSocket.setsockopt(zmq.RCVHWM, 0)
+            self.infoSocket.setsockopt(zmq.SNDHWM, 0)
+            self.infoSocket.setsockopt(zmq.RCVHWM, 0)
+            
         # init self.poller
         self.poller = zmq.Poller()
         self.poller.register(self.taskSocket, zmq.POLLIN)
