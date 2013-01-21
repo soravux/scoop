@@ -9,11 +9,13 @@ import sys
 extraPackages = []
 if sys.version_info < (2, 7):
     extraPackages = ['scoop.backports']
-    print('ADDING!')
 
 
 setup(name='scoop',
-      version=scoop.__revision__,
+      version="{ver} {rev}".format(
+          ver=scoop.__version__,
+          rev=scoop.__revision__,
+      ),
       description='Scalable COncurrent Operations in Python',
       long_description=open('README.txt').read(),
       author='SCOOP Development Team',

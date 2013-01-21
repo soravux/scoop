@@ -1,8 +1,10 @@
-0.6.0 (2013/01/  )
+0.6.0 (2013/01/21)
 ------------------
 
++ Improved: Launching submodule
 + Improved: Network handling
 + Improved: Debugging output
++ Improved: Documentation and examples
 + Changed: Default verbosity is now level 1
 + Added: --quiet flag
 + Added: Nicing levels for local workers
