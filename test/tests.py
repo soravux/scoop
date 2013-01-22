@@ -146,6 +146,17 @@ def funcMapReduce(l):
     _control.execQueue.socket.pumpInfoSocket()
     return resultat
 
+def funcDoubleMapReduce(l):
+    resultat = futures.mapReduce(func4,
+                                 operator.add,
+                                 l)
+    resultat2 = futures.mapReduce(func4,
+                                 operator.add,
+                                 l)
+    time.sleep(0.3)
+    _control.execQueue.socket.pumpInfoSocket()
+    return resultat == resultat2
+
 
 def funcUseSharedConstant():
     # Tries on a mutable and an immutable object
@@ -418,6 +429,11 @@ class TestCoherent(TestScoopCommon):
     def test_mapReduce(self):
         result = futures._startup(funcMapReduce, [10, 20, 30])
         self.assertEqual(result, 1400)
+        self.assertEqual(len(scoop.reduction.total), 0)
+
+    def test_doubleMapReduce(self):
+        result = futures._startup(funcDoubleMapReduce, [10, 20, 30])
+        self.assertTrue(result)
         self.assertEqual(len(scoop.reduction.total), 0)
 
     def test_mapScan(self):
