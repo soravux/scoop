@@ -16,17 +16,25 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import sys
+import os
+import functools
+import argparse
+if sys.version_info < (3, 3):
+    from imp import load_source as importFunction
+else:
+    import importlib.machinery
+    importFunction = lambda name, path: importlib.machinery.SourceFileLoader(name, path).load_module()
+
+
+import scoop
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
 else:
     import runpy
-import os
-import functools
-import argparse
-import scoop
 
 
 class Bootstrap(object):
+    """Set up SCOOP communication links and launches the client module"""
     def __init__(self):
         self.parser = None
         self.args = None
@@ -40,6 +48,9 @@ class Bootstrap(object):
         self.run()
 
     def makeParser(self):
+        """Generate the argparse parser object containing the bootloader
+           accepted parameters
+        """
         self.parser = argparse.ArgumentParser(description='Starts the executable.',
                                               prog=("{0} -m scoop.bootstrap"
                                                     ).format(sys.executable))
@@ -81,13 +92,13 @@ class Bootstrap(object):
                                  action='store_true')
 
     def parse(self):
-        # Generate a argparse parser and parse the command-line arguments
+        """Generate a argparse parser and parse the command-line arguments"""
         if self.parser is None:
             self.makeParser()
         self.args = self.parser.parse_args()
 
     def setScoop(self):
-        # Setup the SCOOP constants
+        """Setup the SCOOP constants"""
         scoop.IS_ORIGIN = self.args.origin
         scoop.WORKER_NAME = self.args.workerName.encode()
         scoop.BROKER_NAME = self.args.brokerName.encode()
@@ -122,12 +133,14 @@ class Bootstrap(object):
             sys.stdout.write(str(os.getpgrp()) + "\n")
             sys.stdout.flush()
 
-        # import the user module into the global dictionary
-        # equivalent to from {user_module} import *
+        # import the user module
         try:
-            user_module = __import__(os.path.basename(executable)[:-3], globs)
-        except ImportError as e:
-            # Could not find
+            user_module = importFunction(
+                "SCOOP_WORKER",
+                executable,
+            )
+        except FileNotFoundError as e:
+            # Could not find file
             sys.stderr.write('{0}\nIn path: {1}\n'.format(
                 str(e),
                 sys.path[-1],
@@ -141,17 +154,19 @@ class Bootstrap(object):
             attrlist = dir(user_module)
         for attr in attrlist:
             globs[attr] = getattr(user_module, attr)
+
         # Start the user program
         from scoop import futures
+
         def futures_startup():
             return futures._startup(
-                                    functools.partial(
-                                                      runpy.run_path,
-                                                      executable,
-                                                      init_globals=globs,
-                                                      run_name="__main__"
-                                                      )
-                                    )
+                functools.partial(
+                    runpy.run_path,
+                    executable,
+                    init_globals=globs,
+                    run_name="__main__"
+                )
+            )
 
         if self.args.profile:
             import cProfile

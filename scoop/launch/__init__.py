@@ -209,7 +209,7 @@ class Host(object):
                 self.remoteProcessGID = int(textGID)
             except ValueError:
                 self.log.info("Could not get process information for host "
-                             "{0}.".format(
+                              "{0}. Host discarded from pool.".format(
                                 self.hostname,
                                 )
                              )

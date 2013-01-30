@@ -242,10 +242,11 @@ def submit(func, *args, **kargs):
     try:
         child = Future(control.current.id, func, *args, **kargs)
     except AttributeError:
-        raise NotStartedProperly("SCOOP was not started properly.\n"
-                                 "Be sure to start your program with the "
-                                 "'-m scoop' parameter. You can find further "
-                                 "information in the documentation.")
+        raise NotStartedProperly(
+            "SCOOP was not started properly.\n Be sure to start your program "
+            "with the '-m scoop' parameter. You can find further information "
+            "in the documentation."
+        )
     control.futureDict[control.current.id].children[child] = None
     control.execQueue.append(child)
     return child
