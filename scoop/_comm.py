@@ -115,7 +115,7 @@ class ZMQCommunicator(object):
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
-        except pickle.PicklingError:
+        except pickle.PicklingError as e:
             previousCallback = future.callable
             future.callable = future.callable.__name__
             self.socket.send_multipart([b"TASK",
