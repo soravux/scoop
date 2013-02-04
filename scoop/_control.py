@@ -18,6 +18,7 @@ from __future__ import print_function
 from collections import deque, defaultdict
 import os
 import time
+import tempfile
 import sys
 from functools import partial
 
@@ -159,10 +160,29 @@ def runController(callable, *args, **kargs):
     if execQueue is None:
         execQueue = FutureQueue()
 
+        # Wait until we received the main module if we are a headless slave
+        headless = scoop.CONFIGURATION.get("headless", False)
+        if not scoop.MAIN_MODULE:
+            # If we're not the origin and still don't have our main_module,
+            # wait for it
+            main = scoop.shared.getConst('__MAIN_MODULE__', timeout=float('inf'))
+            directory_name = tempfile.mkdtemp()
+            os.chdir(directory_name)
+            scoop.MAIN_MODULE = main.writeFile(directory_name)
+        elif scoop.IS_ORIGIN and headless and scoop.MAIN_MODULE:
+            # We're the origin, share our main_module
+            scoop.shared.setConst(
+                __MAIN_MODULE__=scoop.encapsulation.ExternalEncapsulation(
+                    scoop.MAIN_MODULE,
+                )
+            )
+
     # launch future if origin or try to pickup a future if slave worker
     if scoop.IS_ORIGIN:
         future = Future(rootId, callable, *args, **kargs)
     else:
+        # EXTREME TODO: This is madness.
+        time.sleep(0.1)
         future = execQueue.pop()
 
     future.greenlet = greenlet.greenlet(runFuture)

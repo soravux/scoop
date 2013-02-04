@@ -80,16 +80,16 @@ class Bootstrap(object):
         self.parser.add_argument('--profile',
                                  help="Activate the profiler",
                                  action='store_true')
+        self.parser.add_argument('--echoGroup',
+                                 help="Echo the process Group ID before launch",
+                                 action='store_true')
         self.parser.add_argument('executable',
-                                 nargs=1,
+                                 nargs='?',
                                  help='The executable to start with scoop')
         self.parser.add_argument('args',
                                  nargs=argparse.REMAINDER,
                                  help='The arguments to pass to the executable',
                                  default=[])
-        self.parser.add_argument('--echoGroup',
-                                 help="Echo the process Group ID before launch",
-                                 action='store_true')
 
     def parse(self):
         """Generate a argparse parser and parse the command-line arguments"""
@@ -107,37 +107,26 @@ class Bootstrap(object):
         scoop.SIZE = self.args.size
         scoop.DEBUG = self.args.debug
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
+        scoop.MAIN_MODULE = self.args.executable
+        scoop.CONFIGURATION = {
+          'headless': not bool(self.args.executable),
+        }
 
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
 
-    def run(self, globs=None):
-        """Import user module and start __main__
-           passing globals() is required when subclassing in another module
-        """
-        if globs is None:
-            globs = globals()
-
-        # temp values to keep the args
-        executable = self.args.executable[0]
-
+    def setupEnvironment(self):
         # get the module path in the Python path
-        sys.path.append(os.path.dirname(os.path.abspath(executable)))
+        sys.path.append(os.path.dirname(os.path.abspath(scoop.MAIN_MODULE)))
 
         # Add the user arguments to argv
         sys.argv = sys.argv[:1]
         sys.argv += self.args.args
 
-        # Show the current process Group ID if asked
-        if self.args.echoGroup:
-            sys.stdout.write(str(os.getpgrp()) + "\n")
-            sys.stdout.flush()
-
-        # import the user module
         try:
             user_module = importFunction(
                 "SCOOP_WORKER",
-                executable,
+                scoop.MAIN_MODULE,
             )
         except FileNotFoundError as e:
             # Could not find file
@@ -148,12 +137,32 @@ class Bootstrap(object):
             )
             sys.stderr.flush()
             sys.exit(-1)
+
+        globs = {}
         try:
             attrlist = user_module.__all__
         except AttributeError:
             attrlist = dir(user_module)
         for attr in attrlist:
             globs[attr] = getattr(user_module, attr)
+        return globs
+
+    def run(self, globs=None):
+        """Import user module and start __main__
+           passing globals() is required when subclassing in another module
+        """
+        if globs is None:
+            globs = globals()
+        globs = globs.copy()
+
+        # Show the current process Group ID if asked
+        if self.args.echoGroup:
+            sys.stdout.write(str(os.getpgrp()) + "\n")
+            sys.stdout.flush()
+
+        # import the user module
+        if scoop.MAIN_MODULE:
+            globs.update(self.setupEnvironment())
 
         # Start the user program
         from scoop import futures
@@ -162,7 +171,7 @@ class Bootstrap(object):
             return futures._startup(
                 functools.partial(
                     runpy.run_path,
-                    executable,
+                    scoop.MAIN_MODULE,
                     init_globals=globs,
                     run_name="__main__"
                 )
@@ -175,11 +184,12 @@ class Bootstrap(object):
                 os.makedirs("profile")
             except:
                 pass
-            cProfile.runctx("futures_startup()",
-                            globs,
-                            locals(),
-                            "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
-                            )
+            cProfile.runctx(
+                "futures_startup()",
+                globs,
+                locals(),
+                "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
+            )
         else:
             futures_startup()
 

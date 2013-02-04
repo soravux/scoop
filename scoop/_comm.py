@@ -17,6 +17,7 @@
 from . import shared, encapsulation
 import zmq
 import scoop
+import tempfile
 import time
 try:
     import cPickle as pickle
@@ -32,7 +33,7 @@ class ZMQCommunicator(object):
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
-        if zmq.zmq_version_info() >= (3,0,0):
+        if zmq.zmq_version_info() >= (3, 0, 0):
             self.socket.setsockopt(zmq.RCVHWM, 0)
             self.socket.setsockopt(zmq.SNDHWM, 0)
         self.socket.connect(scoop.BROKER_ADDRESS)
@@ -44,13 +45,18 @@ class ZMQCommunicator(object):
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
         self.infoSocket.connect(scoop.META_ADDRESS)
         self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
-        if zmq.zmq_version_info() >= (3,0,0):
+        if zmq.zmq_version_info() >= (3, 0, 0):
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
         self.poller.register(self.infoSocket, zmq.POLLIN)
 
-        # Send an INIT to get all previously set variables
-        self.socket.send(b"INIT")
+        # Send an INIT to get all previously set variables and propatage
+        # current configuration to broker
+        self.socket.send_multipart([
+            b"INIT",
+            pickle.dumps(scoop.CONFIGURATION)
+        ])
+        scoop.CONFIGURATION = pickle.loads(self.socket.recv())
         shared.elements = pickle.loads(self.socket.recv())
 
     def _poll(self, timeout):
@@ -61,8 +67,7 @@ class ZMQCommunicator(object):
     def _recv(self):
         msg = self.socket.recv_multipart()
         thisFuture = pickle.loads(msg[1])
-        if (not hasattr(thisFuture.callable, '__call__')
-        and not thisFuture.done()):
+        if not callable(thisFuture.callable) and not thisFuture.done():
             # TODO: Also check in root module globals
             thisFuture.callable = shared.getConst(thisFuture.callable,
                                                   timeout=0)

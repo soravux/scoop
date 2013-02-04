@@ -64,7 +64,7 @@ def _startup(rootFuture, *args, **kargs):
                                 control.QueueLength)
     return result
 
-def _mapFuture(callable, *iterables, **kargs):
+def _mapFuture(callable_, *iterables, **kargs):
     """Similar to the built-in map function, but each of its
     iteration will spawn a separate independent parallel Future that will run
     either locally or remotely as `callable(*args, **kargs)`.
@@ -88,7 +88,7 @@ def _mapFuture(callable, *iterables, **kargs):
     mapJoin that will wait or join before returning."""
     childrenList = []
     for args in zip(*iterables):
-        childrenList.append(submit(callable, *args, **kargs))
+        childrenList.append(submit(callable_, *args, **kargs))
     return childrenList
 
 def map(func, *iterables, **kargs):
@@ -236,8 +236,9 @@ def submit(func, *args, **kargs):
     may carry on with any further computations while the Future completes.
     Result retrieval is made via the :meth:`~scoop._types.Future.result`
     function on the Future."""
-    assert hasattr(func, "__call__"), ("The provided func parameter is not a "
-                                       "callable")
+    assert callable(func), (
+        "The provided func parameter is not a callable"
+    )
 
     try:
         child = Future(control.current.id, func, *args, **kargs)

@@ -37,10 +37,11 @@ def myFunc(parameter):
 
 if __name__ == "__main__":
     # Populate the shared constants
-    shared.setConst(myVar={1: 'First element',
-                                2: 'Second element',
-                                3: 'Third element',
-                               })
+    shared.setConst(myVar={
+        1: 'First element',
+        2: 'Second element',
+        3: 'Third element',
+    })
     shared.setConst(secondVar="Hello World!")
     shared.setConst(myFunc=myFunc)
 

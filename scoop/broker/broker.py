@@ -62,7 +62,7 @@ class Broker(object):
         else:
             self.infoSocket.bind(mSock)
 
-        if zmq.zmq_version_info() >= (3,0,0):
+        if zmq.zmq_version_info() >= (3, 0, 0):
             self.taskSocket.setsockopt(zmq.SNDHWM, 0)
             self.taskSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
@@ -90,81 +90,96 @@ class Broker(object):
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
+        self.config = defaultdict(bool)
+
+    def processConfig(self, worker_config):
+        """Update the pool configuration with a worker configuration.
+        """
+        self.config['headless'] |= worker_config.get("headless", False)
+
     def run(self):
+        """Redirects messages until a shutdown messages is received.
+        """
         while True:
             socks = dict(self.poller.poll(-1))
-            if (self.taskSocket in socks.keys()
-                    and socks[self.taskSocket] == zmq.POLLIN):
+            if not (self.taskSocket in socks.keys()
+            and socks[self.taskSocket] == zmq.POLLIN):
+                continue
 
-                msg = self.taskSocket.recv_multipart()
-                msg_type = msg[1]
+            msg = self.taskSocket.recv_multipart()
+            msg_type = msg[1]
 
-                if self.debug:
-                    self.stats.append((time.time(),
-                                       msg_type,
-                                       len(self.unassignedTasks),
-                                       len(self.availableWorkers)))
+            if self.debug:
+                self.stats.append((time.time(),
+                                   msg_type,
+                                   len(self.unassignedTasks),
+                                   len(self.availableWorkers)))
 
-                # New task inbound
-                if msg_type == TASK:
-                    returnAddress = msg[0]
-                    task = msg[2]
-                    try:
-                        address = self.availableWorkers.popleft()
-                    except IndexError:
-                        self.unassignedTasks.append(task)
-                    else:
-                        self.taskSocket.send_multipart([address, TASK, task])
+            # New task inbound
+            if msg_type == TASK:
+                returnAddress = msg[0]
+                task = msg[2]
+                try:
+                    address = self.availableWorkers.popleft()
+                except IndexError:
+                    self.unassignedTasks.append(task)
+                else:
+                    self.taskSocket.send_multipart([address, TASK, task])
 
-                # Request for task
-                elif msg_type == REQUEST:
-                    address = msg[0]
-                    try:
-                        task = self.unassignedTasks.pop()
-                    except IndexError:
-                        self.availableWorkers.append(address)
-                    else:
-                        self.taskSocket.send_multipart([address, TASK, task])
+            # Request for task
+            elif msg_type == REQUEST:
+                address = msg[0]
+                try:
+                    task = self.unassignedTasks.pop()
+                except IndexError:
+                    self.availableWorkers.append(address)
+                else:
+                    self.taskSocket.send_multipart([address, TASK, task])
 
-                # Answer needing delivery
-                elif msg_type == REPLY:
-                    address = msg[3]
-                    task = msg[2]
-                    self.taskSocket.send_multipart([address, REPLY, task])
+            # Answer needing delivery
+            elif msg_type == REPLY:
+                address = msg[3]
+                task = msg[2]
+                self.taskSocket.send_multipart([address, REPLY, task])
 
-                # Shared variable to distribute
-                elif msg_type == VARIABLE:
-                    address = msg[3]
-                    variable = msg[2]
-                    try:
-                        self.sharedVariables[address].update(
-                            pickle.loads(variable)
-                        )
-                    except pickle.PickleError:
-                        # Just forget the bad variable
-                        continue
-                    self.infoSocket.send_multipart([VARIABLE,
-                                                    variable,
-                                                    address])
+            # Shared variable to distribute
+            elif msg_type == VARIABLE:
+                address = msg[3]
+                variable = msg[2]
+                try:
+                    self.sharedVariables[address].update(
+                        pickle.loads(variable)
+                    )
+                except pickle.PickleError:
+                    # Just forget the bad variable
+                    continue
+                self.infoSocket.send_multipart([VARIABLE,
+                                                variable,
+                                                address])
 
-                # Initialize the variables of a new worker
-                elif msg_type == INIT:
-                    address = msg[0]
-                    self.taskSocket.send_multipart([
-                        address,
-                        pickle.dumps(self.sharedVariables),
-                    ])
+            # Initialize the variables of a new worker
+            elif msg_type == INIT:
+                address = msg[0]
+                try:
+                    self.processConfig(pickle.loads(msg[2]))
+                except pickle.PickleError:
+                    continue
+                self.taskSocket.send_multipart([
+                    address,
+                    pickle.dumps(self.config),
+                    pickle.dumps(self.sharedVariables),
+                ])
 
-                # Clean the buffers when a coherent (mapReduce/mapScan)
-                # operation terminates
-                elif msg_type == ERASEBUFFER:
-                    groupID = msg[2]
-                    self.infoSocket.send_multipart([ERASEBUFFER,
-                                                    groupID])
+            # Clean the buffers when a coherent (mapReduce/mapScan)
+            # operation terminates
+            elif msg_type == ERASEBUFFER:
+                groupID = msg[2]
+                self.infoSocket.send_multipart([ERASEBUFFER,
+                                                groupID])
 
-                elif msg_type == SHUTDOWN:
-                    self.shutdown()
-                    break
+            elif msg_type == SHUTDOWN:
+                self.shutdown()
+                break
 
     def getPorts(self):
         return (self.tSockPort, self.infoSockPort)
