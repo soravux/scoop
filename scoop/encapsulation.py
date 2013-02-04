@@ -17,13 +17,14 @@
 import marshal
 import tempfile
 import types
+import os
 import pickle
 from functools import partial
 
 try:
     import copyreg
     from io import BytesIO as FileLikeIO
-    from io import IOBase as FileType
+    from io import BufferedReader as FileType
 except ImportError:
     # copyreg is named copy_reg under Python 2.X
     import copy_reg as copyreg
@@ -39,7 +40,6 @@ def functionFactory(inCode):
     return generatedFunction
 
 
-# TODO: Replace this by copyreg on FunctionType
 class FunctionEncapsulation(object):
     """Encapsulates a function in a serializable way"""
     def __init__(self, inFunc):
@@ -52,18 +52,26 @@ class FunctionEncapsulation(object):
         return functionFactory(self.code)
 
 
-# TODO: Replace this by copyreg using FileLike
 class ExternalEncapsulation(object):
     """Encapsulates an arbitrary file in a serializable way"""
     def __init__(self, inFilePath):
         """Creates a serializable (picklable) object of inFilePath"""
+        self.filename = os.path.basename(inFilePath)
         with open(inFilePath, "rb") as fhdl:
-            self.data = fhdl.read()
+            self.data = pickle.dumps(fhdl, pickle.HIGHEST_PROTOCOL)
 
-    def writeFile(self):
-        """Writes back the file to a temporary path"""
+    def writeFile(self, directory=None):
+        """Writes back the file to a temporary path (optionaly specified)"""
+        if directory:
+            # If a directory was specified
+            full_path = os.path.join(directory, self.filename)
+            with open(full_path, 'wb') as f:
+                f.write(pickle.loads(self.data).read())
+            return full_path
+
+        # if no directory was specified, create a temporary file
         thisFile = tempfile.NamedTemporaryFile(delete=False)
-        thisFile.write(self.data)
+        thisFile.write(pickle.loads(self.data).read())
         thisFile.close()
 
         return thisFile.name
@@ -87,8 +95,6 @@ def pickleCallable(callable_, unpickle_func):
 
 pickle_lambda = partial(pickleCallable, unpickle_func=unpickleLambda)
 pickle_method = partial(pickleCallable, unpickle_func=unpickleMethodType)
-copyreg.pickle(types.LambdaType, pickle_lambda, unpickleLambda)
-copyreg.pickle(types.MethodType, pickle_method, unpickleMethodType)
 
 
 # The following block handles file-like objects pickling and unpickling
@@ -103,6 +109,6 @@ def pickleFileLike(file_):
     file_.seek(0)
     data = file_.read()
     file_.seek(position)
-    return file_unpickler, (position, data)
+    return unpickleFileLike, (position, data)
 
 copyreg.pickle(FileType, pickleFileLike, unpickleFileLike)

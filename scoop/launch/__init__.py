@@ -31,13 +31,14 @@ class Host(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
-        ['pythonPath', 'path',
-         'nice', 'pythonExecutable',
-         'size', 'workerNum',
-         'brokerHostname', 'brokerPorts',
-         'debug', 'profiling',
-         'executable', 'args',
-         ]
+        [
+            'pythonPath', 'path',
+            'nice', 'pythonExecutable',
+            'size', 'workerNum',
+            'brokerHostname', 'brokerPorts',
+            'debug', 'profiling',
+            'executable', 'args',
+        ]
     )
 
     def __init__(self, hostname="localhost"):
@@ -83,6 +84,7 @@ class Host(object):
             # TODO: do we really want to set PYTHONPATH='' if not defined??
             c.extend(["export", "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath), '&&'])
 
+        # Try to go into the directory. If not (headless worker), it's not important
         c.extend(['cd', worker.path, '&&'])
         return c
 
@@ -120,7 +122,7 @@ class Host(object):
                   'tcp://{brokerHostname}:{infoPort}'.format(brokerHostname=broker,
                                                              infoPort=worker.brokerPorts[1])
                   ])
-        if worker.workerNum == 1:
+        if worker.workerNum == 1 and worker.executable:
             c.append('--origin')
         if worker.debug:
             c.append('--debug')
@@ -131,12 +133,17 @@ class Host(object):
     def _WorkerCommand_executable(self, worker):
         """Return executable and any options to be executed by bootstrap"""
         c = []
-        c.append(worker.executable)
-        # This trick is used to parse correctly quotes (ie. myScript.py 'arg1 "arg2" arg3')
+        if worker.executable:
+            c.append(worker.executable)
+        # This trick is used to parse correctly quotes
+        # (ie. myScript.py 'arg1 "arg2" arg3')
         # Because shell=True is set with Popen, every quote gets re-interpreted
-        # It replaces simple quotation marks with \\\" which gets evaluated to \" by
-        # the second shell which prints it out as a double quote.
-        c.extend(['"{0}"'.format(a.replace('"', '\\\"')) for a in worker.args])
+        # It replaces simple quotation marks with \\\" which gets evaluated to
+        # \" by the second shell which prints it out as a double quote.
+        if worker.args:
+            c.extend([
+                '"{0}"'.format(a.replace('"', '\\\"')) for a in worker.args
+            ])
         return c
 
     def _getWorkerCommandList(self, workerID):
@@ -161,7 +168,7 @@ class Host(object):
 
     def getCommand(self):
         """Retrieves the shell command to launch every worker on this host."""
-        # All the parenthesis insanity is to start subshells (workers) in the
+        # All this parenthesis insanity is to start subshells (workers) in the
         # correct monitoring mode (no background job echo).
         # Output: ( [launch command 1] & ) && ( [launch command 2] & ) [...]
         command = []

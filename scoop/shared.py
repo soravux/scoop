@@ -37,10 +37,9 @@ def _ensureAtomicity(fn):
 
         Usage: setConst(name=value)
         """
-        # Note that the docstring is the one of setConst. This is because of
-        # sphinx.
+        # Note that the docstring is the one of setConst.
+        # This is because of the documentation framework (sphinx).
 
-        # TODO: Import that elsewhere
         from . import _control
 
         # Enforce retrieval of currently awaiting constants
@@ -83,16 +82,17 @@ def setConst(**kwargs):
 
     Usage: setConst(name=value)
     """
-    # TODO: Import that elsewhere
     from . import _control
     
     sendVariable = _control.execQueue.socket.sendVariable
 
     for key, value in kwargs.items():
         # Propagate the constant
-        if hasattr(value, '__code__'):
+        if callable(value):
             sendVariable(key, encapsulation.FunctionEncapsulation(value))
-        # TODO: file-like objects with encapsulation.ExternalEncapsulation
+        #if hasattr(value, 'read'):
+            # This is a file-like object
+            #sendVariable(key, encapsulation.ExternalEncapsulation(value))
         else:
             sendVariable(key, value)
 
@@ -107,7 +107,6 @@ def getConst(name, timeout=0.1):
 
     Usage: value = getConst('name')
     """
-    # TODO: Import that elsewhere
     from . import _control
     import time
 

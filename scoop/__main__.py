@@ -57,7 +57,7 @@ class ScoopApp(object):
         self.pythonpath = pythonPath
         self.n = n
         self.tunnel = tunnel
-        self.executable = executable[0]
+        self.executable = executable
         self.args = arguments
         self.verbose = verbose
         self.path = path
@@ -228,9 +228,10 @@ class ScoopApp(object):
                 self.workersLeft -= 1
 
             # Launch every workers at the same time
-            self.log.debug("{0}: Launching '{1}'".format(
-                hostname,
-                self.hostsConn[-1].getCommand(),
+            self.log.debug(
+                "{0}: Launching '{1}'".format(
+                    hostname,
+                    self.hostsConn[-1].getCommand(),
                 )
             )
             shells = self.hostsConn[-1].launch(
@@ -279,13 +280,14 @@ class ScoopApp(object):
 def makeParser():
     """Create the SCOOP module arguments parser."""
     # TODO: Add environment variable (all + selection)
-    parser = argparse.ArgumentParser(description="Starts a parallel program using "
-                                                 "SCOOP.",
-                                     prog="{0} -m scoop".format(sys.executable))
+    parser = argparse.ArgumentParser(
+        description="Starts a parallel program using SCOOP.",
+        prog="{0} -m scoop".format(sys.executable),
+    )
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--hosts', '--host',
-                       help="The list of hosts. The first host will execute the "
-                            "origin. (default is 127.0.0.1)",
+                       help="The list of hosts. The first host will execute "
+                            "the origin. (default is 127.0.0.1)",
                        metavar="Address",
                        nargs='*')
     group.add_argument('--hostfile',
@@ -345,12 +347,13 @@ def makeParser():
                         help=argparse.SUPPRESS,
                         action='store_true')
     parser.add_argument('--profile',
-                        help=("Turn on the profiling. SCOOP will call cProfile.run\n"
-                        "on the executable for every worker and will produce files\n"
-                        "named workerX where X is the number of the worker."),
+                        help=("Turn on the profiling. SCOOP will call "
+                        "cProfile.run on the executable for every worker and"
+                        " will produce files in directory profile/ named "
+                        "workerX where X is the number of the worker."),
                         action='store_true')
     parser.add_argument('executable',
-                        nargs=1,
+                        nargs='?',
                         help='The executable to start with SCOOP')
     parser.add_argument('args',
                         nargs=argparse.REMAINDER,
