@@ -20,4 +20,5 @@ __version__ = "0.6.0"
 __revision__ = "dev"
 
 # In case SCOOP was not initialized correctly
+CONFIGURATION = {}
 DEBUG = False

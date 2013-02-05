@@ -166,8 +166,10 @@ class Broker(object):
                     continue
                 self.taskSocket.send_multipart([
                     address,
-                    pickle.dumps(self.config),
-                    pickle.dumps(self.sharedVariables),
+                    pickle.dumps(self.config,
+                                 pickle.HIGHEST_PROTOCOL),
+                    pickle.dumps(self.sharedVariables,
+                                 pickle.HIGHEST_PROTOCOL),
                 ])
 
             # Clean the buffers when a coherent (mapReduce/mapScan)

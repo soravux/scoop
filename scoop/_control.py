@@ -181,8 +181,6 @@ def runController(callable, *args, **kargs):
     if scoop.IS_ORIGIN:
         future = Future(rootId, callable, *args, **kargs)
     else:
-        # EXTREME TODO: This is madness.
-        time.sleep(0.1)
         future = execQueue.pop()
 
     future.greenlet = greenlet.greenlet(runFuture)
