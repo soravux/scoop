@@ -17,7 +17,6 @@
 from . import shared, encapsulation
 import zmq
 import scoop
-import tempfile
 import time
 try:
     import cPickle as pickle
@@ -50,7 +49,7 @@ class ZMQCommunicator(object):
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
         self.poller.register(self.infoSocket, zmq.POLLIN)
 
-        # Send an INIT to get all previously set variables and propatage
+        # Send an INIT to get all previously set variables and share
         # current configuration to broker
         self.socket.send_multipart([
             b"INIT",
