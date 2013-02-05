@@ -153,7 +153,6 @@ class Bootstrap(object):
         """
         if globs is None:
             globs = globals()
-        globs = globs.copy()
 
         # Show the current process Group ID if asked
         if self.args.echoGroup:
