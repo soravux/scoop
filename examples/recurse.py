@@ -31,7 +31,10 @@ def recursiveFunc(level):
         args = [level-1] * 2
         s = sum(futures.map(recursiveFunc, args))
         if level == RECURSIVITY_LEVEL:
-            print("2^"+str(level)+" = " + str(s))
+            print("2^{level} = {s}".format(
+                level=level,
+                s=s
+            ))
         return s
 
 if __name__ == "__main__":
