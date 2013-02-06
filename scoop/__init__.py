@@ -22,3 +22,4 @@ __revision__ = "dev"
 # In case SCOOP was not initialized correctly
 CONFIGURATION = {}
 DEBUG = False
+is_running = False

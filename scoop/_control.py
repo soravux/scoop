@@ -164,11 +164,14 @@ def runController(callable, *args, **kargs):
         headless = scoop.CONFIGURATION.get("headless", False)
         if not scoop.MAIN_MODULE:
             # If we're not the origin and still don't have our main_module,
-            # wait for it
+            # wait for it and then import it as module __main___
             main = scoop.shared.getConst('__MAIN_MODULE__', timeout=float('inf'))
             directory_name = tempfile.mkdtemp()
             os.chdir(directory_name)
             scoop.MAIN_MODULE = main.writeFile(directory_name)
+            from .bootstrap.__main__ import Bootstrap as SCOOPBootstrap
+            newModule = SCOOPBootstrap.setupEnvironment()
+            sys.modules['__main__'] = newModule
         elif scoop.IS_ORIGIN and headless and scoop.MAIN_MODULE:
             # We're the origin, share our main_module
             scoop.shared.setConst(

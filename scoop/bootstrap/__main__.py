@@ -99,6 +99,7 @@ class Bootstrap(object):
 
     def setScoop(self):
         """Setup the SCOOP constants"""
+        scoop.is_running = True
         scoop.IS_ORIGIN = self.args.origin
         scoop.WORKER_NAME = self.args.workerName.encode()
         scoop.BROKER_NAME = self.args.brokerName.encode()
@@ -115,13 +116,18 @@ class Bootstrap(object):
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
 
-    def setupEnvironment(self):
+    @staticmethod
+    def setupEnvironment(self=None):
+        """Set the environment (argv, sys.path and module import) of
+        scoop.MAIN_MODULE.
+        """
         # get the module path in the Python path
         sys.path.append(os.path.dirname(os.path.abspath(scoop.MAIN_MODULE)))
 
         # Add the user arguments to argv
         sys.argv = sys.argv[:1]
-        sys.argv += self.args.args
+        if self:
+            sys.argv += self.args.args
 
         try:
             user_module = importFunction(
@@ -145,7 +151,10 @@ class Bootstrap(object):
             attrlist = dir(user_module)
         for attr in attrlist:
             globs[attr] = getattr(user_module, attr)
-        return globs
+
+        if self:
+            return globs
+        return user_module
 
     def run(self, globs=None):
         """Import user module and start __main__
@@ -161,7 +170,7 @@ class Bootstrap(object):
 
         # import the user module
         if scoop.MAIN_MODULE:
-            globs.update(self.setupEnvironment())
+            globs.update(self.setupEnvironment(self))
 
         # Start the user program
         from scoop import futures
