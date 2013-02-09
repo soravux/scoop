@@ -19,10 +19,13 @@ from collections import deque, defaultdict
 import time
 import zmq
 import sys
+import threading
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
+from .. import discovery
 
 INIT = b"INIT"
 REQUEST = b"REQUEST"
@@ -34,7 +37,8 @@ ERASEBUFFER = b"ERASEBUFFER"
 
 
 class Broker(object):
-    def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False):
+    def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
+                 headless=False):
         """This function initializes a broker.
 
         :param tSock: Task Socket Address.
@@ -67,7 +71,7 @@ class Broker(object):
             self.taskSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
-            
+
         # init self.poller
         self.poller = zmq.Poller()
         self.poller.register(self.taskSocket, zmq.POLLIN)
@@ -91,11 +95,24 @@ class Broker(object):
         self.sharedVariables = defaultdict(dict)
 
         self.config = defaultdict(bool)
+        self.processConfig({'headless': headless})
+
+        self.discoveryThread = None
 
     def processConfig(self, worker_config):
         """Update the pool configuration with a worker configuration.
         """
         self.config['headless'] |= worker_config.get("headless", False)
+        if self.config['headless']:
+            # Launch discovery process
+            if not self.discoveryThread:
+                self.discoveryThread = threading.Thread(
+                    target=discovery.Advertise,
+                    kwargs={"port":",".join(str(a) for a in self.getPorts()),
+                            "location":"",
+                            },
+                )
+                self.discoveryThread.start()
 
     def run(self):
         """Redirects messages until a shutdown messages is received.

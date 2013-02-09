@@ -97,6 +97,16 @@ pickle_lambda = partial(pickleCallable, unpickle_func=unpickleLambda)
 pickle_method = partial(pickleCallable, unpickle_func=unpickleMethodType)
 
 
+def makeLambdaPicklable(l):
+    """Take input lambda function l and makes it picklable."""
+    if isinstance(l, type(lambda: None)) and l.__name__ == '<lambda>':
+        def __reduce_ex__(proto):
+            # TODO: argdefs
+            return unpickleLambda, (marshal.dumps(callable_.__code__), )
+        l.__reduce_ex__ = __reduce_ex__
+    return l
+
+
 # The following block handles file-like objects pickling and unpickling
 
 def unpickleFileLike(position, data):

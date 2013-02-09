@@ -32,6 +32,9 @@ if __name__ == "__main__":
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
+    parser.add_argument('--headless',
+                        help="Enforce headless (cloud-style) operation",
+                        action='store_true')
     parser.add_argument('--echoGroup',
                         help="Echo the process Group ID before launch",
                         action='store_true')
@@ -45,7 +48,9 @@ if __name__ == "__main__":
 
     thisBroker = Broker("tcp://*:" + args.tPort,
                         "tcp://*:" + args.mPort,
-                        debug=args.debug)
+                        debug=args.debug,
+                        headless=args.headless,
+                        )
 
     signal(SIGTERM,
            lambda signum, stack_frame: thisBroker.shutdown())
