@@ -219,7 +219,7 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = {}
         self.socket = ZMQCommunicator()
-        if scoop.SIZE == 1:
+        if scoop.SIZE == 1 and not scoop.CONFIGURATION.get('headless', False):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
         else:
