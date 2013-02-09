@@ -22,9 +22,10 @@ from functools import partial, reduce
 import itertools
 
 import scoop
-from scoop._types import Future, NotStartedProperly, CallbackType
-from scoop.reduction import reduction
-from scoop import _control as control
+from ._types import Future, NotStartedProperly, CallbackType
+from .reduction import reduction
+from .encapsulation import makeLambdaPicklable
+from . import _control as control
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
 FIRST_COMPLETED = 'FIRST_COMPLETED'

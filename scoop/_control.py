@@ -179,6 +179,8 @@ def runController(callable, *args, **kargs):
                     scoop.MAIN_MODULE,
                 )
             )
+            # TODO: use modulefinder to share every local dependency of
+            # main module
 
     # launch future if origin or try to pickup a future if slave worker
     if scoop.IS_ORIGIN:
