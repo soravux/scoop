@@ -97,6 +97,8 @@ class ScoopApp(object):
 
         self.divideHosts(hosts)
 
+        self.showHostDivision(headless=not executable)
+
         self.hostsConn = []
 
     def init_logging(self, log):
@@ -156,13 +158,17 @@ class ScoopApp(object):
         hosts.reverse()
         self.hosts = hosts
 
+    def showHostDivision(self, headless):
         # Show worker distribution
         self.log.info('Worker distribution: ')
         for worker, number in reversed(self.hosts):
+            first_worker = (worker == self.hosts[-1][0])
             self.log.info('   {0}:\t{1} {2}'.format(
                 worker,
-                number - 1 if worker == hosts[-1][0] else str(number),
-                "+ origin" if worker == hosts[-1][0] else ""))
+                number - 1 if first_worker or not headless else str(number),
+                "+ origin" if first_worker or not headless else "",
+                )
+            )
 
     def _addWorker_args(self, workerinfo):
         """Create the arguments to pass to the addWorker call.
