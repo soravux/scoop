@@ -19,6 +19,7 @@ import sys
 import os
 import functools
 import argparse
+import logging
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
 else:
@@ -27,6 +28,7 @@ else:
 
 
 import scoop
+from .. import discovery
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
 else:
@@ -38,14 +40,65 @@ class Bootstrap(object):
     def __init__(self):
         self.parser = None
         self.args = None
+        self.verbose = 1
 
     def main(self):
+        """Bootstrap an arbitrary script.
+        If no agruments were passed, use discovery module to search and connect
+        to a broker."""
         if self.args is None:
             self.parse()
+
+        self.init_logging()
+
+        if not self.args.brokerAddress:
+            self.log.info("Discovering SCOOP Brokers on network...")
+            pools = discovery.Seek()
+            if not pools:
+                sys.stderr.write("Could not find a SCOOP Broker broadcast.\n")
+                sys.exit(-1)
+            self.log.info("Found a broker named {name} on {host} port "
+                          "{ports}".format(
+                name=pools[0].name,
+                host=pools[0].host,
+                ports=pools[0].ports,
+            ))
+            self.args.brokerAddress = "tcp://{host}:{port}".format(
+                host=pools[0].host,
+                port=pools[0].ports[0],
+            )
+            self.args.metaAddress = "tcp://{host}:{port}".format(
+                host=pools[0].host,
+                port=pools[0].ports[1],
+            )
+            self.log.debug("Using following addresses:\n{brokerAddress}\n"
+                           "{metaAddress}".format(
+                                brokerAddress=self.args.brokerAddress,
+                                metaAddress=self.args.metaAddress,
+                            ))
+            # Make the workerName random
+            import uuid
+            self.args.workerName = str(uuid.uuid4())
+            self.log.info("Using worker name {workerName}.".format(
+                workerName=self.args.workerName,
+            ))
+
+            self.args.origin = True
 
         self.setScoop()
 
         self.run()
+
+    def init_logging(self, log=None):
+        verbose_levels = {0: logging.WARNING,
+                          1: logging.INFO,
+                          2: logging.DEBUG,
+                         }
+        logging.basicConfig(filename=log,
+                            level=verbose_levels[self.verbose],
+                            format='[%(asctime)-15s] %(levelname)-7s '
+                                   '%(message)s')
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def makeParser(self):
         """Generate the argparse parser object containing the bootloader
@@ -73,7 +126,7 @@ class Bootstrap(object):
         self.parser.add_argument('--size',
                                  help="The size of the worker pool",
                                  type=int,
-                                default=1)
+                                 default=1)
         self.parser.add_argument('--debug',
                                  help="Activate the debug",
                                  action='store_true')
@@ -98,7 +151,7 @@ class Bootstrap(object):
         self.args = self.parser.parse_args()
 
     def setScoop(self):
-        """Setup the SCOOP constants"""
+        """Setup the SCOOP constants."""
         scoop.is_running = True
         scoop.IS_ORIGIN = self.args.origin
         scoop.WORKER_NAME = self.args.workerName.encode()
