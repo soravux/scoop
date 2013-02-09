@@ -106,13 +106,9 @@ class Broker(object):
         if self.config['headless']:
             # Launch discovery process
             if not self.discoveryThread:
-                self.discoveryThread = threading.Thread(
-                    target=discovery.Advertise,
-                    kwargs={"port":",".join(str(a) for a in self.getPorts()),
-                            "location":"",
-                            },
+                self.discoveryThread = discovery.Advertise(
+                    port=",".join(str(a) for a in self.getPorts()),
                 )
-                self.discoveryThread.start()
 
     def run(self):
         """Redirects messages until a shutdown messages is received.
