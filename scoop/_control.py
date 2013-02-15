@@ -117,7 +117,7 @@ def runFuture(future):
     except Exception as err:
         future.exceptionValue = err
     future.executionTime = future.stopWatch.get()
-    assert future.done(), "callable must return a value!"
+    future.isDone = True
 
     # Update the worker inner work statistics
     if future.executionTime != 0. and hasattr(future.callable, '__name__'):
@@ -213,7 +213,7 @@ def runController(callable, *args, **kargs):
             # future is in progress; run next future from pending execution queue.
             future = execQueue.pop()
 
-        if future.resultValue is None and future.greenlet is None:
+        if not future.done() and future.greenlet is None:
             # initialize if the future hasn't started
             future.greenlet = greenlet.greenlet(runFuture)
             future = future._switch(future)
