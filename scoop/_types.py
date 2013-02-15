@@ -97,6 +97,7 @@ class Future(object):
         self.greenlet = None  # cooperative thread for running future
         self.resultValue = None  # future result
         self.exceptionValue = None  # exception raised by callable
+        self.isDone = False
         self.callback = []  # set callback
         self.children = {}  # set children list of the callable (dict for speedier delete)
         # insert future into global dictionary
@@ -148,7 +149,7 @@ class Future(object):
     def done(self):
         """True if the call was successfully cancelled or finished running,
            False otherwise."""
-        return self.resultValue is not None or self.exceptionValue is not None
+        return self.resultValue is not None or self.exceptionValue is not None or self.isDone
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
@@ -296,6 +297,7 @@ class FutureQueue(object):
                 scoop._control.futureDict[future.id].resultValue = future.resultValue
                 scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
                 scoop._control.futureDict[future.id].executor = future.executor
+                scoop._control.futureDict[future.id].isDone = future.isDone
                 for callback in scoop._control.futureDict[future.id].callback:
                     if callback.callbackType != CallbackType.universal:
                         try:
