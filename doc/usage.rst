@@ -79,7 +79,7 @@ substitute to the standard |map()|_, for instance::
 .. _test-for-main-mandatory:
 
 .. warning::
-    In your root program, you *must* check ``if __name__ == __main__`` as
+    In your root program, you *must* check ``if __name__ == '__main__'`` as
     shown above.
     Failure to do so will result in every worker trying to run their own 
     instance of the program. This ensures that every worker waits for 
@@ -198,21 +198,21 @@ passed to Python, as such::
 
 .. note::
   When using a Python version prior to 2.7, you must start SCOOP using 
-  :option:`-m scoop.__main__`.
+  `-m scoop.__main__` .
 
   You should also consider using an up-to-date version of Python.
     
 Here is a list of the parameters that can be passed to SCOOP::
 
-    python -m scoop --help
-    usage: python -m scoop [-h]
-                           [--hosts [HOSTS [HOSTS ...]] | --hostfile HOSTFILE]
-                           [--path PATH] [--nice NICE]
-                           [--verbose] [--log LOG] [-n N]
-                           [-e] [--broker-hostname BROKER_HOSTNAME]
-                           [--python-executable PYTHON_EXECUTABLE]
-                           [--pythonpath PYTHONPATH]
-                           executable ...
+    $ python -m scoop --help
+    usage: python -m scoop [-h] [--hosts [Address [Address ...]] |
+                                    --hostfile FileName] [--path PATH]
+                                    [--nice NiceLevel] [--verbose] [--quiet]
+                                    [--log FileName] [-n NumberOfWorkers]
+                                    [--tunnel] [--broker-hostname Address]
+                                    [--python-interpreter Path]
+                                    [--pythonpath PYTHONPATH] [--profile]
+                                    [executable] ...
 
     Starts a parallel program using SCOOP.
 
@@ -222,32 +222,38 @@ Here is a list of the parameters that can be passed to SCOOP::
 
     optional arguments:
       -h, --help            show this help message and exit
-      --hosts [HOSTS [HOSTS ...]], --host [HOSTS [HOSTS ...]]
+      --hosts [Address [Address ...]], --host [Address [Address ...]]
                             The list of hosts. The first host will execute the
-                            root program. (default is 127.0.0.1)
-      --hostfile HOSTFILE   The hostfile name
-      --path PATH, -p PATH  The path to the executable on remote hosts (default 
-                            is local directory)
-      --nice NICE           *nix niceness level (-20 to 19) to run the executable
+                            origin. (default is 127.0.0.1)
+      --hostfile FileName   The hostfile name
+      --path PATH, -p PATH  The path to the executable on remote hosts (default is
+                            local directory)
+      --nice NiceLevel      *nix niceness level (-20 to 19) to run the executable
       --verbose, -v         Verbosity level of this launch script (-vv for more)
-      --log LOG             The file to log the output (default is stdout)
-      -n N                  Total number of workers to launch on the hosts.
-                            Workers are spawned sequentially over the hosts.
-                            (ie. -n 3 with 2 hosts will spawn 2 workers on the
-                            first host and 1 on the second.) (default: Number of
-                            CPUs on current machine)
-      -e                    Activate ssh tunnels to route toward the broker
+      --quiet, -q
+      --log FileName        The file to log the output. (default is stdout)
+      -n NumberOfWorkers    Total number of workers to launch on the hosts.
+                            Workers are spawned sequentially over the hosts. (ie.
+                            -n 3 with 2 hosts will spawn 2 workers on the first
+                            host and 1 on the second.) (default: Number of CPUs on
+                            current machine)
+      --tunnel              Activate ssh tunnels to route toward the broker
                             sockets over remote connections (may eliminate routing
                             problems and activate encryption but slows down
                             communications)
-      --broker-hostname BROKER_HOSTNAME
+      --broker-hostname Address
                             The externally routable broker hostname / ip (defaults
                             to the local hostname)
-      --python-executable PYTHON_EXECUTABLE
-                            The python executable with which to execute the script
+      --python-interpreter Path
+                            The python interpreter executable with which to
+                            execute the script
       --pythonpath PYTHONPATH
-                            The PYTHONPATH environment variable (default is 
+                            The PYTHONPATH environment variable (default is
                             current PYTHONPATH)
+      --profile             Turn on the profiling. SCOOP will call cProfile.run on
+                            the executable for every worker and will produce files
+                            in directory profile/ named workerX where X is the
+                            number of the worker.
 
 A remote workers example may be as follow::
 
