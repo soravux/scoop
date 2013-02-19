@@ -31,6 +31,7 @@ import scoop
 from .. import discovery
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
+    FileNotFoundError = IOError
 else:
     import runpy
 
