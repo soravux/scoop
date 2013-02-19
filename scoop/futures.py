@@ -17,6 +17,7 @@
 from __future__ import print_function
 
 import os
+import inspect
 from collections import namedtuple
 from functools import partial, reduce
 import itertools
@@ -240,10 +241,13 @@ def submit(func, *args, **kargs):
     assert callable(func), (
         "The provided func parameter is not a callable."
     )
-    # If function is lambda, share it beforehand
+
+    # If function is a lambda or class method, share it (or its parent object)
+    # beforehand
     lambdaType = type(lambda: None)
-    if isinstance(func, lambdaType) and func.__name__ == '<lambda>':
-        # TODO: Replace by a CRC
+    funcIsLambda = isinstance(func, lambdaType) and func.__name__ == '<lambda>'
+    funcIsInstanceMethod = inspect.ismethod(func) and hasattr(func, '__self__')
+    if funcIsLambda or funcIsInstanceMethod:
         func = SharedElementEncapsulation(func)
 
     try:

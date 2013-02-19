@@ -60,7 +60,15 @@ class ZMQCommunicator(object):
             pickle.dumps(scoop.CONFIGURATION)
         ])
         scoop.CONFIGURATION = pickle.loads(self.socket.recv())
-        shared.elements = pickle.loads(self.socket.recv())
+        inboundVariables = pickle.loads(self.socket.recv())
+        shared.elements = dict([
+            (pickle.loads(key),
+                dict([(pickle.loads(varName),
+                       pickle.loads(varValue))
+                    for varName, varValue in value.items()
+                ]))
+                for key, value in inboundVariables.items()
+        ])
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
@@ -86,30 +94,30 @@ class ZMQCommunicator(object):
             if msg[0] == b"SHUTDOWN" and scoop.IS_ORIGIN is False:
                 raise Shutdown("Shutdown received")
             elif msg[0] == b"VARIABLE":
-                key = pickle.loads(msg[2])
-                value = pickle.loads(msg[1])
-                shared.elements[key].update(value)
-                self.convertVariable(key, value)
+                key = pickle.loads(msg[3])
+                varValue = pickle.loads(msg[2])
+                varName = pickle.loads(msg[1])
+                shared.elements.setdefault(key, {}).update({varName: varValue})
+                self.convertVariable(key, varName, varValue)
             elif msg[0] == b"ERASEBUFFER":
                 scoop.reduction.cleanGroupID(pickle.loads(msg[1]))
             socks = dict(self.poller.poll(0))
 
-    def convertVariable(self, key, value):
+    def convertVariable(self, key, varName, varValue):
         """Puts the function in the globals() of the main module."""
-        if isinstance(list(value.values())[0],
-                      encapsulation.FunctionEncapsulation):
-            result = list(value.values())[0].getFunction()
+        if isinstance(varValue, encapsulation.FunctionEncapsulation):
+            result = varValue.getFunction()
 
             # Update the global scope of the function to match the current module
             # TODO: Rework this not to be dependent on runpy / bootstrap call 
             # stack
             # TODO: Builtins doesn't work
             mainModule = sys.modules["__main__"]
-            result.__name__ = list(value.keys())[0]
+            result.__name__ = varName
             result.__globals__.update(mainModule.__dict__)
-            setattr(mainModule, list(value.keys())[0], result)
+            setattr(mainModule, varName, result)
             shared.elements[key].update({
-                list(value.keys())[0]: result
+                varName: result,
             })
 
     def recvFuture(self):
@@ -145,7 +153,8 @@ class ZMQCommunicator(object):
 
     def sendVariable(self, key, value):
         self.socket.send_multipart([b"VARIABLE",
-                                    pickle.dumps({key: value},
+                                    pickle.dumps(key),
+                                    pickle.dumps(value,
                                                  pickle.HIGHEST_PROTOCOL),
                                     pickle.dumps(scoop.worker,
                                                  pickle.HIGHEST_PROTOCOL)])

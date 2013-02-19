@@ -17,6 +17,7 @@
 #
 
 import itertools
+import inspect
 from functools import reduce
 from . import encapsulation, utils
 import time
@@ -56,7 +57,7 @@ def _ensureAtomicity(fn):
         # Wait for element propagation
         import time
         import scoop
-        while all(key in elements[scoop.worker] for key in kwargs.keys()) is not True:
+        while all(key in elements.get(scoop.worker, []) for key in kwargs.keys()) is not True:
             # Enforce retrieval of currently awaiting constants
             _control.execQueue.socket.pumpInfoSocket()
             # TODO: Make previous blocking instead of sleep
@@ -129,6 +130,7 @@ class SharedElementEncapsulation(object):
 
     This is used by Futures (map on lambda, for instance)."""
     def __init__(self, element):
+        self.isMethod = False
         if utils.isStr(element):
             # Already shared element
             assert getConst(element, timeout=0) != None, (
@@ -137,6 +139,14 @@ class SharedElementEncapsulation(object):
             self.uniqueID = element
         else:
             # Element to share
+            # TODO: Replace by a CRC
+            if inspect.ismethod(element) and hasattr(element, '__self__'):
+                # Must share whole object before ability to use its method
+                self.isMethod = True
+                self.methodName = element.__name__
+                element = element.__self__
+
+            # Lambda-like or unshared code to share
             uniqueID = str(id(element))
             self.uniqueID = uniqueID
             if getConst(uniqueID, timeout=0) == None:
@@ -147,8 +157,13 @@ class SharedElementEncapsulation(object):
         return self.uniqueID
 
     def __call__(self, *args, **kwargs):
-        return getConst(self.__repr__(),
-                        timeout=float("inf"))(*args, **kwargs)
+        if self.isMethod:
+            wholeObj = getConst(self.__repr__(),
+                                timeout=float("inf"))
+            return getattr(wholeObj, self.methodName)(*args, **kwargs)
+        else:
+            return getConst(self.__repr__(),
+                            timeout=float("inf"))(*args, **kwargs)
 
     def __name__(self):
         return self.__repr__()
