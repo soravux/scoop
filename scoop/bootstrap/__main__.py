@@ -22,6 +22,7 @@ import argparse
 import logging
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
+    FileNotFoundError = IOError
 else:
     import importlib.machinery
     importFunction = lambda name, path: importlib.machinery.SourceFileLoader(name, path).load_module()
@@ -31,7 +32,6 @@ import scoop
 from .. import discovery
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
-    FileNotFoundError = IOError
 else:
     import runpy
 
