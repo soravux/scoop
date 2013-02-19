@@ -157,17 +157,15 @@ class Broker(object):
 
             # Shared variable to distribute
             elif msg_type == VARIABLE:
-                address = msg[3]
-                variable = msg[2]
-                try:
-                    self.sharedVariables[address].update(
-                        pickle.loads(variable)
-                    )
-                except pickle.PickleError:
-                    # Just forget the bad variable
-                    continue
+                address = msg[4]
+                value = msg[3]
+                key = msg[2]
+                self.sharedVariables[address].update(
+                    {key: value},
+                )
                 self.infoSocket.send_multipart([VARIABLE,
-                                                variable,
+                                                key,
+                                                value,
                                                 address])
 
             # Initialize the variables of a new worker
