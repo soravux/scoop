@@ -18,10 +18,14 @@ from . import shared, encapsulation
 import zmq
 import scoop
 import time
+import sys
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
+
+from .shared import SharedElementEncapsulation
 
 
 class ZMQCommunicator(object):
@@ -66,10 +70,13 @@ class ZMQCommunicator(object):
     def _recv(self):
         msg = self.socket.recv_multipart()
         thisFuture = pickle.loads(msg[1])
-        if not callable(thisFuture.callable) and not thisFuture.done():
-            # TODO: Also check in root module globals
-            thisFuture.callable = shared.getConst(thisFuture.callable,
-                                                  timeout=0)
+        #isCallable = callable(thisFuture.callable)
+        #isDone = thisFuture.done()
+        #if not isCallable and not isDone:
+            # TODO: Also check in root module globals for fully qualified name
+            #if hasattr(sys.modules["__main__"], thisFuture.name
+            #thisFuture.callable = shared.getConst(thisFuture.callable,
+            #                                      timeout=float("inf"))
         return thisFuture
 
     def pumpInfoSocket(self):
@@ -88,6 +95,7 @@ class ZMQCommunicator(object):
             socks = dict(self.poller.poll(0))
 
     def convertVariable(self, key, value):
+        """Puts the function in the globals() of the main module."""
         if isinstance(list(value.values())[0],
                       encapsulation.FunctionEncapsulation):
             result = list(value.values())[0].getFunction()
@@ -96,12 +104,10 @@ class ZMQCommunicator(object):
             # TODO: Rework this not to be dependent on runpy / bootstrap call 
             # stack
             # TODO: Builtins doesn't work
-            import inspect
-            frm = inspect.stack()[-5]
-            mod = inspect.getmodule(frm[0])
+            mainModule = sys.modules["__main__"]
             result.__name__ = list(value.keys())[0]
-            result.__globals__.update(mod.__dict__)
-            setattr(mod, list(value.keys())[0], result)
+            result.__globals__.update(mainModule.__dict__)
+            setattr(mainModule, list(value.keys())[0], result)
             shared.elements[key].update({
                 list(value.keys())[0]: result
             })
@@ -115,11 +121,14 @@ class ZMQCommunicator(object):
             if shared.getConst(future.callable.__name__,
                                timeout=0):
                 # Enforce name reference passing if already shared
-                raise pickle.PicklingError()
+                future.callable = SharedElementEncapsulation(future.callable.__name__)
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
         except pickle.PicklingError as e:
+            # If element not picklable, pickle its name
+            # TODO: use its fully qualified name
+            print("ERROR: ", e)
             previousCallback = future.callable
             future.callable = future.callable.__name__
             self.socket.send_multipart([b"TASK",

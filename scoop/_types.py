@@ -263,13 +263,20 @@ class FutureQueue(object):
         in progress futures have priority over those that have not yet started;
         higher level futures have priority over lower level ones; """
         self.updateQueue()
+
+        # If our buffer is underflowing, request more Futures
         if self.timelen(self) < self.lowwatermark:
             self.requestFuture()
+
+        # If an unmovable Future is ready to be executed, return it
         if len(self.ready) != 0:
             return self.ready.pop()
+
+        # Then, use Futures in the movable queue
         elif len(self.movable) != 0:
             return self.movable.pop()
         else:
+            # Otherwise, block until a new task arrives
             while len(self) == 0:
                 # Block until message arrives
                 self.socket._poll(-1)
