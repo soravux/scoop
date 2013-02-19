@@ -152,3 +152,12 @@ def KeyboardInterruptHandler(signum, frame):
 
 def getDefaultHosts():
     return [('127.0.0.1', getCPUcount())]
+
+try:
+    # Python 2.X  fallback
+    basestring  # attempt to evaluate basestring
+    def isStr(s):
+        return isinstance(s, basestring)
+except NameError:
+    def isStr(s):
+        return isinstance(s, str)

@@ -26,7 +26,7 @@ try:
     from io import BytesIO as FileLikeIO
     from io import BufferedReader as FileType
 except ImportError:
-    # copyreg is named copy_reg under Python 2.X
+    # Support for Python 2.X
     import copy_reg as copyreg
     from StringIO import StringIO as FileLikeIO
     from types import FileType as FileType
@@ -41,13 +41,26 @@ def functionFactory(inCode):
 
 
 class FunctionEncapsulation(object):
-    """Encapsulates a function in a serializable way"""
-    def __init__(self, inFunc):
+    """Encapsulates a function in a serializable way.
+
+    This is used by the sharing module (setConst).
+    Used for lambda functions and defined on-the-fly (interactive shell)"""
+    def __init__(self, inFunc, name):
         """Creates a serializable (picklable) object of a function"""
         self.code = marshal.dumps(inFunc.__code__)
+        self.name = name
         # TODO: __defaults__, docstrings
 
+    def __call__(self, *args, **kwargs):
+        """Called by local worker (which doesn't _communicate this class)"""
+        return functionFactory(self.code)(*args, **kwargs)
+
+    def __name__(self):
+        return self.name
+
     def getFunction(self):
+        """Called by remote workers. Useful to populate main module globals()
+        for interactive shells"""
         """Retrieve the serialized function"""
         return functionFactory(self.code)
 
@@ -101,8 +114,8 @@ def makeLambdaPicklable(l):
     """Take input lambda function l and makes it picklable."""
     if isinstance(l, type(lambda: None)) and l.__name__ == '<lambda>':
         def __reduce_ex__(proto):
-            # TODO: argdefs
-            return unpickleLambda, (marshal.dumps(callable_.__code__), )
+            # TODO: argdefs, closure
+            return unpickleLambda, (marshal.dumps(l.__code__), )
         l.__reduce_ex__ = __reduce_ex__
     return l
 

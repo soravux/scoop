@@ -18,7 +18,7 @@
 
 import itertools
 from functools import reduce
-from . import encapsulation
+from . import encapsulation, utils
 import time
 
 elements = None
@@ -88,11 +88,10 @@ def setConst(**kwargs):
 
     for key, value in kwargs.items():
         # Propagate the constant
+        # for file-like objects, see encapsulation.py where copyreg was
+        # used to overload standard pickling.
         if callable(value):
-            sendVariable(key, encapsulation.FunctionEncapsulation(value))
-        #if hasattr(value, 'read'):
-            # This is a file-like object
-            #sendVariable(key, encapsulation.ExternalEncapsulation(value))
+            sendVariable(key, encapsulation.FunctionEncapsulation(value, key))
         else:
             sendVariable(key, value)
 
@@ -123,3 +122,33 @@ def getConst(name, timeout=0.1):
         if constants.get(name) is not None or timeoutHappened:
             return constants.get(name)
         time.sleep(0.01)
+
+
+class SharedElementEncapsulation(object):
+    """Encapsulates a reference to an element available in the shared module.
+
+    This is used by Futures (map on lambda, for instance)."""
+    def __init__(self, element):
+        if utils.isStr(element):
+            # Already shared element
+            assert getConst(element, timeout=0) != None, (
+                "Element must already be shared."
+            )
+            self.uniqueID = element
+        else:
+            # Element to share
+            uniqueID = str(id(element))
+            self.uniqueID = uniqueID
+            if getConst(uniqueID, timeout=0) == None:
+                funcRef = {uniqueID: element}
+                setConst(**funcRef)
+
+    def __repr__(self):
+        return self.uniqueID
+
+    def __call__(self, *args, **kwargs):
+        return getConst(self.__repr__(),
+                        timeout=float("inf"))(*args, **kwargs)
+
+    def __name__(self):
+        return self.__repr__()

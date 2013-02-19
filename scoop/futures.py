@@ -24,8 +24,8 @@ import itertools
 import scoop
 from ._types import Future, NotStartedProperly, CallbackType
 from .reduction import reduction
-from .encapsulation import makeLambdaPicklable
 from . import _control as control
+from .shared import setConst, getConst, SharedElementEncapsulation
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
 FIRST_COMPLETED = 'FIRST_COMPLETED'
@@ -238,8 +238,13 @@ def submit(func, *args, **kargs):
     Result retrieval is made via the :meth:`~scoop._types.Future.result`
     function on the Future."""
     assert callable(func), (
-        "The provided func parameter is not a callable"
+        "The provided func parameter is not a callable."
     )
+    # If function is lambda, share it beforehand
+    lambdaType = type(lambda: None)
+    if isinstance(func, lambdaType) and func.__name__ == '<lambda>':
+        # TODO: Replace by a CRC
+        func = SharedElementEncapsulation(func)
 
     try:
         child = Future(control.current.id, func, *args, **kargs)
