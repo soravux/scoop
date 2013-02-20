@@ -29,7 +29,6 @@ class myClass(object):
 
 
 if __name__ == "__main__":
-    shared.setConst(patente="APSKDN")
     myInstance = myClass()
     myInstance.myState = 3
     print(list(futures.map(myInstance.myMethod, range(10))))
