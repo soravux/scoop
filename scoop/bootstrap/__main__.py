@@ -20,6 +20,7 @@ import os
 import functools
 import argparse
 import logging
+import logging.config
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
     FileNotFoundError = IOError
@@ -91,15 +92,44 @@ class Bootstrap(object):
         self.run()
 
     def init_logging(self, log=None):
-        verbose_levels = {0: logging.WARNING,
-                          1: logging.INFO,
-                          2: logging.DEBUG,
-                         }
-        logging.basicConfig(filename=log,
-                            level=verbose_levels[self.verbose],
-                            format='[%(asctime)-15s] %(levelname)-7s '
-                                   '%(message)s')
-        self.log = logging.getLogger(self.__class__.__name__)
+        verbose_levels = {
+            -2: "CRITICAL",
+            -1: "ERROR",
+            0: "WARNING",
+            1: "INFO",
+            2: "DEBUG",
+            3: "NOSET",
+        }
+        log_handlers = {
+            "console":
+            {
+
+                "class": "logging.StreamHandler",
+                "formatter": "SCOOPFormatter",
+                "stream": "ext://sys.stdout",
+            },
+        }
+        dict_log_config = {
+            "version": 1,
+            "handlers": log_handlers,
+            "loggers":
+            {
+                "SCOOPLogger":
+                {
+                    "handlers": ["console"],
+                    "level": verbose_levels[self.verbose],
+                },
+            },
+            "formatters":
+            {
+                "SCOOPFormatter":
+                {
+                    "format":"[%(asctime)-15s] %(levelname)-7s %(message)s",
+                },
+            },
+        }
+        logging.config.dictConfig(dict_log_config)
+        self.log = logging.getLogger("SCOOPLogger")
 
     def makeParser(self):
         """Generate the argparse parser object containing the bootloader
