@@ -20,7 +20,7 @@ import os
 import functools
 import argparse
 import logging
-import logging.config
+
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
     FileNotFoundError = IOError
@@ -33,8 +33,10 @@ import scoop
 from .. import discovery
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
+    from scoop.backports.dictconfig import dictConfig
 else:
     import runpy
+    from logging.config import dictConfig
 
 
 class Bootstrap(object):
@@ -128,7 +130,7 @@ class Bootstrap(object):
                 },
             },
         }
-        logging.config.dictConfig(dict_log_config)
+        dictConfig(dict_log_config)
         self.log = logging.getLogger("SCOOPLogger")
 
     def makeParser(self):
