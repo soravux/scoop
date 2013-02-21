@@ -34,6 +34,7 @@ REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
 ERASEBUFFER = b"ERASEBUFFER"
+WORKERDOWN = b"WORKERDOWN"
 
 
 class Broker(object):
@@ -190,6 +191,12 @@ class Broker(object):
                 self.infoSocket.send_multipart([ERASEBUFFER,
                                                 groupID])
 
+            # A worker is leaving the pool
+            elif msg_type == WORKERDOWN:
+                # TODO
+                pass
+
+            # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:
                 self.shutdown()
                 break

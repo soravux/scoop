@@ -17,7 +17,7 @@
 #
 
 import itertools
-import inspect
+from inspect import ismethod, isbuiltin
 from functools import reduce
 from . import encapsulation, utils
 import time
@@ -139,14 +139,18 @@ class SharedElementEncapsulation(object):
             self.uniqueID = element
         else:
             # Element to share
-            # TODO: Replace by a CRC
-            if inspect.ismethod(element) and hasattr(element, '__self__'):
+            # Determine if function is a method. Methods derived from external
+            # languages such as C++ aren't detected by ismethod and must be checked
+            # using isbuiltin and checked for a __self__.
+            funcIsMethod = ismethod(element) or isbuiltin(element)
+            if funcIsMethod and hasattr(element, '__self__'):
                 # Must share whole object before ability to use its method
                 self.isMethod = True
                 self.methodName = element.__name__
                 element = element.__self__
 
             # Lambda-like or unshared code to share
+            # TODO: Replace by a CRC for uniqueness of element on pool
             uniqueID = str(id(element))
             self.uniqueID = uniqueID
             if getConst(uniqueID, timeout=0) == None:
