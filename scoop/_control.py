@@ -62,6 +62,13 @@ QueueLength = None
 if scoop.DEBUG:
     init_debug()
 
+# Hook to advertise the broker if the worker exits unexpectedly
+def advertiseBrokerWorkerDown(exctype, value, traceback):
+    if not scoop.SHUTDOWN_REQUESTED:
+        execQueue.socket.shutdown()
+    sys.__excepthook__(exctype, value, traceback)
+
+
 def init_debug():
     """Initialise debug_stats and QueueLength (this is not a reset)"""
     global debug_stats
@@ -160,6 +167,9 @@ def runController(callable, *args, **kargs):
     if execQueue is None:
         execQueue = FutureQueue()
 
+        sys.excepthook = advertiseBrokerWorkerDown
+
+        # TODO: Make that a function
         # Wait until we received the main module if we are a headless slave
         headless = scoop.CONFIGURATION.get("headless", False)
         if not scoop.MAIN_MODULE:

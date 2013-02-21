@@ -28,6 +28,11 @@ except ImportError:
 from .shared import SharedElementEncapsulation
 
 
+class ReferenceBroken(Exception):
+    """An object could not be unpickled (dereferenced) on a worker"""
+    pass
+
+
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
     context = zmq.Context()
@@ -77,22 +82,45 @@ class ZMQCommunicator(object):
 
     def _recv(self):
         msg = self.socket.recv_multipart()
-        thisFuture = pickle.loads(msg[1])
-        #isCallable = callable(thisFuture.callable)
-        #isDone = thisFuture.done()
-        #if not isCallable and not isDone:
+        try:
+            thisFuture = pickle.loads(msg[1])
+        except AttributeError:
+            scoop.logger.error(
+                "An instance could not find its base reference on a worker. "
+                "Ensure that your objects have their definition available in "
+                "the root scope of your program."
+            )
+            raise ReferenceBroken()
+        isCallable = callable(thisFuture.callable)
+        isDone = thisFuture.done()
+        if not isCallable and not isDone:
             # TODO: Also check in root module globals for fully qualified name
-            #if hasattr(sys.modules["__main__"], thisFuture.name
-            #thisFuture.callable = shared.getConst(thisFuture.callable,
-            #                                      timeout=float("inf"))
+            try:
+                module_found = hasattr(sys.modules["__main__"],
+                                       thisFuture.callable)
+            except TypeError:
+                module_found = False
+            if module_found:
+                thisFuture.callable = getattr(sys.modules["__main__"],
+                                              thisFuture.callable)
+            else:
+                raise ReferenceBroken("This element could not be pickled: "
+                                      "{0}.".format(thisFuture))
         return thisFuture
 
     def pumpInfoSocket(self):
         socks = dict(self.poller.poll(0))
         while self.infoSocket in socks:
             msg = self.infoSocket.recv_multipart()
-            if msg[0] == b"SHUTDOWN" and scoop.IS_ORIGIN is False:
-                raise Shutdown("Shutdown received")
+            if msg[0] == b"SHUTDOWN":
+                if scoop.IS_ORIGIN is False:
+                    raise Shutdown("Shutdown received")
+                if not scoop.SHUTDOWN_REQUESTED:
+                    scoop.logger.error(
+                        "A worker exited unexpectedly. Read the worker logs "
+                        "for more information. SCOOP pool will now shutdown."
+                    )
+                    raise Shutdown("Unexpected shutdown received")
             elif msg[0] == b"VARIABLE":
                 key = pickle.loads(msg[3])
                 varValue = pickle.loads(msg[2])
@@ -136,7 +164,7 @@ class ZMQCommunicator(object):
         except pickle.PicklingError as e:
             # If element not picklable, pickle its name
             # TODO: use its fully qualified name
-            print("ERROR: ", e)
+            scoop.logger.warn("Pickling Error: {0}".format(e))
             previousCallback = future.callable
             future.callable = future.callable.__name__
             self.socket.send_multipart([b"TASK",
@@ -167,12 +195,17 @@ class ZMQCommunicator(object):
     def sendRequest(self):
         self.socket.send(b"REQUEST")
 
+    def workerDown(self):
+        self.socket.send(b"WORKERDOWN")
+
     def shutdown(self):
         """Sends a shutdown message to other workers."""
-        self.socket.send(b"SHUTDOWN")
-        self.socket.close()
-        self.infoSocket.close()
-        time.sleep(0.3)
+        if not scoop.SHUTDOWN_REQUESTED:
+            scoop.SHUTDOWN_REQUESTED = True
+            self.socket.send(b"SHUTDOWN")
+            self.socket.close()
+            self.infoSocket.close()
+            time.sleep(0.3)
 
 
 class Shutdown(Exception):

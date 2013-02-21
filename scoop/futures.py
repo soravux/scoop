@@ -17,7 +17,7 @@
 from __future__ import print_function
 
 import os
-import inspect
+from inspect import ismethod, isbuiltin
 from collections import namedtuple
 from functools import partial, reduce
 import itertools
@@ -246,7 +246,11 @@ def submit(func, *args, **kargs):
     # beforehand
     lambdaType = type(lambda: None)
     funcIsLambda = isinstance(func, lambdaType) and func.__name__ == '<lambda>'
-    funcIsInstanceMethod = inspect.ismethod(func) and hasattr(func, '__self__')
+    # Determine if function is a method. Methods derived from external
+    # languages such as C++ aren't detected by ismethod and must be checked
+    # using isbuiltin and checked for a __self__.
+    funcIsMethod = ismethod(func) or isbuiltin(func)
+    funcIsInstanceMethod = funcIsMethod and hasattr(func, '__self__')
     if funcIsLambda or funcIsInstanceMethod:
         func = SharedElementEncapsulation(func)
 
