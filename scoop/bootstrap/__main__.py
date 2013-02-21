@@ -199,7 +199,6 @@ class Bootstrap(object):
           'headless': not bool(self.args.executable),
         }
         scoop.logger = self.log
-        scoop.SHUTDOWN_REQUESTED = False
 
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
