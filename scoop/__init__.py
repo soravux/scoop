@@ -19,7 +19,11 @@ __author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
 __version__ = "0.6.0"
 __revision__ = "dev"
 
+import logging
+
 # In case SCOOP was not initialized correctly
 CONFIGURATION = {}
 DEBUG = False
 is_running = False
+logger = logging.getLogger()
+SHUTDOWN_REQUESTED = False
