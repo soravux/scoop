@@ -200,12 +200,11 @@ class ZMQCommunicator(object):
 
     def shutdown(self):
         """Sends a shutdown message to other workers."""
-        if not scoop.SHUTDOWN_REQUESTED:
-            scoop.SHUTDOWN_REQUESTED = True
-            self.socket.send(b"SHUTDOWN")
-            self.socket.close()
-            self.infoSocket.close()
-            time.sleep(0.3)
+        scoop.SHUTDOWN_REQUESTED = True
+        self.socket.send(b"SHUTDOWN")
+        self.socket.close()
+        self.infoSocket.close()
+        time.sleep(0.3)
 
 
 class Shutdown(Exception):
