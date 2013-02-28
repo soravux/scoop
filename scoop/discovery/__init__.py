@@ -15,6 +15,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 from . import minusconf
+import scoop
 
 SERVICES_DISCOVERED = []
 
@@ -62,6 +63,7 @@ def _seekerCallback(seeker, svca):
             svca.aname,
         )
     )
+    scoop.logger.info("Discovery seeker has found a broker.")
 
 
 def Advertise(port, stype="SCOOP", sname="Broker", advertisername="Broker",
@@ -72,14 +74,17 @@ def Advertise(port, stype="SCOOP", sname="Broker", advertisername="Broker",
     sname = broker unique name
     location = routable location (ip or dns)
     """
+    scoop.logger.info("Launching advertiser...")
     service = minusconf.Service(stype, port, sname, location)
     advertiser = minusconf.ThreadAdvertiser([service], advertisername)
     advertiser.start()
+    scoop.logger.info("Advertiser launched.")
 
     return advertiser
 
 
 def Seek(stype="SCOOP", sname="Broker", advertisername=""):
+    scoop.logger.info("Launching discovery seeker...")
     se = minusconf.Seeker(stype=stype, aname=advertisername, sname=sname,
                           find_callback=_seekerCallback,
                           error_callback=_print_error,
