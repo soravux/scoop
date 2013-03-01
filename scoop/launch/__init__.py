@@ -91,9 +91,6 @@ class Host(object):
     def _WorkerCommand_bootstrap(self, worker):
         """Return list commands to start the bootstrap process"""
         c = []
-        if worker.nice is not None:
-            c.extend(['nice', '-n', str(worker.nice)])
-
         c.extend([worker.pythonExecutable, '-m', self.BOOTSTRAP_MODULE])
         return c
 
@@ -110,6 +107,8 @@ class Host(object):
         if not self.isLocal() and workerID == 0:
             c.append("--echoGroup ")
 
+        if worker.nice is not None:
+            c.extend(['--nice', str(worker.nice)])
         c.extend(['--size', str(worker.size)])
         c.extend(['--workerName', str(worker.workerNum)])
 

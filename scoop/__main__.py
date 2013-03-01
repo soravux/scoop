@@ -216,10 +216,12 @@ class ScoopApp(object):
         """Launch the broker and every worker assigned on every hosts."""
         # Launching the local broker, repeat until it works
         if self.brokerHostname in utils.localHostnames:
-            self.broker = localBroker(debug=self.debug)
+            self.broker = localBroker(debug=self.debug,
+                                      nice=self.nice)
         else:
             self.broker = remoteBroker(self.brokerHostname,
-                                       self.python_executable)
+                                       self.python_executable,
+                                       self.nice)
 
         # Launch the workers
         for hostname, nbworkers in self.hosts:

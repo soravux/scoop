@@ -20,6 +20,7 @@ import os
 import functools
 import argparse
 import logging
+import psutil
 
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
@@ -160,6 +161,10 @@ class Bootstrap(object):
                                  help="The size of the worker pool",
                                  type=int,
                                  default=1)
+        self.parser.add_argument('--nice',
+                                 help="Adjust the niceness of the process",
+                                 type=int,
+                                 default=0)
         self.parser.add_argument('--debug',
                                  help="Activate the debug",
                                  action='store_true')
@@ -195,6 +200,9 @@ class Bootstrap(object):
         scoop.DEBUG = self.args.debug
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.MAIN_MODULE = self.args.executable
+        if self.args.nice:
+            p = psutil.Process(os.getpid())
+            p.set_nice(self.args.nice)
         scoop.CONFIGURATION = {
           'headless': not bool(self.args.executable),
         }

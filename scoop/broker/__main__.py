@@ -15,6 +15,9 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
+import os
+import psutil
+
 from scoop.broker.broker import Broker
 from signal import signal, SIGTERM, SIGINT
 import argparse
@@ -29,6 +32,10 @@ if __name__ == "__main__":
     parser.add_argument('--mPort',
                         help="The port of the info socket",
                         default="*")
+    parser.add_argument('--nice',
+                        help="Adjust the process niceness",
+                        type=int,
+                        default=0)
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
@@ -56,7 +63,9 @@ if __name__ == "__main__":
            lambda signum, stack_frame: thisBroker.shutdown())
     signal(SIGINT,
            lambda signum, stack_frame: thisBroker.shutdown())
-
+    if args.nice:
+        p = psutil.Process(os.getpid())
+        p.set_nice(args.nice)
     try:
         thisBroker.run()
     finally:

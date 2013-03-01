@@ -19,12 +19,17 @@ from threading import Thread
 import subprocess
 import logging
 import sys
+import os
+import psutil
 
 
 class localBroker(object):
-    def __init__(self, debug):
+    def __init__(self, debug, nice=0):
         """Starts a broker on random unoccupied ports"""
         from scoop.broker import Broker
+        if nice:
+            p = psutil.Process(os.getpid())
+            p.set_nice(nice)
         self.localBroker = Broker(debug=debug)
         self.brokerPort, self.infoPort = self.localBroker.getPorts()
         self.broker = Thread(target=self.localBroker.run)
@@ -40,12 +45,14 @@ class localBroker(object):
 class remoteBroker(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
 
-    def __init__(self, hostname, pythonExecutable):
+    def __init__(self, hostname, pythonExecutable, nice=0):
         """Starts a broker on the specified hostname on unoccupied ports"""
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
                         "--tPort {brokerPort} "
                         "--mPort {infoPort} "
                         "--echoGroup ")
+        if nice:
+            brokerString += "--nice {nice} ".format(nice=nice)
         self.hostname = hostname
         for i in range(5000, 10000, 2):
             self.shell = subprocess.Popen(self.BASE_SSH
