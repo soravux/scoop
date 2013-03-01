@@ -58,6 +58,7 @@ class Broker(object):
             self.tSockPort = self.taskSocket.bind_to_random_port(tSock[:-2])
         else:
             self.taskSocket.bind(tSock)
+            self.tSockPort = tSock.split(":")[-1]
 
         # zmq Socket for the shutdown TODO this is temporary
         self.infoSocket = self.context.socket(zmq.PUB)
@@ -66,6 +67,7 @@ class Broker(object):
             self.infoSockPort = self.infoSocket.bind_to_random_port(mSock[:-2])
         else:
             self.infoSocket.bind(mSock)
+            self.infoSockPort = mSock.split(":")[-1]
 
         if zmq.zmq_version_info() >= (3, 0, 0):
             self.taskSocket.setsockopt(zmq.SNDHWM, 0)

@@ -84,8 +84,9 @@ class Host(object):
             # TODO: do we really want to set PYTHONPATH='' if not defined??
             c.extend(["export", "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath), '&&'])
 
-        # Try to go into the directory. If not (headless worker), it's not important
-        c.extend(['cd', worker.path, '&&'])
+        # Try to go into the directory. If headless worker, it's not important
+        if worker.executable:
+            c.extend(['cd', worker.path, "&&"])
         return c
 
     def _WorkerCommand_bootstrap(self, worker):
