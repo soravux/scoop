@@ -20,7 +20,11 @@ import os
 import functools
 import argparse
 import logging
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
@@ -200,13 +204,16 @@ class Bootstrap(object):
         scoop.DEBUG = self.args.debug
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.MAIN_MODULE = self.args.executable
-        if self.args.nice:
-            p = psutil.Process(os.getpid())
-            p.set_nice(self.args.nice)
         scoop.CONFIGURATION = {
           'headless': not bool(self.args.executable),
         }
         scoop.logger = self.log
+        if self.args.nice:
+            if not psutil:
+                scoop.logger.error("psutil not installed.")
+                raise ImportError("psutil is needed for nice functionnality.")
+            p = psutil.Process(os.getpid())
+            p.set_nice(self.args.nice)
 
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
