@@ -156,7 +156,6 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
                                      "Be sure to start your program with the "
                                      "'-m scoop' parameter. You can find further "
                                      "information in the documentation.")
-        child = Future(control.current.id, mapFunc, *args, **kargs)
         child.add_done_callback(partial(reduction, operation=reductionOp),
                                 inCallbackType=CallbackType.universal,
                                 inCallbackGroup=thisCallbackGroupID)
@@ -204,7 +203,6 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
                                      "Be sure to start your program with the "
                                      "'-m scoop' parameter. You can find further "
                                      "information in the documentation.")
-        child = Future(control.current.id, mapFunc, *args, **kargs)
         child.add_done_callback(partial(reduction, operation=reductionOp),
                                 inCallbackType=CallbackType.universal,
                                 inCallbackGroup=thisCallbackGroupID)
