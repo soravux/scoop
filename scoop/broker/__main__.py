@@ -16,7 +16,10 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import os
-import psutil
+try:
+    import psutil
+except:
+    psutil = None
 
 from scoop.broker.broker import Broker
 from signal import signal, SIGTERM, SIGINT
@@ -64,6 +67,9 @@ if __name__ == "__main__":
     signal(SIGINT,
            lambda signum, stack_frame: thisBroker.shutdown())
     if args.nice:
+        if not psutil:
+            scoop.logger.error("psutil not installed.")
+            raise ImportError("psutil is needed for nice functionnality.")
         p = psutil.Process(os.getpid())
         p.set_nice(args.nice)
     try:

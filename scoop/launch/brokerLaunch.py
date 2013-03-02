@@ -20,7 +20,11 @@ import subprocess
 import logging
 import sys
 import os
-import psutil
+import scoop
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 
 class localBroker(object):
@@ -28,6 +32,9 @@ class localBroker(object):
         """Starts a broker on random unoccupied ports"""
         from scoop.broker import Broker
         if nice:
+            if not psutil:
+                scoop.logger.error("'nice' used while psutil not installed.")
+                raise ImportError("psutil is needed for nice functionnality.")
             p = psutil.Process(os.getpid())
             p.set_nice(nice)
         self.localBroker = Broker(debug=debug)

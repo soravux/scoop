@@ -280,7 +280,11 @@ class ScoopApp(object):
             host.close()
 
         # Terminate the broker
-        self.broker.close()
+        try:
+            self.broker.close()
+        except AttributeError:
+            # Broker was not started (probably mislaunched)
+            pass
 
         self.log.info('Finished cleaning spawned subprocesses.')
 
@@ -398,6 +402,8 @@ def main():
                         args.debug, args.nice,
                         utils.getEnv(), args.profile,
                         args.pythonpath[0])
+
+    rootTaskExitCode = False
     try:
         rootTaskExitCode = scoopApp.run()
     except Exception as e:
