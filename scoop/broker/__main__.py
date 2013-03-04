@@ -48,6 +48,13 @@ if __name__ == "__main__":
     parser.add_argument('--echoGroup',
                         help="Echo the process Group ID before launch",
                         action='store_true')
+    parser.add_argument('--echoPorts',
+                        help="Echo the listening ports",
+                        action='store_true')
+    parser.add_argument('--subbroker',
+                        help="Act as a subbroker (intermediary between worker "
+                             "sub-pool and a broker higher in the hierarchy.",
+                        action='store_true')
     args = parser.parse_args()
 
     if args.echoGroup:
@@ -60,18 +67,31 @@ if __name__ == "__main__":
                         "tcp://*:" + args.mPort,
                         debug=args.debug,
                         headless=args.headless,
+                        subbroker=args.subbroker,
                         )
 
     signal(SIGTERM,
            lambda signum, stack_frame: thisBroker.shutdown())
     signal(SIGINT,
            lambda signum, stack_frame: thisBroker.shutdown())
+
+    # Handle nicing functionnality
     if args.nice:
         if not psutil:
             scoop.logger.error("psutil not installed.")
             raise ImportError("psutil is needed for nice functionnality.")
         p = psutil.Process(os.getpid())
         p.set_nice(args.nice)
+
+    if args.echoPorts:
+        import os
+        import sys
+        sys.stdout.write("{0},{1}\n".format(
+            thisBroker.tSockPort,
+            thisBroker.infoSockPort,
+        )
+        sys.stdout.flush()
+
     try:
         thisBroker.run()
     finally:
