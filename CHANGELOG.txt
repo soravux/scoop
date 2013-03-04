@@ -1,7 +1,12 @@
-0.6.1 (2013/  /  )
+0.6.1 (2013/03/04)
 ------------------
 
 + Fixed: Support for Python 2.6
++ Fixed: Logging configuration contamination
++ Added: Preliminary support for Object-Oriented paradigm (Parallel method executions)
++ Added: Support for lambda execution
++ Added: Pool discovery features
++ Improved: A Future can now return None
 
 0.6.0 (2013/01/21)
 ------------------
