@@ -64,7 +64,7 @@ class Bootstrap(object):
             self.log.info("Discovering SCOOP Brokers on network...")
             pools = discovery.Seek()
             if not pools:
-                self.log.error("Could not find a SCOOP Broker broadcast.\n")
+                self.log.error("Could not find a SCOOP Broker broadcast.")
                 sys.exit(-1)
             self.log.info("Found a broker named {name} on {host} port "
                           "{ports}".format(
