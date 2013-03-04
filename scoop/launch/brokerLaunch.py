@@ -28,7 +28,7 @@ except ImportError:
 
 
 class localBroker(object):
-    def __init__(self, debug, nice=0):
+    def __init__(self, debug, nice=0, subbroker=False):
         """Starts a broker on random unoccupied ports"""
         from scoop.broker import Broker
         if nice:
@@ -37,7 +37,7 @@ class localBroker(object):
                 raise ImportError("psutil is needed for nice functionnality.")
             p = psutil.Process(os.getpid())
             p.set_nice(nice)
-        self.localBroker = Broker(debug=debug)
+        self.localBroker = Broker(debug=debug, subbroker=subbroker)
         self.brokerPort, self.infoPort = self.localBroker.getPorts()
         self.broker = Thread(target=self.localBroker.run)
         self.broker.daemon = True
@@ -52,14 +52,17 @@ class localBroker(object):
 class remoteBroker(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
 
-    def __init__(self, hostname, pythonExecutable, nice=0):
+    def __init__(self, hostname, pythonExecutable, nice=0, subbroker=False):
         """Starts a broker on the specified hostname on unoccupied ports"""
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
                         "--tPort {brokerPort} "
                         "--mPort {infoPort} "
-                        "--echoGroup ")
+                        "--echoGroup "
+                        "--echoPorts ")
         if nice:
             brokerString += "--nice {nice} ".format(nice=nice)
+        if subbroker:
+            brokerString += "--subbroker "
         self.hostname = hostname
         for i in range(5000, 10000, 2):
             self.shell = subprocess.Popen(self.BASE_SSH
@@ -81,8 +84,15 @@ class remoteBroker(object):
         else:
             raise Exception("Could not successfully launch the remote broker.")
 
+        # Get remote process group ID
         try:
             self.remoteProcessGID = int(self.shell.stdout.readline().strip())
+        except ValueError:
+            self.remoteProcessGID = None
+
+        # Get remote ports
+        try:
+            self.remoteProcessGID = self.shell.stdout.readline().strip().split(",")
         except ValueError:
             self.remoteProcessGID = None
 
