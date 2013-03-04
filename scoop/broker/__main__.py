@@ -89,7 +89,7 @@ if __name__ == "__main__":
         sys.stdout.write("{0},{1}\n".format(
             thisBroker.tSockPort,
             thisBroker.infoSockPort,
-        )
+        ))
         sys.stdout.flush()
 
     try:
