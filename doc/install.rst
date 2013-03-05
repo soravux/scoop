@@ -40,6 +40,7 @@ you can do as such::
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
     [.ssh]$ cat id_dsa.pub >> authorized_keys
+    [.ssh]$ chmod 700 ~/.ssh ; chmod 600 ./id_dsa ; chmod 644 ./id_dsa.pub ./authorized_keys
     
 .. note::
 
