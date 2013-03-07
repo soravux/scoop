@@ -93,9 +93,6 @@ substitute to the standard |map()|_, for instance::
     `documentation <http://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled>`_.
 
 .. note::
-    Functions executed using SCOOP must return a value.
-
-.. note::
     Keep in mind that objects are not shared between workers and that changes
     made to an object in a function are not seen by other workers.
 
