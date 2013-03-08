@@ -97,10 +97,9 @@ class Broker(object):
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
+        self.discoveryThread = None
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
-
-        self.discoveryThread = None
 
     def processConfig(self, worker_config):
         """Update the pool configuration with a worker configuration.
