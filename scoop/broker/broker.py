@@ -20,6 +20,7 @@ import time
 import zmq
 import sys
 import threading
+import scoop
 try:
     import cPickle as pickle
 except ImportError:
@@ -27,6 +28,7 @@ except ImportError:
 
 from .. import discovery
 
+# Worker requests
 INIT = b"INIT"
 REQUEST = b"REQUEST"
 TASK = b"TASK"
@@ -35,11 +37,13 @@ SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
 ERASEBUFFER = b"ERASEBUFFER"
 WORKERDOWN = b"WORKERDOWN"
+# Broker interconnection
+CONNECT = b"CONNECT"
 
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
-                 headless=False):
+                 headless=False, subbroker=False):
         """This function initializes a broker.
 
         :param tSock: Task Socket Address.
@@ -97,15 +101,45 @@ class Broker(object):
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
+        # Start a worker-like communication if needed
+        self.execQueue = None
+        self.subbroker = subbroker
+
+        # Handle cloud-like behavior
         self.discoveryThread = None
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
+
+
+    def setupSubbroker(self, brokerAddress, metaAddress):
+        from .. import discovery
+
+        scoop.BROKER_ADDRESS = brokerAddress
+        scoop.META_ADDRESS = metaAddress
+
+        scoop.logger.info("Found new parent broker on: {0} {1}".format(
+            brokerAddress,
+            metaAddress,
+        ))
+
+        # Make the workerName random
+        import uuid
+        scoop.WORKER_NAME = str(uuid.uuid4())
+        scoop.logger.info("Using worker name {workerName}.".format(
+            workerName=self.args.workerName,
+        ))
+
+        self.args.origin = True
+
+        # Launch worker communication
+        from ._types import FutureQueue
+        self.execQueue = FutureQueue()
 
     def processConfig(self, worker_config):
         """Update the pool configuration with a worker configuration.
         """
         self.config['headless'] |= worker_config.get("headless", False)
-        if self.config['headless']:
+        if self.config['headless'] or self.subbroker:
             # Launch discovery process
             if not self.discoveryThread:
                 self.discoveryThread = discovery.Advertise(
@@ -196,6 +230,9 @@ class Broker(object):
             elif msg_type == WORKERDOWN:
                 # TODO
                 pass
+
+            elif msg_type == CONNECT:
+                setupSubbroker(msg[2], msg[3])
 
             # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:

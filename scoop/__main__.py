@@ -216,10 +216,16 @@ class ScoopApp(object):
         """Launch the broker and every worker assigned on every hosts."""
         # Launching the local broker, repeat until it works
         if self.brokerHostname in utils.localHostnames:
-            self.broker = localBroker(debug=self.debug)
+            self.broker = localBroker(debug=self.debug,
+                                      nice=self.nice,
+                                      subbroker=not self.executable,
+                                      )
         else:
             self.broker = remoteBroker(self.brokerHostname,
-                                       self.python_executable)
+                                       self.python_executable,
+                                       self.nice,
+                                       subbroker=not self.executable,
+                                       )
 
         # Launch the workers
         for hostname, nbworkers in self.hosts:
@@ -278,7 +284,11 @@ class ScoopApp(object):
             host.close()
 
         # Terminate the broker
-        self.broker.close()
+        try:
+            self.broker.close()
+        except AttributeError:
+            # Broker was not started (probably mislaunched)
+            pass
 
         self.log.info('Finished cleaning spawned subprocesses.')
 
@@ -396,6 +406,8 @@ def main():
                         args.debug, args.nice,
                         utils.getEnv(), args.profile,
                         args.pythonpath[0])
+
+    rootTaskExitCode = False
     try:
         rootTaskExitCode = scoopApp.run()
     except Exception as e:
