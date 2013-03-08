@@ -20,6 +20,11 @@ import os
 import functools
 import argparse
 import logging
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
@@ -59,7 +64,7 @@ class Bootstrap(object):
             self.log.info("Discovering SCOOP Brokers on network...")
             pools = discovery.Seek()
             if not pools:
-                self.log.error("Could not find a SCOOP Broker broadcast.\n")
+                self.log.error("Could not find a SCOOP Broker broadcast.")
                 sys.exit(-1)
             self.log.info("Found a broker named {name} on {host} port "
                           "{ports}".format(
@@ -160,6 +165,10 @@ class Bootstrap(object):
                                  help="The size of the worker pool",
                                  type=int,
                                  default=1)
+        self.parser.add_argument('--nice',
+                                 help="Adjust the niceness of the process",
+                                 type=int,
+                                 default=0)
         self.parser.add_argument('--debug',
                                  help="Activate the debug",
                                  action='store_true')
@@ -199,6 +208,12 @@ class Bootstrap(object):
           'headless': not bool(self.args.executable),
         }
         scoop.logger = self.log
+        if self.args.nice:
+            if not psutil:
+                scoop.logger.error("psutil not installed.")
+                raise ImportError("psutil is needed for nice functionnality.")
+            p = psutil.Process(os.getpid())
+            p.set_nice(self.args.nice)
 
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug

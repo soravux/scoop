@@ -32,7 +32,7 @@ Remote usage
 ~~~~~~~~~~~~
     
 Because remote host connection needs to be done without a prompt, you must use 
-ssh keys to allow passwordless authentication.
+ssh keys to allow **passwordless authentication between every computing node**.
 You should make sure that your public ssh key is contained in the ``~/.ssh/authorized_keys`` 
 file on the remote systems (Refer to the `ssh manual <http://www.openbsd.org/cgi-bin/man.cgi?query=ssh>`_). If you have a shared :file:`/home/` over your systems, 
 you can do as such::
