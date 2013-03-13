@@ -206,7 +206,17 @@ class Future(object):
 
         # If already completed or cancelled
         if self.done():
-            self.callback[-1](self)
+            self.callback[-1].func(self)
+
+    def _execute_callbacks(self, callbackType=CallbackType.standard):
+        for callback in self.callback:
+            isUniRun = (self.parentId.worker == scoop.worker 
+                        and callbackType == CallbackType.universal)
+            if isUniRun or callback.callbackType == callbackType:
+                try:
+                    callback.func(self)
+                except:
+                    pass
 
     def _delete(self):
         # Do we need this?
@@ -308,17 +318,14 @@ class FutureQueue(object):
             del self.inprogress[future.id]
         for future in self.socket.recvFuture():
             if future.done():
-                scoop._control.futureDict[future.id].resultValue = future.resultValue
-                scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
-                scoop._control.futureDict[future.id].executor = future.executor
-                scoop._control.futureDict[future.id].isDone = future.isDone
-                for callback in scoop._control.futureDict[future.id].callback:
-                    if callback.callbackType != CallbackType.universal:
-                        try:
-                            callback(scoop._control.futureDict[future.id])
-                        except:
-                            pass
-                self.append(scoop._control.futureDict[future.id])
+                # If the answer is coming back, update its entries
+                thisFuture = scoop._control.futureDict[future.id]
+                thisFuture.resultValue = future.resultValue
+                thisFuture.exceptionValue = future.exceptionValue
+                thisFuture.executor = future.executor
+                # Execute standard callbacks here (on parent)
+                thisFuture._execute_callbacks(CallbackType.standard)
+                self.append(thisFuture)
                 future._delete()
             elif future.id not in scoop._control.futureDict:
                 scoop._control.futureDict[future.id] = future
