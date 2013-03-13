@@ -146,11 +146,7 @@ def runFuture(future):
         QueueLength.append((t, execQueue.timelen(execQueue)))
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    for callback in future.callback:
-        if future.parentId.worker == scoop.worker or \
-        callback.callbackType == CallbackType.universal:
-            try: callback.func(future)
-            except: pass  # Ignored callback exception as stated in PEP 3148
+    future._execute_callbacks(CallbackType.universal)
 
     # Delete references to the future
     future._delete()
@@ -158,7 +154,7 @@ def runFuture(future):
     return future
 
 # This is the callable greenlet that implements the controller logic.
-def runController(callable, *args, **kargs):
+def runController(callable_, *args, **kargs):
     global execQueue
     # initialize and run root future
     rootId = FutureId(-1, 0)
@@ -194,7 +190,7 @@ def runController(callable, *args, **kargs):
 
     # launch future if origin or try to pickup a future if slave worker
     if scoop.IS_ORIGIN:
-        future = Future(rootId, callable, *args, **kargs)
+        future = Future(rootId, callable_, *args, **kargs)
     else:
         future = execQueue.pop()
 
