@@ -341,7 +341,8 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
     if return_when == FIRST_COMPLETED:
         _waitAny(*fs)
     elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
-        _waitAll(*fs)
+        for _ in _waitAll(*fs):
+            pass
     done = set(f for f in fs if f.done())
     not_done = set(fs) - done
     return DoneAndNotDoneFutures(done, not_done)
