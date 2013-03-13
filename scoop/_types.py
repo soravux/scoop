@@ -186,7 +186,8 @@ class Future(object):
         :returns: The exception raised by the call."""
         return self.exceptionValue
 
-    def add_done_callback(self, callable, inCallbackType=CallbackType.standard,
+    def add_done_callback(self, callable_,
+                          inCallbackType=CallbackType.standard,
                           inCallbackGroup=None):
         """Attach a callable to the future that will be called when the future
         is cancelled or finishes running. Callable will be called with the
@@ -199,7 +200,13 @@ class Future(object):
 
         If the future has already completed or been cancelled then callable will
         be called immediately."""
-        self.callback.append(callbackEntry(callable, inCallbackType, inCallbackGroup))
+        self.callback.append(callbackEntry(callable_,
+                                           inCallbackType,
+                                           inCallbackGroup))
+
+        # If already completed or cancelled
+        if self.done():
+            self.callback[-1](self)
 
     def _delete(self):
         # Do we need this?
