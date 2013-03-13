@@ -167,12 +167,12 @@ class ZMQCommunicator(object):
             # If element not picklable, pickle its name
             # TODO: use its fully qualified name
             scoop.logger.warn("Pickling Error: {0}".format(e))
-            previousCallback = future.callable
+            previousCallable = future.callable
             future.callable = future.callable.__name__
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
-            future.callable = previousCallback
+            future.callable = previousCallable
 
     def sendResult(self, future):
         future.callable = None
