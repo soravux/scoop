@@ -339,15 +339,9 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures."""
     DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if return_when == FIRST_COMPLETED:
-        for future in _waitAny(*fs):
-            break
-    elif return_when == ALL_COMPLETED:
-        for future in _waitAll(*fs):
-            pass
-    elif return_when == FIRST_EXCEPTION:
-        for future in _waitAny(*fs):
-            if future.exceptionValue is not None:
-                break
+        _waitAny(*fs)
+    elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
+        _waitAll(*fs)
     done = set(f for f in fs if f.done())
     not_done = set(fs) - done
     return DoneAndNotDoneFutures(done, not_done)
