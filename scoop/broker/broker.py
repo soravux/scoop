@@ -105,10 +105,11 @@ class Broker(object):
         self.execQueue = None
         self.subbroker = subbroker
 
+        # Handle cloud-like behavior
+        self.discoveryThread = None
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
 
-        self.discoveryThread = None
 
     def setupSubbroker(self, brokerAddress, metaAddress):
         from .. import discovery

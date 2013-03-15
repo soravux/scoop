@@ -15,21 +15,22 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-SCOOP also works on lambda functions even if they aren't picklable by default.
+Shows how to develop a program working with or without scoop launched
+providing serial map fallback. This example works even if SCOOP isn't
+installed.
 """
-from scoop import futures, shared
+try:
+    import scoop
+    if scoop.is_running:
+        from scoop.futures import map as map_
+    else:
+        raise ImportError()
+except ImportError:
+    map_ = map
 
-
-class myClass(object):
-    def __init__(self):
-        self.myState = 2
-
-    def myMethod(self, value):
-        return value * self.myState
-
+def helloWorld(value):
+    return "Hello World from Future #{0}".format(value)
 
 if __name__ == "__main__":
-    myInstance = myClass()
-    myInstance.myState = 3
-    print(list(futures.map(myInstance.myMethod, range(10))))
-    
+    returnValues = list(map_(helloWorld, range(16)))
+    print("\n".join(returnValues))
