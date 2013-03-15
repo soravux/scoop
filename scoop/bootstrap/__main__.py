@@ -301,8 +301,10 @@ class Bootstrap(object):
                 "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
             )
         else:
-            futures_startup()
-
+            try:
+                futures_startup()
+            finally:
+                scoop._control.execQueue.shutdown() 
 
 if __name__ == "__main__":
     b = Bootstrap()

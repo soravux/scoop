@@ -74,6 +74,7 @@ class ZMQCommunicator(object):
                 ]))
                 for key, value in inboundVariables.items()
         ])
+        self.OPEN = True
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
@@ -200,11 +201,14 @@ class ZMQCommunicator(object):
 
     def shutdown(self):
         """Sends a shutdown message to other workers."""
-        scoop.SHUTDOWN_REQUESTED = True
-        self.socket.send(b"SHUTDOWN")
-        self.socket.close()
-        self.infoSocket.close()
-        time.sleep(0.3)
+        if self.OPEN:
+            self.OPEN = False
+            scoop.SHUTDOWN_REQUESTED = True
+            self.socket.send(b"SHUTDOWN")
+            self.socket.close()
+            self.infoSocket.close()
+            time.sleep(0.3)
+            print("Shutting down!!!")
 
 
 class Shutdown(Exception):
