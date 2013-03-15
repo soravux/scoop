@@ -85,13 +85,15 @@ class ZMQCommunicator(object):
         msg = self.socket.recv_multipart()
         try:
             thisFuture = pickle.loads(msg[1])
-        except AttributeError:
+        except AttributeError as e:
             scoop.logger.error(
                 "An instance could not find its base reference on a worker. "
                 "Ensure that your objects have their definition available in "
-                "the root scope of your program."
+                "the root scope of your program.\n{error}".format(
+                    error=e
+                )
             )
-            raise ReferenceBroken()
+            raise ReferenceBroken(e)
         isCallable = callable(thisFuture.callable)
         isDone = thisFuture.done()
         if not isCallable and not isDone:
@@ -166,12 +168,12 @@ class ZMQCommunicator(object):
             # If element not picklable, pickle its name
             # TODO: use its fully qualified name
             scoop.logger.warn("Pickling Error: {0}".format(e))
-            previousCallback = future.callable
+            previousCallable = future.callable
             future.callable = future.callable.__name__
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
-            future.callable = previousCallback
+            future.callable = previousCallable
 
     def sendResult(self, future):
         future.callable = None

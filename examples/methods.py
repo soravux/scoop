@@ -14,17 +14,18 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-__author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
-              "Yannick Hold-Geoffroy", "Felix-Antoine Fortin")
-__version__ = "0.6.1"
-__revision__ = "dev"
+"""
+SCOOP also works on methods even if they aren't picklable by default.
+Note that this will correctly propagate the internal state of its instance.
+"""
+from scoop import futures, shared
 
-import logging
+
+class MyClass(object):
+    def myMethod(self, x):
+        return x * 2
 
 
-# In case SCOOP was not initialized correctly
-CONFIGURATION = {}
-DEBUG = False
-is_running = False
-logger = logging.getLogger()
-SHUTDOWN_REQUESTED = False
+if __name__ == "__main__":
+    a = MyClass()
+    print(list(futures.map(a.myMethod, range(10))))
