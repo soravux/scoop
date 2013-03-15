@@ -1,0 +1,6 @@
+syntax: glob
+*.pyc
+*.py~
+doc/_build
+dist/
+build/
