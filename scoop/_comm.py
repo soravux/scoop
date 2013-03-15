@@ -210,7 +210,6 @@ class ZMQCommunicator(object):
             self.socket.close()
             self.infoSocket.close()
             time.sleep(0.3)
-            print("Shutting down!!!")
 
 
 class Shutdown(Exception):
