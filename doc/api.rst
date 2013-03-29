@@ -44,23 +44,24 @@ between futures.
    :members:
 
 
-SCOOP Constants
----------------
+SCOOP Constants and objects
+---------------------------
 
-The following variables are available to a program that was launched using SCOOP.
+The following objects are available to a program that was launched using SCOOP.
 
 .. note::
-    Please note that using these is considered as advanced usage. You should not use these for other purposes than debugging.
+    Please note that using these is considered as advanced usage. You should not rely on these for other purposes than debugging.
 
 ====================    ====================================================================
 Constants               Description
 ====================    ====================================================================
 scoop.IS_ORIGIN         Boolean value. True if current instance is the root worker.
-scoop.WORKER_NAME       String value. Name of the current instance.
-scoop.BROKER_NAME       String value. Name of the broker to which this instance is attached.
+scoop.WORKER_NAME       String value. Name of the current instance (deprecated).
+scoop.BROKER_NAME       String value. Name of the broker to which this instance is attached (deprecated).
 scoop.BROKER_ADDRESS    String value. Address of the socket communicating work information.
 scoop.META_ADDRESS      String value. Address of the socket communicating meta information.
 scoop.SIZE              Integer value. Size of the current worker pool.
 scoop.DEBUG             Boolean value. True if debug mode is enabled, false otherwise.
 scoop.worker            2-tuple. Unique identifier of the current instance in the pool.
+scoop.logger            Logger object. Provides log formatting and redirection facilities. See the `official documentation <http://docs.python.org/2/library/logging.html#logging.Logger>`_ for more informations on its usage.
 ====================    ====================================================================
