@@ -54,7 +54,9 @@ if __name__ == "__main__":
     # Generate the solution space.
     stringIterator = product(possibleCharacters, repeat=3)
 
-    # Partition the solution space into iterators 
+    # Partition the solution space into iterators
+    # Keep in mind that it evaluates the whole solution space
+    # making it pretty memory inefficient.
     SplittedIterator = [stringIterator for _ in range(1000)]
 
     # Parallelize the solution space evaluation
