@@ -19,7 +19,7 @@ Example of shared constants use.
 This is a synthetic partition and evaluation example that should only be
 analysed for its shared module API.
 """
-from itertools import product, tee
+from itertools import product
 import string
 from scoop import futures, shared
 
@@ -55,9 +55,7 @@ if __name__ == "__main__":
     stringIterator = product(possibleCharacters, repeat=3)
 
     # Partition the solution space into iterators 
-    # Keep in mind that the tee operator evaluates the whole solution space
-    # making it pretty memory inefficient.
-    SplittedIterator = tee(stringIterator, 1000)
+    SplittedIterator = [stringIterator for _ in range(1000)]
 
     # Parallelize the solution space evaluation
     results = futures.map(generateHashes, SplittedIterator)
