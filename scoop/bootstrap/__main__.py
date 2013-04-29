@@ -194,7 +194,7 @@ class Bootstrap(object):
 
     def setScoop(self):
         """Setup the SCOOP constants."""
-        scoop.is_running = True
+        scoop.IS_RUNNING = True
         scoop.IS_ORIGIN = self.args.origin
         scoop.WORKER_NAME = self.args.workerName.encode()
         scoop.BROKER_NAME = self.args.brokerName.encode()
