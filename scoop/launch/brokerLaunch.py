@@ -92,7 +92,7 @@ class remoteBroker(object):
 
         # Get remote ports
         try:
-            self.remoteProcessGID = self.shell.stdout.readline().strip().split(",")
+            self.remoteProcessGID = self.shell.stdout.readline().decode().strip().split(",")
         except ValueError:
             self.remoteProcessGID = None
 
