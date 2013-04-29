@@ -67,7 +67,12 @@ def func3(n):
 def func4(n):
     result = n*n
     return result
-    
+
+def funcLambda(n):
+    lambda_func = lambda x : x*x
+    result = list(futures.map(lambda_func, [i+1 for i in range(n)]))
+    return sum(result)
+
 
 def funcCallback():
     f = futures.submit(func4, 100)
@@ -391,6 +396,11 @@ class TestApi(TestScoopCommon):
     def test_map_multi(self):
         self.w = self.multiworker_set()
         result = futures._startup(func3, 30)
+        self.assertEqual(result, 9455)
+
+    def test_map_lambda(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcLambda, 30)
         self.assertEqual(result, 9455)
 
     def test_submit_single(self):
