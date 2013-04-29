@@ -21,7 +21,7 @@ installed.
 """
 try:
     import scoop
-    if scoop.is_running:
+    if scoop.IS_RUNNING:
         from scoop.futures import map as map_
     else:
         raise ImportError()

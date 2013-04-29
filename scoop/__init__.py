@@ -25,6 +25,6 @@ import logging
 # In case SCOOP was not initialized correctly
 CONFIGURATION = {}
 DEBUG = False
-is_running = False
+IS_RUNNING = False
 logger = logging.getLogger()
 SHUTDOWN_REQUESTED = False
