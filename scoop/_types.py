@@ -148,7 +148,8 @@ class Future(object):
 
     def done(self):
         """True if the call was successfully cancelled or finished running,
-           False otherwise."""
+           False otherwise. This function updates the executionQueue so it
+           receives all the awaiting message."""
         scoop._control.execQueue.updateQueue()
         return self._ended()
 
