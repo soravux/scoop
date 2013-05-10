@@ -339,7 +339,7 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures."""
     DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if return_when == FIRST_COMPLETED:
-        _waitAny(*fs)
+        next(_waitAny(*fs))
     elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
         for _ in _waitAll(*fs):
             pass
