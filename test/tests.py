@@ -113,7 +113,11 @@ def funcDone():
     res = f.result()
     done = f.done()
     return done
-    
+
+def funcWait(timeout):
+    fs = [futures.submit(func4, i) for i in range(1000)]
+    done, not_done = futures.wait(fs, timeout=timeout)
+    return done, not_done
 
 def funcExcept(n):
     f = futures.submit(funcRaise, n)
@@ -430,6 +434,21 @@ class TestApi(TestScoopCommon):
 
     def test_callback(self):
         self.assertTrue(futures._startup(funcCallback))
+
+    def test_wait_no_timeout(self):
+        done, not_done = futures._startup(funcWait, -1)
+        self.assertTrue(len(done) == 1000)
+        self.assertTrue(len(not_done) == 0)
+
+    def test_wait_with_timeout(self):
+        done, not_done = futures._startup(funcWait, 0.1)
+        self.assertTrue((len(done) + len(not_done)) == 1000)
+
+    def test_wait_nonblocking(self):
+        done, not_done = futures._startup(funcWait, 0)
+        self.assertTrue((len(done) + len(not_done)) == 1000)
+
+
 
 
 class TestCoherent(TestScoopCommon):
