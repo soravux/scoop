@@ -21,6 +21,7 @@ from inspect import ismethod, isbuiltin
 from collections import namedtuple
 from functools import partial, reduce
 import itertools
+import time
 
 import scoop
 from ._types import Future, NotStartedProperly, CallbackType
@@ -280,7 +281,7 @@ def _waitAny(*children):
     for index, future in enumerate(children):
         if future.exceptionValue is not None:
             raise future.exceptionValue
-        if future.done():
+        if future._ended():
             yield future
             n -= 1
         else:
@@ -337,8 +338,9 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
         futures that completed (is finished or cancelled) before the wait
         completed. The second set, named 'not_done', contains uncompleted
         futures."""
+
+    DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if timeout < 0:
-        DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
         if return_when == FIRST_COMPLETED:
             next(_waitAny(*fs))
         elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
@@ -349,7 +351,8 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
         return DoneAndNotDoneFutures(done, not_done)
 
     elif timeout == 0:
-        done = set(f for f in fs if f.done())
+        scoop._control.execQueue.updateQueue()
+        done = set(f for f in fs if f._ended())
         not_done = set(fs) - done
         return DoneAndNotDoneFutures(done, not_done)
 
@@ -357,8 +360,9 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
         done = set()
         start_time = time.time()
         while time.time() - start_time < timeout:
+            scoop._control.execQueue.updateQueue()
             for f in fs:
-                if f.done():
+                if f._ended():
                     done.add(f)
             
             not_done = set(fs) - done

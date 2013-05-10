@@ -144,11 +144,18 @@ class Future(object):
     def running(self):
         """True if the call is currently being executed and cannot be
            cancelled."""
-        return not self.done() and self not in scoop._control.execQueue
+        return not self._ended() and self not in scoop._control.execQueue
 
     def done(self):
         """True if the call was successfully cancelled or finished running,
            False otherwise."""
+        scoop._control.execQueue.updateQueue()
+        return self._ended()
+
+
+    def _ended(self):
+        """True if the call was successfully cancelled or finished running,
+           False otherwise. This function does not update the queue."""
         return self.resultValue is not None or self.exceptionValue is not None or self.isDone
 
     def result(self, timeout=None):
@@ -165,7 +172,7 @@ class Future(object):
         exception.
 
         :returns: The value returned by the call."""
-        if not self.done():
+        if not self._ended():
             return scoop.futures._join(self)
         if self.exceptionValue is not None:
             raise self.exceptionValue
@@ -205,7 +212,7 @@ class Future(object):
                                            inCallbackGroup))
 
         # If already completed or cancelled
-        if self.done():
+        if self._ended():
             self.callback[-1].func(self)
 
     def _execute_callbacks(self, callbackType=CallbackType.standard):
@@ -261,9 +268,9 @@ class FutureQueue(object):
 
     def append(self, future):
         """Append a future to the queue."""
-        if future.done() and future.index is None:
+        if future._ended() and future.index is None:
             self.inprogress[future.id] = future
-        elif future.done() and future.index is not None:
+        elif future._ended() and future.index is not None:
             self.ready.append(future)
         elif future.greenlet is not None:
             self.inprogress.append(future)
@@ -317,7 +324,7 @@ class FutureQueue(object):
         for future in to_remove:
             del self.inprogress[future.id]
         for future in self.socket.recvFuture():
-            if future.done():
+            if future._ended():
                 # If the answer is coming back, update its entries
                 thisFuture = scoop._control.futureDict[future.id]
                 thisFuture.resultValue = future.resultValue
@@ -347,7 +354,7 @@ class FutureQueue(object):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
         future.greenlet = None
-        assert future.done(), "The results are not valid"
+        assert future._ended(), "The results are not valid"
         self.socket.sendResult(future)
 
     def shutdown(self):
