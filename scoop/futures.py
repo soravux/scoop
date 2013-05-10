@@ -314,7 +314,7 @@ def _waitAll(*children):
         for f in _waitAny(future):
             yield f
 
-def wait(fs, timeout=None, return_when=ALL_COMPLETED):
+def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
 
     :param fs: The sequence of Futures (possibly created by another instance) to
@@ -337,15 +337,38 @@ def wait(fs, timeout=None, return_when=ALL_COMPLETED):
         futures that completed (is finished or cancelled) before the wait
         completed. The second set, named 'not_done', contains uncompleted
         futures."""
-    DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
-    if return_when == FIRST_COMPLETED:
-        next(_waitAny(*fs))
-    elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
-        for _ in _waitAll(*fs):
-            pass
-    done = set(f for f in fs if f.done())
-    not_done = set(fs) - done
-    return DoneAndNotDoneFutures(done, not_done)
+    if timeout < 0:
+        DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
+        if return_when == FIRST_COMPLETED:
+            next(_waitAny(*fs))
+        elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
+            for _ in _waitAll(*fs):
+                pass
+        done = set(f for f in fs if f.done())
+        not_done = set(fs) - done
+        return DoneAndNotDoneFutures(done, not_done)
+
+    elif timeout == 0:
+        done = set(f for f in fs if f.done())
+        not_done = set(fs) - done
+        return DoneAndNotDoneFutures(done, not_done)
+
+    else:
+        done = set()
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            for f in fs:
+                if f.done():
+                    done.add(f)
+            
+            not_done = set(fs) - done
+
+            if return_when == FIRST_COMPLETED and len(done) > 0:
+                break
+            if len(not_done) == 0:
+                break
+        return DoneAndNotDoneFutures(done, not_done)
+
 
 def as_completed(fs, timeout=None):
     """An iterator over the given futures that yields each as it completes.
