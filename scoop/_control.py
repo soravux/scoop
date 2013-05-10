@@ -197,9 +197,9 @@ def runController(callable_, *args, **kargs):
     future.greenlet = greenlet.greenlet(runFuture)
     future = future._switch(future)
 
-    while future.parentId != rootId or not future.done() or not scoop.IS_ORIGIN:
+    while future.parentId != rootId or not future._ended() or not scoop.IS_ORIGIN:
         # process future
-        if future.done():
+        if future._ended():
             # future is finished
             if future.id.worker != scoop.worker:
                 # future is not local
@@ -219,7 +219,7 @@ def runController(callable_, *args, **kargs):
             # future is in progress; run next future from pending execution queue.
             future = execQueue.pop()
 
-        if not future.done() and future.greenlet is None:
+        if not future._ended() and future.greenlet is None:
             # initialize if the future hasn't started
             future.greenlet = greenlet.greenlet(runFuture)
             future = future._switch(future)

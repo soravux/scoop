@@ -95,7 +95,7 @@ class ZMQCommunicator(object):
             )
             raise ReferenceBroken(e)
         isCallable = callable(thisFuture.callable)
-        isDone = thisFuture.done()
+        isDone = thisFuture._ended()
         if not isCallable and not isDone:
             # TODO: Also check in root module globals for fully qualified name
             try:
