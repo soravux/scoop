@@ -320,9 +320,8 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
 
     :param fs: The sequence of Futures (possibly created by another instance) to
         wait upon.
-    :param timeout: The maximum number of seconds to wait [To be done in future
-        version of SCOOP]. If None, then there
-        is no limit on the wait time.
+    :param timeout: The maximum number of seconds to wait. If negative or not
+        specified, then there is no limit on the wait time.
     :param return_when: Indicates when this function should return. The options
         are:
 
@@ -364,7 +363,7 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
             for f in fs:
                 if f._ended():
                     done.add(f)
-            
+
             not_done = set(fs) - done
 
             if return_when == FIRST_COMPLETED and len(done) > 0:
