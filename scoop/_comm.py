@@ -44,19 +44,17 @@ class ZMQCommunicator(object):
         if zmq.zmq_version_info() >= (3, 0, 0):
             self.socket.setsockopt(zmq.RCVHWM, 0)
             self.socket.setsockopt(zmq.SNDHWM, 0)
-        self.socket.connect(scoop.BROKER_ADDRESS)
 
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
 
         # socket for the shutdown signal
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
-        self.infoSocket.connect(scoop.META_ADDRESS)
-        self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
         if zmq.zmq_version_info() >= (3, 0, 0):
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
         self.poller.register(self.infoSocket, zmq.POLLIN)
+        self._addBroker(scoop.BROKER_ADDRESS, scoop.META_ADDRESS)
 
         # Send an INIT to get all previously set variables and share
         # current configuration to broker
@@ -75,6 +73,14 @@ class ZMQCommunicator(object):
                 for key, value in inboundVariables.items()
         ])
         self.OPEN = True
+
+    def _addBroker(self, broker_address, meta_address):
+        # Add a broker to the socket and the infosocket.
+        self.socket.connect(broker_address)
+
+        self.infoSocket.connect(meta_address)
+        self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
+
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
