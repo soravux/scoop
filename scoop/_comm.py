@@ -19,6 +19,7 @@ import zmq
 import scoop
 import time
 import sys
+import random
 try:
     import cPickle as pickle
 except ImportError:
@@ -38,6 +39,10 @@ class ZMQCommunicator(object):
     context = zmq.Context()
 
     def __init__(self):
+        #TODO number of broker
+        self.number_of_broker = 1
+        self.broker_set = set()
+
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
@@ -138,6 +143,29 @@ class ZMQCommunicator(object):
                 self.convertVariable(key, varName, varValue)
             elif msg[0] == b"ERASEBUFFER":
                 scoop.reduction.cleanGroupID(pickle.loads(msg[1]))
+            elif msg[0] == b"BROKER_INFO":
+                #TODO: find out what to do here ...
+                if len(self.broker_set) == 0: # The first update
+                    self.broker_set.add(pickle.loads(msg[1]))
+                if len(self.broker_set) < self.number_of_broker:
+                    brokers = pickle.loads(msg[2])
+                    needed = self.number_of_broker - len(self.broker_set)
+                    try:
+                        new_brokers = random.sample(brokers, needed)
+                    except ValueError:
+                        new_brokers = brokers
+                        self.number_of_broker = len(self.broker_set) + len(new_brokers)
+                        scoop.logger.warning(("The number of brokers could not be set"
+                                        " on worker {0}. A total of {1} worker(s)"
+                                        " were set.".format(scoop.WORKER_NAME,
+                                                            self.number_of_broker)))
+
+                    for broker in new_brokers:
+                        broker_address = "tcp://" + broker.hostname + broker.task_port
+                        meta_address = "tcp://" + broker.hostname + broker.info_port
+                        self._addBroker(broker_address, meta_address)
+                    self.broker_set.update(new_brokers)
+
             socks = dict(self.poller.poll(0))
 
     def convertVariable(self, key, varName, varValue):

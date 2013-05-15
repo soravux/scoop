@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from collections import deque, defaultdict
+from collections import deque, defaultdict, namedtuple
 import time
 import zmq
 import sys
@@ -37,9 +37,13 @@ SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
 ERASEBUFFER = b"ERASEBUFFER"
 WORKERDOWN = b"WORKERDOWN"
+BROKER_INFO = b"BROKER_INFO"
 # Broker interconnection
 CONNECT = b"CONNECT"
 
+BrokerInfo = namedtuple('BrokerInfo', ['hostname', 'task_port', 'info_port'])
+
+class LaunchingError(Exception): pass
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
@@ -109,6 +113,17 @@ class Broker(object):
         self.discoveryThread = None
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
+
+        self.cluster = self.getCluster()
+
+    def getCluster(self):
+        """Listen for the launcher on the task socket and returns a list of the
+        other brokers address' in the cluster. If the information are not sent
+        correctly by the launcher, it raises a LaunchingError."""
+        #TODO implement the listening on the task socket. For the present time,
+        #only the current broker is returned.
+        return []
+
 
 
     def setupSubbroker(self, brokerAddress, metaAddress):
@@ -218,6 +233,15 @@ class Broker(object):
                     pickle.dumps(self.sharedVariables,
                                  pickle.HIGHEST_PROTOCOL),
                 ])
+
+                this_broker_info = BrokerInfo('a hostname', self.tSockPort,
+                                              self.infoSockPort)
+                self.infoSocket.send_multipart([BROKER_INFO,
+                                                pickle.dumps(this_broker_info,
+                                                             pickle.HIGHEST_PROTOCOL),
+                                                pickle.dumps(self.cluster,
+                                                             pickle.HIGHEST_PROTOCOL)])
+
 
             # Clean the buffers when a coherent (mapReduce/mapScan)
             # operation terminates
