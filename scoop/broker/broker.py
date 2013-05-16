@@ -47,7 +47,7 @@ class LaunchingError(Exception): pass
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
-                 headless=False, subbroker=False):
+                 headless=False, subbroker=False, hostname=None):
         """This function initializes a broker.
 
         :param tSock: Task Socket Address.
@@ -55,9 +55,17 @@ class Broker(object):
         :param mSock: Meta Socket Address.
         Must contain protocol, address and port information.
         """
+        # Initialize zmq
         self.context = zmq.Context(1)
 
         self.debug = debug
+
+        # Create identifier for this broker
+        import uuid
+        self.name = str(uuid.uuid4())
+        scoop.logger.info("Using name {workerName}.".format(
+            workerName=self.getName(),
+        ))
 
         # zmq Socket for the tasks, replies and request.
         self.taskSocket = self.context.socket(zmq.ROUTER)
@@ -83,12 +91,21 @@ class Broker(object):
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
 
-        # init self.poller
+        # Init self.poller
         self.poller = zmq.Poller()
         self.poller.register(self.taskSocket, zmq.POLLIN)
         self.poller.register(self.infoSocket, zmq.POLLIN)
 
-        # init statistics
+        # Init connection to fellow brokers
+        self.clusterSocket = self.context.socket(zmq.DEALER)
+        self.clusterSocket.setsockopt_string(zmq.IDENTITY, self.getName())
+        if zmq.zmq_version_info() >= (3, 0, 0):
+            self.clusterSocket.setsockopt(zmq.RCVHWM, 0)
+            self.clusterSocket.setsockopt(zmq.SNDHWM, 0)
+        self.cluster = []
+        self.clusterAvailable = []
+
+        # Init statistics
         if self.debug:
             self.stats = []
 
@@ -114,41 +131,13 @@ class Broker(object):
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
 
-        self.cluster = self.getCluster()
+    def addBroker(self, aBrokerInfo):
+        """Add a broker to the broker cluster available list.
+        Connects to the added broker if needed."""
+        self.clusterAvailable.append(aBrokerInfo)
 
-    def getCluster(self):
-        """Listen for the launcher on the task socket and returns a list of the
-        other brokers address' in the cluster. If the information are not sent
-        correctly by the launcher, it raises a LaunchingError."""
-        #TODO implement the listening on the task socket. For the present time,
-        #only the current broker is returned.
-        return []
-
-
-
-    def setupSubbroker(self, brokerAddress, metaAddress):
-        from .. import discovery
-
-        scoop.BROKER_ADDRESS = brokerAddress
-        scoop.META_ADDRESS = metaAddress
-
-        scoop.logger.info("Found new parent broker on: {0} {1}".format(
-            brokerAddress,
-            metaAddress,
-        ))
-
-        # Make the workerName random
-        import uuid
-        scoop.WORKER_NAME = str(uuid.uuid4())
-        scoop.logger.info("Using worker name {workerName}.".format(
-            workerName=self.args.workerName,
-        ))
-
-        self.args.origin = True
-
-        # Launch worker communication
-        from ._types import FutureQueue
-        self.execQueue = FutureQueue()
+        # If we need another connection to a fellow broker
+        
 
     def processConfig(self, worker_config):
         """Update the pool configuration with a worker configuration.
@@ -256,7 +245,7 @@ class Broker(object):
                 pass
 
             elif msg_type == CONNECT:
-                setupSubbroker(msg[2], msg[3])
+                self.addBroker(msg[2], msg[3])
 
             # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:
@@ -265,6 +254,9 @@ class Broker(object):
 
     def getPorts(self):
         return (self.tSockPort, self.infoSockPort)
+
+    def getName(self):
+        return self.name
 
     def shutdown(self):
         # This send may raise an ZMQError
