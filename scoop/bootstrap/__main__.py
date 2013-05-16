@@ -86,6 +86,7 @@ class Bootstrap(object):
                                 metaAddress=self.args.metaAddress,
                             ))
             # Make the workerName random
+            # Check to remove str
             import uuid
             self.args.workerName = str(uuid.uuid4())
             self.log.info("Using worker name {workerName}.".format(
@@ -262,6 +263,9 @@ class Bootstrap(object):
         """Import user module and start __main__
            passing globals() is required when subclassing in another module
         """
+        # Without this, the underneath import clashes with the top-level one
+        global scoop
+
         if globs is None:
             globs = globals()
 
@@ -278,6 +282,9 @@ class Bootstrap(object):
         from scoop import futures
 
         def futures_startup():
+            """Execute the user code.
+            Wraps futures._startup (SCOOP initialisation) over the user module.
+            Needs """
             return futures._startup(
                 functools.partial(
                     runpy.run_path,
@@ -304,7 +311,13 @@ class Bootstrap(object):
             try:
                 futures_startup()
             finally:
-                scoop._control.execQueue.shutdown() 
+                # Must reimport (potentially not there after bootstrap)
+                import scoop
+
+                # Ensure a communication queue exists (may happend when a
+                # connection wasn't established such as cloud-mode wait).
+                if scoop._control.execQueue:
+                    scoop._control.execQueue.shutdown()
 
 if __name__ == "__main__":
     b = Bootstrap()
