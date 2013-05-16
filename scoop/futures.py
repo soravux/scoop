@@ -67,18 +67,16 @@ def _startup(rootFuture, *args, **kargs):
                                 control.QueueLength)
     return result
 
-def _mapFuture(callable_, *iterables, **kargs):
+def _mapFuture(callable_, *iterables):
     """Similar to the built-in map function, but each of its
     iteration will spawn a separate independent parallel Future that will run
-    either locally or remotely as `callable(*args, **kargs)`.
+    either locally or remotely as `callable(*args)`.
 
     :param callable: Any callable object (function or class object with *__call__*
         method); this object will be called to execute each Future.
     :param iterables: A tuple of iterable objects; each will be zipped
         to form an iterable of arguments tuples that will be passed to the
         callable object as a separate Future.
-    :param kargs: A dictionary of additional keyword arguments that will be
-        passed to the callable object.
 
     :returns: A list of Future objects, each corresponding to an iteration of
         map.
@@ -91,20 +89,20 @@ def _mapFuture(callable_, *iterables, **kargs):
     mapJoin that will wait or join before returning."""
     childrenList = []
     for args in zip(*iterables):
-        childrenList.append(submit(callable_, *args, **kargs))
+        childrenList.append(submit(callable_, *args))
     return childrenList
 
-def map(func, *iterables, **kargs):
+def map(func, *iterables, timeout=-1):
     """Equivalent to
     `map(func, \*iterables, ...)
     <http://docs.python.org/library/functions.html#map>`_
     but *func* is executed asynchronously
-    and several calls to func may be made concurrently. The returned iterator
-    raises a TimeoutError if *__next__()* is called and the result isn't
-    available after timeout seconds from the original call to *map()* [To be
-    done in future version of SCOOP]. If timeout is not specified or None then
-    there is no limit to the wait time. If a call raises an exception then that
-    exception will be raised when its value is retrieved from the iterator.
+    and several calls to func may be made concurrently. This non-blocking call
+    returns an iterator which raises a TimeoutError if *__next__()* is called
+    and the result isn't available after timeout seconds from the original call
+    to *map()*. If timeout is not specified or None then there is no limit to
+    the wait time. If a call raises an exception then that exception will be
+    raised when its value is retrieved from the iterator.
 
     :param func: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
@@ -112,46 +110,42 @@ def map(func, *iterables, **kargs):
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
-    :param timeout: The maximum number of seconds to wait [To be done in future
-        version of SCOOP]. If None, then there is no limit on the wait time.
-    :param kargs: A dictionary of additional keyword arguments that will be
-        passed to the callable object.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time. More information in the usage document
+        `Timeout usage`_.
 
     :returns: A generator of map results, each corresponding to one map
         iteration."""
-    # Remove 'timeout' from kargs to be compliant with the futures API
-    kargs.pop('timeout', None)
-    for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
+    # TODO: Handle timeout
+    for future in _waitAll(*_mapFuture(func, *iterables)):
         yield future.resultValue
 
-def mapScan(mapFunc, reductionOp, *iterables, **kargs):
+def mapScan(mapFunc, reductionOp, *iterables, timeout=-1):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
-    values.
+    values. This is a blocking call.
 
     :param mapFunc: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
         The callable must return a value.
     :param reductionOp: Any picklable callable object (function or class object
-        with *__call__* method); this object will be called to reduce the
+        with *__call__* method); this object will be called to reduce pairs of
         Futures results. The callable must support two parameters and return a
         single value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
-    :param timeout: The maximum number of seconds to wait [To be done in future
-        version of SCOOP]. If None, then there is no limit on the wait time.
-    :param kargs: A dictionary of additional keyword arguments that will be
-        passed to the mapFunc callable object.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time. More information in the usage document
+        `Timeout usage`_. 
 
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
-    kargs.pop('timeout', None)
     launches = []
     thisCallbackGroupID = next(callbackGroupID)
     for args in zip(*iterables):
         try:
-            child = Future(control.current.id, mapFunc, *args, **kargs)
+            child = Future(control.current.id, mapFunc, *args)
         except AttributeError:
             raise NotStartedProperly("SCOOP was not started properly.\n"
                                      "Be sure to start your program with the "
@@ -171,25 +165,25 @@ def mapScan(mapFunc, reductionOp, *iterables, **kargs):
     control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return workerResults
 
-def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
+def mapReduce(mapFunc, reductionOp, *iterables, timeout=-1):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result. The reduction function will cumulatively
-    merge the results of the map function in order to get a final single value.
+    merge the results of the map function in order to get a single final value.
+    This call is blocking.
 
     :param mapFunc: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
         The callable must return a value.
     :param reductionOp: Any picklable callable object (function or class object
-        with *__call__* method); this object will be called to reduce the
+        with *__call__* method); this object will be called to reduce pairs of
         Futures results. The callable must support two parameters and return a
         single value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
-    :param timeout: The maximum number of seconds to wait [To be done in future
-        version of SCOOP]. If None, then there is no limit on the wait time.
-    :param kargs: A dictionary of additional keyword arguments that will be
-        passed to the mapFunc callable object.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time. More information in the usage document
+        `Timeout usage`_.
 
     :returns: A single value."""
     # TODO: make DRY with submit
@@ -198,7 +192,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
     thisCallbackGroupID = (control.current.id, next(callbackGroupID))
     for args in zip(*iterables):
         try:
-            child = Future(control.current.id, mapFunc, *args, **kargs)
+            child = Future(control.current.id, mapFunc, *args)
         except AttributeError:
             raise NotStartedProperly("SCOOP was not started properly.\n"
                                      "Be sure to start your program with the "
@@ -218,17 +212,15 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kargs):
     control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return reduce(reductionOp, workerResults.values())
 
-def submit(func, *args, **kargs):
+def submit(func, *args):
     """Submit an independent parallel :class:`~scoop._types.Future` that will
-    either run locally or remotely as `func(*args, **kargs)`.
+    either run locally or remotely as `func(*args)`.
 
     :param func: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Future.
         The callable must return a value.
     :param args: A tuple of positional arguments that will be passed to the
         callable object.
-    :param kargs: A dictionary of additional keyword arguments that will be
-        passed to the callable object.
 
     :returns: A future object for retrieving the Future result.
 
@@ -254,7 +246,7 @@ def submit(func, *args, **kargs):
         func = SharedElementEncapsulation(func)
 
     try:
-        child = Future(control.current.id, func, *args, **kargs)
+        child = Future(control.current.id, func, *args)
     except AttributeError:
         raise NotStartedProperly(
             "SCOOP was not started properly.\n Be sure to start your program "
@@ -321,7 +313,8 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
     :param fs: The sequence of Futures (possibly created by another instance) to
         wait upon.
     :param timeout: The maximum number of seconds to wait. If negative or not
-        specified, then there is no limit on the wait time.
+        specified, then there is no limit on the wait time. More information in
+        the `Timeout usage`_ section.
     :param return_when: Indicates when this function should return. The options
         are:
 
@@ -374,13 +367,13 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
 
 
 def as_completed(fs, timeout=None):
-    """An iterator over the given futures that yields each as it completes.
+    """Iterates over the given futures that yields each as it completes. This
+    call is blocking.
 
-    :param fs: The sequence of Futures (possibly created by another instance) to
-        wait upon.
-    :param timeout: The maximum number of seconds to wait [To be done in future
-        version of SCOOP]. If None, then there
-        is no limit on the wait time.
+    :param fs: The sequence of Futures to wait upon.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time. More information in the usage document
+        `Timeout usage`_. 
 
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
