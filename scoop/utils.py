@@ -37,16 +37,16 @@ localHostnames.extend([
 )
 
 
-def brokerHostname(hosts):
-    """Ensure broker hostname is routable."""
+def externalHostname(hosts):
+    """Ensure external hostname is routable."""
     hostname = hosts[0][0]
     if hostname in localHostnames and len(hosts) > 1:
         hostname = socket.getfqdn().split(".")[0]
         try:
             socket.getaddrinfo(hostname, None)
         except socket.gaierror:
-            raise Exception("\nThe first host (broker) is not routable.\n"
-                            "Make sure the address is correct.")
+            raise Exception("\nThe first host (containing a broker) is not"
+                            " routable.\nMake sure the address is correct.")
     return hostname
 
 

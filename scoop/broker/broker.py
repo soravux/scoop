@@ -47,7 +47,7 @@ class LaunchingError(Exception): pass
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
-                 headless=False, subbroker=False, hostname=None):
+                 headless=False, hostname=None):
         """This function initializes a broker.
 
         :param tSock: Task Socket Address.
@@ -124,26 +124,27 @@ class Broker(object):
 
         # Start a worker-like communication if needed
         self.execQueue = None
-        self.subbroker = subbroker
 
         # Handle cloud-like behavior
         self.discoveryThread = None
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
 
-    def addBroker(self, aBrokerInfo):
+    def addBroker(self, aBrokerInfoList):
         """Add a broker to the broker cluster available list.
         Connects to the added broker if needed."""
-        self.clusterAvailable.append(aBrokerInfo)
+        self.clusterAvailable.extend(aBrokerInfo)
 
         # If we need another connection to a fellow broker
+        for aBrokerInfo in aBrokerInfoList:
+            self.clusterSocket.connect(aBorkerInfo.hostname)
         
 
     def processConfig(self, worker_config):
         """Update the pool configuration with a worker configuration.
         """
         self.config['headless'] |= worker_config.get("headless", False)
-        if self.config['headless'] or self.subbroker:
+        if self.config['headless']:
             # Launch discovery process
             if not self.discoveryThread:
                 self.discoveryThread = discovery.Advertise(
@@ -245,7 +246,12 @@ class Broker(object):
                 pass
 
             elif msg_type == CONNECT:
-                self.addBroker(msg[2], msg[3])
+                try:
+                    connect_brokers = pickle.loads(msg[2])
+                except pickle.PickleError:
+                    scoop.logger.error("Could not understand CONNECT message.")
+                    continue
+                self.addBroker(connect_brokers)
 
             # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:
