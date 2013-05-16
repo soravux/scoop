@@ -40,12 +40,12 @@ except AttributeError:
 
 
 class ScoopApp(object):
-    """SCOOP application. Coordinates the launches."""
+    """SCOOP application. Coordinates the broker and worker launches."""
     LAUNCH_HOST_CLASS = Host
 
-    def __init__(self, hosts, n, verbose, python_executable, brokerHostname,
-            executable, arguments, tunnel, log, path, debug, nice,
-            env, profile, pythonPath):
+    def __init__(self, hosts, n, b, verbose, python_executable,
+            externalHostname, executable, arguments, tunnel, log, path, debug,
+            nice, env, profile, pythonPath):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
                                                "specify one host.")
@@ -56,6 +56,7 @@ class ScoopApp(object):
         self.python_executable = python_executable[0]
         self.pythonpath = pythonPath
         self.n = n
+        self.b = b
         self.tunnel = tunnel
         self.executable = executable
         self.args = arguments
@@ -73,6 +74,7 @@ class ScoopApp(object):
         self.log = None
         self.init_logging(log)
 
+        # Show runtime information (useful for debugging)
         self.log.info("SCOOP {0} {1} on {2} using Python {3}, API: {4}".format(
                 scoop.__version__,
                 scoop.__revision__,
@@ -85,84 +87,94 @@ class ScoopApp(object):
         if env in ["PBS", "SGE"]:
             self.log.info("Detected {0} environment.".format(env))
         self.log.info("Deploying {0} worker(s) over {1} "
-                     "host(s).".format(n,
-                                       len(hosts)))
+                      "host(s).".format(
+                          n,
+                          len(hosts)
+                      )
+        )
 
-        # Handling Broker Hostname
-        self.brokerHostname = '127.0.0.1' if self.tunnel else brokerHostname
+        # Handling External Hostname
+        self.externalHostname = '127.0.0.1' if self.tunnel else externalHostname
         self.log.debug('Using hostname/ip: "{0}" as external broker '
-                      'reference.'.format(self.brokerHostname))
+                      'reference.'.format(self.externalHostname))
         self.log.debug('The python executable to execute the program with is: '
                      '{0}.'.format(self.python_executable))
 
-        self.divideHosts(hosts)
+        # Create launch lists
+        self.broker_hosts = self.divideHosts(hosts[:], self.b)
+        self.worker_hosts = self.divideHosts(hosts, self.n)
 
         self.showHostDivision(headless=not executable)
 
-        self.hostsConn = []
+        self.workers = []
+        self.brokers = []
+
 
     def init_logging(self, log):
-        verbose_levels = {0: logging.WARNING,
-                          1: logging.INFO,
-                          2: logging.DEBUG,
-                         }
+        """Configures the logger."""
+        # TODO: Why is this different from scoop.logger?
+        verbose_levels = {
+            0: logging.WARNING,
+            1: logging.INFO,
+            2: logging.DEBUG,
+        }
         logging.basicConfig(filename=log,
                             level=verbose_levels[self.verbose],
                             format='[%(asctime)-15s] %(levelname)-7s '
                                    '%(message)s')
         self.log = logging.getLogger(self.__class__.__name__)
 
-    def divideHosts(self, hosts):
-        """Divide the workers accross hosts."""
+    def divideHosts(self, hosts, qty):
+        """Divide processes among hosts."""
         maximumWorkers = sum(host[1] for host in hosts)
 
         # If specified amount of workers is greater than sum of each specified.
-        if self.n > maximumWorkers:
+        if qty > maximumWorkers:
             self.log.debug("The -n flag is set at {0} workers, which is higher "
                          "than the maximum number of workers ({1}) specified "
                          "by the hostfile.\nThis behavior may degrade the "
                          "performances of scoop for cpu-bound operations."
-                         "".format(self.n, maximumWorkers))
+                         "".format(qty, maximumWorkers))
             index = 0
-            while self.n > maximumWorkers:
+            while qty > maximumWorkers:
                 hosts[index] = (hosts[index][0], hosts[index][1] + 1)
                 index = (index + 1) % len(hosts)
                 maximumWorkers += 1
 
         # If specified amount of workers if lower than sum of each specified.
-        elif self.n < maximumWorkers:
+        elif qty < maximumWorkers:
             self.log.debug("The -n flag is set at {0} workers, which is lower "
                          "than the maximum number of workers ({1}) specified "
                          "by the hostfile."
-                         "".format(self.n, maximumWorkers))
-            while self.n < maximumWorkers:
+                         "".format(qty, maximumWorkers))
+            while qty < maximumWorkers:
                 maximumWorkers -= hosts[-1][1]
-                if self.n > maximumWorkers:
-                    hosts[-1] = (hosts[-1][0], self.n - maximumWorkers)
+                if qty > maximumWorkers:
+                    hosts[-1] = (hosts[-1][0], qty - maximumWorkers)
                     maximumWorkers += hosts[-1][1]
                 else:
                     del hosts[-1]
 
 
         # Checking if the broker if externally routable
-        if self.brokerHostname in utils.loopbackReferences and \
+        if self.externalHostname in utils.loopbackReferences and \
                 len(hosts) > 1 and \
                 not self.tunnel:
             raise Exception("\n"
                             "Could not find route from external worker to the "
                             "broker: Unresolvable hostname or IP address.\n "
                             "Please specify your externally routable hostname "
-                            "or IP using the --broker-hostname parameter or "
+                            "or IP using the --external-hostname parameter or "
                             " use the --tunnel flag.")
 
         hosts.reverse()
-        self.hosts = hosts
+        return hosts
 
     def showHostDivision(self, headless):
-        # Show worker distribution
+        """Show the worker distribution over the hosts"""
         self.log.info('Worker distribution: ')
-        for worker, number in reversed(self.hosts):
-            first_worker = (worker == self.hosts[-1][0])
+        for worker, number in reversed(self.worker_hosts):
+            first_worker = (worker == self.worker_hosts[-1][0])
             self.log.info('   {0}:\t{1} {2}'.format(
                 worker,
                 number - 1 if first_worker or not headless else str(number),
@@ -188,8 +200,8 @@ class ScoopApp(object):
                   'pythonExecutable':self.python_executable,
                   'size':self.n,
                   'workerNum':self.workersLeft,
-                  'brokerHostname':self.brokerHostname,
-                  'brokerPorts':(self.broker.brokerPort, self.broker.infoPort),
+                  'brokerHostname':self.externalHostname,
+                  'brokerPorts':(self.brokers[0].brokerPort, self.brokers[0].infoPort),
                   'debug':self.debug,
                   'profiling':self.profile,
                   'executable':self.executable,
@@ -198,7 +210,7 @@ class ScoopApp(object):
         return args, kwargs
 
     def addWorkerToHost(self, workerinfo):
-        """add a worker to current host"""
+        """Adds a worker to current host"""
         hostname = workerinfo['hostname']
 
         self.log.debug('Initialising {0}{1} worker {2} [{3}].'.format(
@@ -210,26 +222,27 @@ class ScoopApp(object):
         )
 
         add_args, add_kwargs = self._addWorker_args(workerinfo)
-        self.hostsConn[-1].addWorker(*add_args, **add_kwargs)
+        self.workers[-1].addWorker(*add_args, **add_kwargs)
 
     def run(self):
         """Launch the broker and every worker assigned on every hosts."""
-        # Launching the local broker, repeat until it works
-        if self.brokerHostname in utils.localHostnames:
-            self.broker = localBroker(debug=self.debug,
-                                      nice=self.nice,
-                                      subbroker=not self.executable,
-                                      )
-        else:
-            self.broker = remoteBroker(self.brokerHostname,
-                                       self.python_executable,
-                                       self.nice,
-                                       subbroker=not self.executable,
-                                       )
+        for hostname, nb_brokers in self.broker_hosts:
+            # Launching the broker(s)
+            if self.externalHostname in utils.localHostnames:
+                self.brokers.append(localBroker(
+                    debug=self.debug,
+                    nice=self.nice,
+                ))
+            else:
+                self.brokers.append(remoteBroker(
+                    self.brokerHostname,
+                    self.python_executable,
+                    self.nice,
+                ))
 
         # Launch the workers
-        for hostname, nbworkers in self.hosts:
-            self.hostsConn.append(self.LAUNCH_HOST_CLASS(hostname))
+        for hostname, nbworkers in self.worker_hosts:
+            self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
             total_workers_host = min(nbworkers, self.workersLeft)
             for worker_idx_host in range(total_workers_host):
                 workerinfo = {'hostname':hostname,
@@ -243,14 +256,14 @@ class ScoopApp(object):
             self.log.debug(
                 "{0}: Launching '{1}'".format(
                     hostname,
-                    self.hostsConn[-1].getCommand(),
+                    self.workers[-1].getCommand(),
                 )
             )
-            shells = self.hostsConn[-1].launch(
-                (self.broker.brokerPort,
-                 self.broker.infoPort)
+            shells = self.workers[-1].launch(
+                (self.brokers[0].brokerPort,
+                 self.brokers[0].infoPort)
                     if self.tunnel else None,
-                stdPipe=not self.hostsConn[-1].isLocal(),
+                stdPipe=not self.workers[-1].isLocal(),
             )
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
@@ -258,8 +271,8 @@ class ScoopApp(object):
                 break
 
         # Wait for the root program
-        if self.hostsConn[-1].isLocal():
-            self.errors = self.hostsConn[-1].subprocesses[-1].wait()
+        if self.workers[-1].isLocal():
+            self.errors = self.workers[-1].subprocesses[-1].wait()
         else:
             # Process stdout first, then the whole stderr at the end
             for outStream, inStream in [(sys.stdout, rootProcess.stdout),
@@ -280,15 +293,16 @@ class ScoopApp(object):
             time.sleep(5)
 
         # Terminate workers
-        for host in self.hostsConn:
+        for host in self.workers:
             host.close()
 
-        # Terminate the broker
-        try:
-            self.broker.close()
-        except AttributeError:
-            # Broker was not started (probably mislaunched)
-            pass
+        # Terminate the brokers
+        for broker in self.brokers:
+            try:
+                broker.close()
+            except AttributeError:
+                # Broker was not started (probably mislaunched)
+                pass
 
         self.log.info('Finished cleaning spawned subprocesses.')
 
@@ -337,16 +351,25 @@ def makeParser():
                              "Number of CPUs on current machine)",
                         type=int,
                         metavar="NumberOfWorkers")
+    parser.add_argument('-b',
+                        help="Total number of brokers to launch on the hosts. "
+                             "Brokers are spawned sequentially over the hosts. "
+                             "(ie. -b 3 with 2 hosts will spawn 2 brokers on "
+                             "the first host and 1 on the second.) (default: "
+                             "1)",
+                        type=int,
+                        default=1,
+                        metavar="NumberOfBrokers")
     parser.add_argument('--tunnel',
                         help="Activate ssh tunnels to route toward the broker "
                              "sockets over remote connections (may eliminate "
                              "routing problems and activate encryption but "
                              "slows down communications)",
                         action='store_true')
-    parser.add_argument('--broker-hostname',
+    parser.add_argument('--external-hostname',
                         nargs=1,
-                        help="The externally routable broker hostname / ip "
-                             "(defaults to the local hostname)",
+                        help="The externally routable hostname / ip of this "
+                             "machine. (defaults to the local hostname)",
                         metavar="Address")
     parser.add_argument('--python-interpreter',
                         nargs=1,
@@ -394,13 +417,14 @@ def main():
         n = utils.getWorkerQte(hosts)
     assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
                    "Use the '-n' flag to set it manually.")
-    if not args.broker_hostname:
-        args.broker_hostname = [utils.brokerHostname(hosts)]
+    if not args.external_hostname:
+        args.external_hostname = [utils.externalHostname(hosts)]
 
     # Launch SCOOP
-    scoopApp = ScoopApp(hosts, n, args.verbose if not args.quiet else 0,
+    scoopApp = ScoopApp(hosts, n, args.b,
+                        args.verbose if not args.quiet else 0,
                         args.python_interpreter,
-                        args.broker_hostname[0],
+                        args.external_hostname[0],
                         args.executable, args.args, args.tunnel,
                         args.log, args.path,
                         args.debug, args.nice,

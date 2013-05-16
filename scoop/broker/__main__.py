@@ -51,10 +51,6 @@ if __name__ == "__main__":
     parser.add_argument('--echoPorts',
                         help="Echo the listening ports",
                         action='store_true')
-    parser.add_argument('--subbroker',
-                        help="Act as a subbroker (intermediary between worker "
-                             "sub-pool and a broker higher in the hierarchy.",
-                        action='store_true')
     args = parser.parse_args()
 
     if args.echoGroup:
@@ -67,7 +63,6 @@ if __name__ == "__main__":
                         "tcp://*:" + args.mPort,
                         debug=args.debug,
                         headless=args.headless,
-                        subbroker=args.subbroker,
                         )
 
     signal(SIGTERM,
