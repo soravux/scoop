@@ -239,7 +239,7 @@ class ScoopApp(object):
                     ))
                 else:
                     self.brokers.append(remoteBroker(
-                        self.brokerHostname,
+                        hostname,
                         self.python_executable,
                         self.nice,
                     ))
