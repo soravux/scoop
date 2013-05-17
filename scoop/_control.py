@@ -121,7 +121,14 @@ def runFuture(future):
                        uniqueReference)
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
-    except Exception as err:
+    except BaseException as err:
+        import traceback
+        scoop.logger.error(
+            "The following error occurend on a worker:\n{err}\n{tb}".format(
+                err=err,
+                tb=traceback.format_exc(),
+            )
+        )
         future.exceptionValue = err
     future.executionTime = future.stopWatch.get()
     future.isDone = True
