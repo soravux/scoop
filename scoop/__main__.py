@@ -194,19 +194,20 @@ class ScoopApp(object):
         """
         args = []
         kwargs = {
-                  'pythonPath':self.pythonpath,
-                  'path':self.path,
-                  'nice':self.nice,
-                  'pythonExecutable':self.python_executable,
-                  'size':self.n,
-                  'workerNum':self.workersLeft,
-                  'brokerHostname':self.externalHostname,
-                  'brokerPorts':(self.brokers[0].brokerPort, self.brokers[0].infoPort),
-                  'debug':self.debug,
-                  'profiling':self.profile,
-                  'executable':self.executable,
-                  'args':self.args,
-                  }
+            'pythonPath': self.pythonpath,
+            'path': self.path,
+            'nice': self.nice,
+            'pythonExecutable': self.python_executable,
+            'size': self.n,
+            'workerNum': self.workersLeft,
+            'brokerHostname': self.externalHostname,
+            'brokerPorts': (self.brokers[0].brokerPort,
+                            self.brokers[0].infoPort),
+            'debug': self.debug,
+            'profiling': self.profile,
+            'executable': self.executable,
+            'args': self.args,
+        }
         return args, kwargs
 
     def addWorkerToHost(self, workerinfo):
@@ -241,9 +242,9 @@ class ScoopApp(object):
                 ))
 
         # Launch the workers
-        for hostname, nbworkers in self.worker_hosts:
+        for hostname, nb_workers in self.worker_hosts:
             self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
-            total_workers_host = min(nbworkers, self.workersLeft)
+            total_workers_host = min(nb_workers, self.workersLeft)
             for worker_idx_host in range(total_workers_host):
                 workerinfo = {'hostname':hostname,
                               'total_workers_host':total_workers_host,
