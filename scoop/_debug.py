@@ -14,9 +14,13 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-import scoop
 import os
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+import scoop
 
 
 def getWorkerName(workerNum, width=5, prefix='worker'):

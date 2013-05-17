@@ -112,16 +112,10 @@ class Host(object):
             c.extend(['--nice', str(worker.nice)])
         c.extend(['--size', str(worker.size)])
         c.extend(['--workerName', str(worker.workerNum)])
-
         c.extend(['--brokerName', 'broker'])
-        c.extend(['--brokerAddress',
-                  'tcp://{brokerHostname}:{brokerPort}'.format(brokerHostname=broker,
-                                                               brokerPort=worker.brokerPorts[0])
-                  ])
-        c.extend(['--metaAddress',
-                  'tcp://{brokerHostname}:{infoPort}'.format(brokerHostname=broker,
-                                                             infoPort=worker.brokerPorts[1])
-                  ])
+        c.extend(['--brokerHostname', broker])
+        c.extend(['--taskPort', str(worker.brokerPorts[0])])
+        c.extend(['--metaPort', str(worker.brokerPorts[1])])
         if worker.workerNum == 1 and worker.executable:
             c.append('--origin')
         if worker.debug:

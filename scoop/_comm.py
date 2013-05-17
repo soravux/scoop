@@ -39,8 +39,8 @@ class ZMQCommunicator(object):
     context = zmq.Context()
 
     def __init__(self):
-        #TODO number of broker
-        self.number_of_broker = 1
+        # TODO number of broker
+        self.number_of_broker = float('inf')
         self.broker_set = set()
 
         # socket for the futures, replies and request
@@ -59,7 +59,7 @@ class ZMQCommunicator(object):
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
         self.poller.register(self.infoSocket, zmq.POLLIN)
-        self._addBroker(scoop.BROKER_ADDRESS, scoop.META_ADDRESS)
+        self._addBroker(scoop.BROKER)
 
         # Send an INIT to get all previously set variables and share
         # current configuration to broker
@@ -77,14 +77,30 @@ class ZMQCommunicator(object):
                 ]))
                 for key, value in inboundVariables.items()
         ])
+        for broker in pickle.loads(self.socket.recv()):
+            # Skip already connected brokers
+            if broker in self.broker_set:
+                continue
+            self._addBroker(broker)
+
         self.OPEN = True
 
-    def _addBroker(self, broker_address, meta_address):
+    def _addBroker(self, brokerEntry):
         # Add a broker to the socket and the infosocket.
+        broker_address = "tcp://{hostname}:{port}".format(
+            hostname=brokerEntry.hostname,
+            port=brokerEntry.task_port,
+        )
+        meta_address = "tcp://{hostname}:{port}".format(
+            hostname=brokerEntry.hostname,
+            port=brokerEntry.info_port,
+        )
         self.socket.connect(broker_address)
 
         self.infoSocket.connect(meta_address)
         self.infoSocket.setsockopt(zmq.SUBSCRIBE, b"")
+
+        self.broker_set.add(brokerEntry)
 
 
     def _poll(self, timeout):
@@ -230,7 +246,8 @@ class ZMQCommunicator(object):
                                                  pickle.HIGHEST_PROTOCOL)])
 
     def sendRequest(self):
-        self.socket.send(b"REQUEST")
+        for _ in range(len(self.broker_set)):
+            self.socket.send(b"REQUEST")
 
     def workerDown(self):
         self.socket.send(b"WORKERDOWN")

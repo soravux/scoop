@@ -20,6 +20,10 @@ import subprocess
 import logging
 import sys
 import os
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import scoop
 try:
     import psutil
@@ -44,6 +48,33 @@ class localBroker(object):
         self.broker.start()
         logging.debug("Local broker launched on ports {0}, {1}"
                       ".".format(self.brokerPort, self.infoPort))
+
+    def sendConnect(self, data):
+        """Send a CONNECT command to the broker
+            :param data: List of other broker main socket URL"""
+        # Imported dynamically - Not used if only one broker
+        import zmq
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.DEALER)
+        if sys.version < '3':
+            self.socket.setsockopt_string(zmq.IDENTITY,
+                                          unicode('launcher'))
+        else:
+            self.socket.setsockopt_string(zmq.IDENTITY, 'launcher')
+        self.socket.connect(
+            "tcp://127.0.0.1:{port}".format(
+                port=self.brokerPort,
+            )
+        )
+        self.socket.send_multipart([b"CONNECT",
+                                    pickle.dumps(data,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
+    def getHost(self):
+        return "127.0.0.1"
+
+    def getPorts(self):
+        return (self.brokerPort, self.infoPort)
 
     def close(self):
         pass
@@ -101,6 +132,11 @@ class remoteBroker(object):
                                  )
                       )
 
+    def getHost(self):
+        return self.hostname
+
+    def getPorts(self):
+        return (self.brokerPort, self.infoPort)
 
     def isLocal(self):
         """Is the current broker on the localhost?"""
