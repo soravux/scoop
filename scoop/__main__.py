@@ -30,6 +30,7 @@ import signal
 from scoop import utils
 from scoop.launch import Host
 from scoop.launch.brokerLaunch import localBroker, remoteBroker
+from .broker.broker import BrokerInfo
 import scoop
 
 try:
@@ -226,20 +227,33 @@ class ScoopApp(object):
         self.workers[-1].addWorker(*add_args, **add_kwargs)
 
     def run(self):
-        """Launch the broker and every worker assigned on every hosts."""
+        """Launch the broker(s) and worker(s) assigned on every hosts."""
+        # Launch the brokers
         for hostname, nb_brokers in self.broker_hosts:
-            # Launching the broker(s)
-            if self.externalHostname in utils.localHostnames:
-                self.brokers.append(localBroker(
-                    debug=self.debug,
-                    nice=self.nice,
-                ))
-            else:
-                self.brokers.append(remoteBroker(
-                    self.brokerHostname,
-                    self.python_executable,
-                    self.nice,
-                ))
+            for ind in range(nb_brokers):
+                # Launching the broker(s)
+                if self.externalHostname in utils.localHostnames:
+                    self.brokers.append(localBroker(
+                        debug=self.debug,
+                        nice=self.nice,
+                    ))
+                else:
+                    self.brokers.append(remoteBroker(
+                        self.brokerHostname,
+                        self.python_executable,
+                        self.nice,
+                    ))
+
+        # Share connection information between brokers
+        if self.b > 1:
+            for broker in self.brokers:
+                # Only send data of other brokers to a given broker
+                connect_data = [
+                    BrokerInfo(x.getHost(), *x.getPorts())
+                    for x in self.brokers
+                    if x is not broker
+                ]
+                broker.sendConnect(connect_data)
 
         # Launch the workers
         for hostname, nb_workers in self.worker_hosts:

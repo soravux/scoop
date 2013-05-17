@@ -35,6 +35,7 @@ else:
 
 
 import scoop
+from ..broker.broker import BrokerInfo
 from .. import discovery
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
@@ -60,7 +61,7 @@ class Bootstrap(object):
 
         self.init_logging()
 
-        if not self.args.brokerAddress:
+        if not self.args.brokerHostname:
             self.log.info("Discovering SCOOP Brokers on network...")
             pools = discovery.Seek()
             if not pools:
@@ -72,14 +73,9 @@ class Bootstrap(object):
                 host=pools[0].host,
                 ports=pools[0].ports,
             ))
-            self.args.brokerAddress = "tcp://{host}:{port}".format(
-                host=pools[0].host,
-                port=pools[0].ports[0],
-            )
-            self.args.metaAddress = "tcp://{host}:{port}".format(
-                host=pools[0].host,
-                port=pools[0].ports[1],
-            )
+            self.args.brokerHostname = pools[0].host
+            self.args.taskPort = pools[0].ports[0]
+            self.args.metaPort = pools[0].ports[0]
             self.log.debug("Using following addresses:\n{brokerAddress}\n"
                            "{metaAddress}".format(
                                 brokerAddress=self.args.brokerAddress,
@@ -152,16 +148,18 @@ class Bootstrap(object):
                                  action='store_true')
         self.parser.add_argument('--workerName', help="The name of the worker",
                                  default="0")
+        # TODO: Remove --brokerName, should be dynamic
         self.parser.add_argument('--brokerName', help="The name of the broker",
                                  default="broker")
-        self.parser.add_argument('--brokerAddress',
-                                 help="The tcp address of the broker written "
-                                    "tcp://address:port",
+        self.parser.add_argument('--brokerHostname',
+                                 help="The routable hostname of a broker",
                                  default="")
-        self.parser.add_argument('--metaAddress',
-                                 help="The tcp address of the info written "
-                                    "tcp://address:port",
-                                 default="")
+        self.parser.add_argument('--taskPort',
+                                 help="The port of the broker task socket",
+                                 type=int)
+        self.parser.add_argument('--metaPort',
+                                 help="The port of the broker meta socket",
+                                 type=int)
         self.parser.add_argument('--size',
                                  help="The size of the worker pool",
                                  type=int,
@@ -199,8 +197,9 @@ class Bootstrap(object):
         scoop.IS_ORIGIN = self.args.origin
         scoop.WORKER_NAME = self.args.workerName.encode()
         scoop.BROKER_NAME = self.args.brokerName.encode()
-        scoop.BROKER_ADDRESS = self.args.brokerAddress.encode()
-        scoop.META_ADDRESS = self.args.metaAddress.encode()
+        scoop.BROKER = BrokerInfo(self.args.brokerHostname,
+                                  self.args.taskPort,
+                                  self.args.metaPort)
         scoop.SIZE = self.args.size
         scoop.DEBUG = self.args.debug
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)

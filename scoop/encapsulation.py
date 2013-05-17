@@ -18,8 +18,11 @@ import marshal
 import tempfile
 import types
 import os
-import pickle
 from functools import partial
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 try:
     import copyreg

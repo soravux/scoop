@@ -47,7 +47,7 @@ class LaunchingError(Exception): pass
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
-                 headless=False, hostname=None):
+                 headless=False, hostname="127.0.0.1"):
         """This function initializes a broker.
 
         :param tSock: Task Socket Address.
@@ -59,6 +59,7 @@ class Broker(object):
         self.context = zmq.Context(1)
 
         self.debug = debug
+        self.hostname = hostname
 
         # Create identifier for this broker
         import uuid
@@ -103,7 +104,7 @@ class Broker(object):
             self.clusterSocket.setsockopt(zmq.RCVHWM, 0)
             self.clusterSocket.setsockopt(zmq.SNDHWM, 0)
         self.cluster = []
-        self.clusterAvailable = []
+        self.clusterAvailable = set()
 
         # Init statistics
         if self.debug:
@@ -130,15 +131,21 @@ class Broker(object):
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
 
-    def addBroker(self, aBrokerInfoList):
+    def addBrokerList(self, aBrokerInfoList):
         """Add a broker to the broker cluster available list.
         Connects to the added broker if needed."""
-        self.clusterAvailable.extend(aBrokerInfo)
+        self.clusterAvailable.update(set(aBrokerInfoList))
 
         # If we need another connection to a fellow broker
+        # TODO: only connect to a given number
         for aBrokerInfo in aBrokerInfoList:
-            self.clusterSocket.connect(aBorkerInfo.hostname)
-        
+            self.clusterSocket.connect(
+                "tcp://{hostname}:{port}".format(
+                    hostname=aBrokerInfo.hostname,
+                    port=aBrokerInfo.task_port,
+                )
+            )
+            self.cluster.append(aBrokerInfo)
 
     def processConfig(self, worker_config):
         """Update the pool configuration with a worker configuration.
@@ -152,7 +159,7 @@ class Broker(object):
                 )
 
     def run(self):
-        """Redirects messages until a shutdown messages is received.
+        """Redirects messages until a shutdown message is received.
         """
         while True:
             socks = dict(self.poller.poll(-1))
@@ -224,14 +231,11 @@ class Broker(object):
                                  pickle.HIGHEST_PROTOCOL),
                 ])
 
-                this_broker_info = BrokerInfo('a hostname', self.tSockPort,
-                                              self.infoSockPort)
-                self.infoSocket.send_multipart([BROKER_INFO,
-                                                pickle.dumps(this_broker_info,
-                                                             pickle.HIGHEST_PROTOCOL),
-                                                pickle.dumps(self.cluster,
-                                                             pickle.HIGHEST_PROTOCOL)])
-
+                self.taskSocket.send_multipart([
+                    address,
+                    pickle.dumps(self.clusterAvailable,
+                                 pickle.HIGHEST_PROTOCOL),
+                ])
 
             # Clean the buffers when a coherent (mapReduce/mapScan)
             # operation terminates
@@ -245,13 +249,14 @@ class Broker(object):
                 # TODO
                 pass
 
+            # Add a given broker to its fellow list
             elif msg_type == CONNECT:
                 try:
                     connect_brokers = pickle.loads(msg[2])
                 except pickle.PickleError:
                     scoop.logger.error("Could not understand CONNECT message.")
                     continue
-                self.addBroker(connect_brokers)
+                self.addBrokerList(connect_brokers)
 
             # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:
