@@ -92,7 +92,7 @@ def _mapFuture(callable_, *iterables):
         childrenList.append(submit(callable_, *args))
     return childrenList
 
-def map(func, *iterables, timeout=-1):
+def map(func, *iterables, **kwargs):
     """Equivalent to
     `map(func, \*iterables, ...)
     <http://docs.python.org/library/functions.html#map>`_
@@ -120,7 +120,7 @@ def map(func, *iterables, timeout=-1):
     for future in _waitAll(*_mapFuture(func, *iterables)):
         yield future.resultValue
 
-def mapScan(mapFunc, reductionOp, *iterables, timeout=-1):
+def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
     values. This is a blocking call.
@@ -165,7 +165,7 @@ def mapScan(mapFunc, reductionOp, *iterables, timeout=-1):
     control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return workerResults
 
-def mapReduce(mapFunc, reductionOp, *iterables, timeout=-1):
+def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result. The reduction function will cumulatively
     merge the results of the map function in order to get a single final value.
