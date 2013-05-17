@@ -238,9 +238,10 @@ class Bootstrap(object):
             )
         except FileNotFoundError as e:
             # Could not find file
-            sys.stderr.write('{0}\nIn path: {1}\n'.format(
-                str(e),
-                sys.path[-1],
+            sys.stderr.write('{0}\nFile: {1}\nIn path: {2}\n'.format(
+                    str(e),
+                    scoop.MAIN_MODULE,
+                    sys.path[-1],
                 )
             )
             sys.stderr.flush()

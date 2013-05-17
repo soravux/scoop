@@ -19,6 +19,7 @@ scoop.DEBUG = False
 
 from scoop import futures, _control, utils, shared
 from scoop._types import FutureQueue
+from scoop.broker.broker import BrokerInfo
 import unittest
 import subprocess
 import time
@@ -169,10 +170,11 @@ def funcDoubleMapReduce(l):
 
 def funcUseSharedConstant():
     # Tries on a mutable and an immutable object
-    assert shared.getConst('myVar') == {1: 'Example 1',
-                                          2: 'Example 2',
-                                          3: 'Example 3',
-                                         }
+    assert shared.getConst('myVar') == {
+        1: 'Example 1',
+        2: 'Example 2',
+        3: 'Example 3',
+    }
     assert shared.getConst('secondVar') == "Hello World!"
     return True
 
@@ -243,15 +245,15 @@ class TestScoopCommon(unittest.TestCase):
     def multiworker_set(self):
         global subprocesses
         worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
-        "--workerName", "worker", "--brokerName", "broker", "--brokerAddress",
-        "tcp://127.0.0.1:5555", "--metaAddress", "tcp://127.0.0.1:5556", "tests.py"])
+        "--workerName", "worker", "--brokerName", "broker", "--brokerHostname",
+        "127.0.0.1", "--taskPort", "5555", "--metaPort", "5556", "tests.py"])
         subprocesses.append(worker)
         return worker
         
     def setUp(self):
         global subprocesses
         # Start the server
-        self.server = subprocess.Popen([sys.executable,"-m", "scoop.broker",
+        self.server = subprocess.Popen([sys.executable, "-m", "scoop.broker",
         "--tPort", "5555", "--mPort", "5556"])
         import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -261,12 +263,15 @@ class TestScoopCommon(unittest.TestCase):
                 raise Exception('Could not start server!')
             pass
         subprocesses.append(self.server)
+        scoop.IS_RUNNING = True
         scoop.IS_ORIGIN = True
         scoop.WORKER_NAME = 'origin'.encode()
         scoop.BROKER_NAME = 'broker'.encode()
-        scoop.BROKER_ADDRESS = 'tcp://127.0.0.1:5555'
-        scoop.META_ADDRESS = 'tcp://127.0.0.1:5556'
+        scoop.BROKER = BrokerInfo("127.0.0.1",
+                                  "5555",
+                                  "5556")
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
+        scoop.MAIN_MODULE = "tests.py"
         scoop.VALID = True
         scoop.DEBUG = False
         scoop.SIZE = 2
