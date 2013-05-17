@@ -86,8 +86,6 @@ class remoteBroker(object):
     def __init__(self, hostname, pythonExecutable, nice=0):
         """Starts a broker on the specified hostname on unoccupied ports"""
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
-                        "--tPort {brokerPort} "
-                        "--mPort {infoPort} "
                         "--echoGroup "
                         "--echoPorts ")
         if nice:
@@ -121,9 +119,10 @@ class remoteBroker(object):
 
         # Get remote ports
         try:
-            self.remoteProcessGID = self.shell.stdout.readline().decode().strip().split(",")
+            ports = self.shell.stdout.readline().decode().strip().split(",")
+            self.brokerPort, self.infoPort = ports
         except ValueError:
-            self.remoteProcessGID = None
+            raise Exception("Could not successfully launch the remote broker.")
 
         logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
                       ".".format(self.brokerPort,
@@ -131,6 +130,25 @@ class remoteBroker(object):
                                  hostname,
                                  )
                       )
+
+    def sendConnect(self, data):
+        """Send a CONNECT command to the broker
+            :param data: List of other broker main socket URL"""
+        # Imported dynamically - Not used if only one broker
+        import zmq
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.DEALER)
+        self.socket.setsockopt_string(zmq.IDENTITY, u'launcher')
+        self.socket.connect(
+            "tcp://{hostname}:{port}".format(
+                port=self.brokerPort,
+                hostname = self.hostname
+            )
+        )
+        self.socket.send_multipart([b"CONNECT",
+                                    pickle.dumps(data,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
 
     def getHost(self):
         return self.hostname
