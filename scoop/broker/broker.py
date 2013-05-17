@@ -262,6 +262,9 @@ class Broker(object):
         return (self.tSockPort, self.infoSockPort)
 
     def getName(self):
+        import sys
+        if sys.version < '3':
+            return unicode(self.name)
         return self.name
 
     def shutdown(self):
