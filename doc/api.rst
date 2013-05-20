@@ -62,6 +62,7 @@ scoop.BROKER_ADDRESS    String value. Address of the socket communicating work i
 scoop.META_ADDRESS      String value. Address of the socket communicating meta information.
 scoop.SIZE              Integer value. Size of the current worker pool.
 scoop.DEBUG             Boolean value. True if debug mode is enabled, false otherwise.
+scoop.IS_RUNNING        Boolean value. True if scoop is currently running, false otherwise.
 scoop.worker            2-tuple. Unique identifier of the current instance in the pool.
 scoop.logger            Logger object. Provides log formatting and redirection facilities. See the `official documentation <http://docs.python.org/2/library/logging.html#logging.Logger>`_ for more informations on its usage.
 ====================    ====================================================================
