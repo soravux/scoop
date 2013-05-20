@@ -17,6 +17,7 @@
 #
 from threading import Thread
 import subprocess
+import shlex
 import logging
 import sys
 import os
@@ -178,12 +179,10 @@ class remoteBroker(object):
                 logging.info("Zombie process(es) possibly left on "
                              "host {0}!".format(self.hostname))
         elif not self.isLocal():
-            command = "kill -9 -{0} &>/dev/null".format(self.remoteProcessGID)
-            subprocess.Popen(self.BASE_SSH
-                             + [self.hostname]
-                             + [command],
-                             shell=True,
-            ).wait()
+            command = "ssh -x -n {0} 'kill -9 -{1} &>/dev/null'"
+            command = command.format(self.hostname, self.remoteProcessGID)
+            command = shlex.split(command)
+            subprocess.Popen(command).wait()
 
         sys.stdout.write(self.shell.stdout.read().decode("utf-8"))
         sys.stdout.flush()
