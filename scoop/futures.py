@@ -333,6 +333,7 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
 
     DoneAndNotDoneFutures = namedtuple('DoneAndNotDoneFutures', 'done not_done')
     if timeout < 0:
+        # Negative timeout means blocking.
         if return_when == FIRST_COMPLETED:
             next(_waitAny(*fs))
         elif return_when in [ALL_COMPLETED, FIRST_EXCEPTION]:
@@ -343,16 +344,24 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
         return DoneAndNotDoneFutures(done, not_done)
 
     elif timeout == 0:
+        # Zero-value entry means non-blocking
         scoop._control.execQueue.updateQueue()
         done = set(f for f in fs if f._ended())
         not_done = set(fs) - done
         return DoneAndNotDoneFutures(done, not_done)
 
     else:
+        # Any other value means blocking for a given time.
         done = set()
         start_time = time.time()
         while time.time() - start_time < timeout:
+            # Flush futures on local queue (to be executed remotely)
+            scoop._control.execQueue.flush()
+            # Block until data arrives (to free CPU time)
+            scoop._control.execQueue.socket._poll(time.time() - start_time)
+            # Update queue
             scoop._control.execQueue.updateQueue()
+
             for f in fs:
                 if f._ended():
                     done.add(f)
