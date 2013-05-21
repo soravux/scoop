@@ -27,7 +27,7 @@ class TestStat(unittest.TestCase):
         stats = _stat()
         data = list(range(15))
         for i in data:
-            stats.appendleft(i)
+            stats.appendleft(float(i))
         self.assertEqual(stats.mean(), 9.5)
         stats.appendleft(1000)
         self.assertEqual(stats.mean(), 109.0)
