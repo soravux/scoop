@@ -123,7 +123,8 @@ class Future(object):
     def _switch(self, future):
         """Switch greenlet."""
         scoop._control.current = self
-        assert self.greenlet is not None, "No greenlet to switch to:\n%s" % self.__dict__
+        assert self.greenlet is not None, ("No greenlet to switch to:"
+                                           "\n{0}".format(self.__dict__))
         return self.greenlet.switch(future)
 
     def cancel(self):
