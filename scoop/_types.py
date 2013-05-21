@@ -151,6 +151,15 @@ class Future(object):
         """True if the call was successfully cancelled or finished running,
            False otherwise. This function updates the executionQueue so it
            receives all the awaiting message."""
+        # Flush the current future in the local buffer (potential deadlock
+        # otherwise)
+        try:
+            scoop._control.execQueue.remove(self)
+            scoop._control.execQueue.socket.sendFuture(self)
+        except ValueError as e:
+            # Future was not in the local queue, everything is fine
+            pass
+        # Process buffers
         scoop._control.execQueue.updateQueue()
         return self._ended()
 
