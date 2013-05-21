@@ -213,7 +213,7 @@ class Future(object):
                                            inCallbackType,
                                            inCallbackGroup))
 
-        # If already completed or cancelled
+        # If already completed or cancelled, execute it immediately
         if self._ended():
             self.callback[-1].func(self)
 
@@ -228,7 +228,7 @@ class Future(object):
                     pass
 
     def _delete(self):
-        # Do we need this?
+        # TODO: Do we need this?
         if self.id in scoop._control.execQueue.inprogress:
             del scoop._control.execQueue.inprogress[self.id]
         for child in self.children:
@@ -312,12 +312,23 @@ class FutureQueue(object):
             elif len(self.movable) != 0:
                 return self.movable.pop()
 
+    def flush(self):
+        """Empty the local queue and send its elements to be executed remotely.
+        """
+        for elem in self:
+            if elem.id.worker != scoop.worker:
+                elem._delete()
+            self.socket.sendFuture(elem)
+        self.ready.clear()
+        self.movable.clear()
+
     def requestFuture(self):
         """Request futures from the broker"""
         self.socket.sendRequest()
 
     def updateQueue(self):
-        """Updates the local queue with elements from the broker."""
+        """Process inbound communication buffer.
+        Updates the local queue with elements from the broker."""
         for future in self.socket.recvFuture():
             if future._ended():
                 # If the answer is coming back, update its entries
@@ -344,8 +355,11 @@ class FutureQueue(object):
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
-        this method will raised a ValueError."""
-        self.movable.remove(future)
+        this method will raise a ValueError."""
+        if future in self:
+            self.movable.remove(future)
+        else:
+            raise ValueError(future)
 
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""

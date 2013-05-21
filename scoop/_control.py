@@ -38,7 +38,7 @@ current = None
 futureDict = {}
 # Queue of futures pending execution
 execQueue = None
-# Statistics of execution
+# Execution Statistics
 class _stat(deque):
     def __init__(self, *args, **kargs):
         self._sum = 0
@@ -72,8 +72,9 @@ QueueLength = None
 if scoop.DEBUG:
     init_debug()
 
-# Hook to advertise the broker if the worker exits unexpectedly
+
 def advertiseBrokerWorkerDown(exctype, value, traceback):
+    """Hook advertizing the broker if an impromptu shutdown is occuring."""
     if not scoop.SHUTDOWN_REQUESTED:
         execQueue.socket.shutdown()
     sys.__excepthook__(exctype, value, traceback)
@@ -88,6 +89,7 @@ def init_debug():
         debug_stats = defaultdict(list_defaultdict)
         QueueLength = []
 
+
 def delFutureById(futureId, parentId):
     """Delete future on id basis"""
     try:
@@ -101,6 +103,7 @@ def delFutureById(futureId, parentId):
     except KeyError:
         pass
 
+
 def delFuture(afuture):
     """Delete future afuture"""
     try:
@@ -112,8 +115,9 @@ def delFuture(afuture):
     except KeyError:
         pass
 
-# This is the callable greenlet for running tasks.
+
 def runFuture(future):
+    """Callable greenlet in charge of running tasks."""
     global debug_stats
     global QueueLength
     if scoop.DEBUG:
@@ -133,7 +137,7 @@ def runFuture(future):
         future.resultValue = future.callable(*future.args, **future.kargs)
     except BaseException as err:
         import traceback
-        scoop.logger.error(
+        scoop.logger.debug(
             "The following error occurend on a worker:\n{err}\n{tb}".format(
                 err=err,
                 tb=traceback.format_exc(),
@@ -170,8 +174,9 @@ def runFuture(future):
 
     return future
 
-# This is the callable greenlet that implements the controller logic.
+
 def runController(callable_, *args, **kargs):
+    """Callable greenlet implementing controller logic."""
     global execQueue
     # initialize and run root future
     rootId = FutureId(-1, 0)
