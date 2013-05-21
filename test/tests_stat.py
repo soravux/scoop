@@ -1,5 +1,4 @@
 from scoop._control import _stat
-import numpy
 import unittest
 
 class TestStat(unittest.TestCase):
