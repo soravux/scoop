@@ -29,6 +29,8 @@ import sys
 import operator
 import signal
 from tests_parser import TestUtils
+from tests_stat import TestStat
+from tests_stopwatch import TestStopWatch
 
 subprocesses = []
 def cleanSubprocesses():
@@ -496,6 +498,9 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     utUtils = unittest.TestLoader().loadTestsFromTestCase(TestUtils)
     utCoherent = unittest.TestLoader().loadTestsFromTestCase(TestCoherent)
     utShared = unittest.TestLoader().loadTestsFromTestCase(TestShared)
+    utStat = unittest.TestLoader().loadTestsFromTestCase(TestStat)
+    utStopWatch = unittest.TestLoader().loadTestsFromTestCase(TestStopWatch)
+
     if len(sys.argv) > 1:
         if sys.argv[1] == "simple":
             unittest.TextTestRunner(verbosity=2).run(utSimple)
@@ -509,6 +514,10 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
             unittest.TextTestRunner(verbosity=2).run(utCoherent)
         elif sys.argv[1] == "shared":
             unittest.TextTestRunner(verbosity=2).run(utShared)
+        elif sys.argv[1] == "stat":
+            unittest.TextTestRunner(verbosity=2).run(utStat)
+        elif sys.argv[1] == "stopwatch":
+            unittest.TextTestRunner(verbosity=2).run(utStopWatch)
     else:
         unittest.main()
 elif __name__ == '__main__':
