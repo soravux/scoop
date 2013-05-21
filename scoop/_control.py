@@ -41,18 +41,27 @@ execQueue = None
 class _stat(deque):
     def __init__(self, *args, **kargs):
         self._sum = 0
+        self._squared_sum = 0
         super(_stat, self).__init__(*args, maxlen=10, **kargs)
 
     def appendleft(self, x):
         if len(self) >= self.maxlen:
             self._sum -= self[-1]
+            self._squared_sum -= self[-1] ** 2
         self._sum += x
+        self._squared_sum += x ** 2
         super(_stat, self).appendleft(x)
 
     def mean(self):
         ourSize = len(self)
         if ourSize > 3:
             return self._sum / ourSize
+        return float("inf")
+
+    def std(self):
+        ourSize = len(self)
+        if ourSize > 3:
+            return sqrt(len(self) * self._squared_sum - self._sum ** 2) / len(self)
         return float("inf")
 
 execStats = defaultdict(_stat)
