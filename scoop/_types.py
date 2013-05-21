@@ -30,7 +30,7 @@ else:
 
 
 class CallbackType:
-    """Enum des types de groupes."""
+    """Type of groups enumeration."""
     standard = "standard"
     universal = "universal"
 
