@@ -317,13 +317,6 @@ class FutureQueue(object):
 
     def updateQueue(self):
         """Updates the local queue with elements from the broker."""
-        to_remove = []
-        for future in self.inprogress.values():
-            if future.index is not None:
-                self.ready.append(future)
-                to_remove.append(future)
-        for future in to_remove:
-            del self.inprogress[future.id]
         for future in self.socket.recvFuture():
             if future._ended():
                 # If the answer is coming back, update its entries
@@ -340,6 +333,13 @@ class FutureQueue(object):
                 self.append(scoop._control.futureDict[future.id])
             else:
                 self.append(scoop._control.futureDict[future.id])
+        to_remove = []
+        for future in self.inprogress.values():
+            if future.index is not None:
+                self.ready.append(future)
+                to_remove.append(future)
+        for future in to_remove:
+            del self.inprogress[future.id]
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
