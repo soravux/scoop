@@ -347,11 +347,6 @@ class FutureQueue(object):
         this method will raised a ValueError."""
         self.movable.remove(future)
 
-    def select(self, duration):
-        """Return a list of movable futures that have an estimated total runtime
-        of at most "duration" seconds."""
-        pass
-
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
