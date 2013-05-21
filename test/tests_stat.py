@@ -37,9 +37,9 @@ class TestStat(unittest.TestCase):
         data = list(range(10))
         for i in data:
             stats.appendleft(float(i))
-        self.assertEqual(stats.std(), numpy.std(data))
+        self.assertAlmostEqual(stats.std(), 2.87228132327)
         stats.appendleft(1000)
-        self.assertEqual(stats.std(), numpy.std([1000] + data[1:]))
+        self.assertAlmostEqual(stats.std(), 298.510050082)
 
 if __name__ == "__main__":
     t = unittest.TestLoader().loadTestsFromTestCase(TestStat)
