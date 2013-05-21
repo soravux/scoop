@@ -1,5 +1,5 @@
 from scoop._control import _stat
-
+import numpy
 import unittest
 
 class TestStat(unittest.TestCase):
@@ -31,6 +31,15 @@ class TestStat(unittest.TestCase):
         self.assertEqual(stats.mean(), 9.5)
         stats.appendleft(1000)
         self.assertEqual(stats.mean(), 109.0)
+
+    def test_std(self):
+        stats = _stat()
+        data = list(range(10))
+        for i in data:
+            stats.appendleft(float(i))
+        self.assertEqual(stats.std(), numpy.std(data))
+        stats.appendleft(1000)
+        self.assertEqual(stats.std(), numpy.std([1000] + data[1:]))
 
 if __name__ == "__main__":
     t = unittest.TestLoader().loadTestsFromTestCase(TestStat)
