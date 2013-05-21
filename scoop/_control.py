@@ -20,6 +20,7 @@ import os
 import time
 import tempfile
 import sys
+import math
 from functools import partial
 
 import greenlet
@@ -61,7 +62,7 @@ class _stat(deque):
     def std(self):
         ourSize = len(self)
         if ourSize > 3:
-            return sqrt(len(self) * self._squared_sum - self._sum ** 2) / len(self)
+            return math.sqrt(len(self) * self._squared_sum - self._sum ** 2) / len(self)
         return float("inf")
 
 execStats = defaultdict(_stat)
