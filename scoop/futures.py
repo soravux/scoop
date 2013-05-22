@@ -345,6 +345,7 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
 
     elif timeout == 0:
         # Zero-value entry means non-blocking
+        scoop._control.execQueue.flush()
         scoop._control.execQueue.updateQueue()
         done = set(f for f in fs if f._ended())
         not_done = set(fs) - done
