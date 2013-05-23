@@ -128,9 +128,10 @@ class Future(object):
         return self.greenlet.switch(future)
 
     def cancel(self):
-        """If the call is currently being executed then it cannot
-           be cancelled and the method will return False, otherwise
-           the call will be cancelled and the method will return True."""
+        """If the call is currently being executed or sent for remote
+           execution, then it cannot be cancelled and the method will return
+           False, otherwise the call will be cancelled and the method will
+           return True."""
         if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
             scoop._control.futureDict[self.id]._delete()
@@ -139,18 +140,19 @@ class Future(object):
         return False
 
     def cancelled(self):
-        """True if the call was successfully cancelled, False otherwise."""
+        """Returns True if the call was successfully cancelled, False
+        otherwise."""
         return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
-        """True if the call is currently being executed and cannot be
+        """Returns True if the call is currently being executed and cannot be
            cancelled."""
         return not self._ended() and self not in scoop._control.execQueue
 
     def done(self):
-        """True if the call was successfully cancelled or finished running,
-           False otherwise. This function updates the executionQueue so it
-           receives all the awaiting message."""
+        """Returns True if the call was successfully cancelled or finished
+           running, False otherwise. This function updates the executionQueue
+           so it receives all the awaiting message."""
         # Flush the current future in the local buffer (potential deadlock
         # otherwise)
         try:
@@ -171,8 +173,8 @@ class Future(object):
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
-        completed then this method will wait up to ''timeout'' seconds [To be
-        done in future version of SCOOP]. If the call hasn't completed in
+        completed then this method will wait up to ''timeout'' seconds. More
+        information in the :doc:`usage` page. If the call hasn't completed in
         timeout seconds then a TimeoutError will be raised. If timeout is not
         specified or None then there is no limit to the wait time.
 
@@ -182,7 +184,7 @@ class Future(object):
         If the call raised an exception then this method will raise the same
         exception.
 
-        :returns: The value returned by the call."""
+        :returns: The value returned by the callable object."""
         if not self._ended():
             return scoop.futures._join(self)
         if self.exceptionValue is not None:
@@ -191,10 +193,10 @@ class Future(object):
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
-        completed then this method will wait up to timeout seconds [To be done
-        in future version of SCOOP]. If the call hasn't completed in timeout
-        seconds then a TimeoutError will be raised. If timeout is not specified
-        or None then there is no limit to the wait time.
+        completed then this method will wait up to timeout seconds. More
+        information in the :doc:`usage` page. If the call hasn't completed in
+        timeout seconds then a TimeoutError will be raised. If timeout is not
+        specified or None then there is no limit to the wait time.
 
         If the future is cancelled before completing then CancelledError will be
         raised.
