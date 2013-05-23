@@ -30,6 +30,8 @@ def _ensureAtomicity(fn):
     def wrapper(*args, **kwargs):
         """setConst(**kwargs)
         Set a constant that will be shared to every workers.
+        This call blocks until the constant has propagated to at least one
+        worker.
 
         :param \*\*kwargs: One or more combination(s) key=value. Key being the
             variable name and value the object to share.
@@ -97,11 +99,11 @@ def setConst(**kwargs):
             sendVariable(key, value)
 
 def getConst(name, timeout=0.1):
-    """Get a constant that was shared beforehand.
+    """Get a shared constant.
 
     :param name: The name of the shared variable to retrieve.
     :param timeout: The maximum time to wait in seconds for the propagation of
-        the variable.
+        the constant.
 
     :returns: The shared object.
 

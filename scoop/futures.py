@@ -133,7 +133,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
         Futures results. The callable must support two parameters and return a
         single value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
-        of arguments tuples that will be passed to the callable object as a
+        of arguments tuples that will be passed to the mapFunc object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time. More information in the usage document
@@ -171,9 +171,9 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     merge the results of the map function in order to get a single final value.
     This call is blocking.
 
-    :param mapFunc: Any picklable callable object (function or class object with
-        *__call__* method); this object will be called to execute the Futures.
-        The callable must return a value.
+    :param mapFunc: Any picklable callable object (function or class object
+        with *__call__* method); this object will be called to execute the
+        Futures. The callable must return a value.
     :param reductionOp: Any picklable callable object (function or class object
         with *__call__* method); this object will be called to reduce pairs of
         Futures results. The callable must support two parameters and return a
@@ -182,8 +182,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         of arguments tuples that will be passed to the callable object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time. More information in the usage document
-        `Timeout usage`_.
+        is no limit on the wait time. More information in the :doc:`usage` page.
 
     :returns: A single value."""
     # TODO: make DRY with submit
@@ -213,14 +212,14 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     return reduce(reductionOp, workerResults.values())
 
 def submit(func, *args):
-    """Submit an independent parallel :class:`~scoop._types.Future` that will
+    """Submit an independent asynchronous :class:`~scoop._types.Future` that will
     either run locally or remotely as `func(*args)`.
 
     :param func: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Future.
         The callable must return a value.
     :param args: A tuple of positional arguments that will be passed to the
-        callable object.
+        func object.
 
     :returns: A future object for retrieving the Future result.
 
@@ -310,11 +309,10 @@ def _waitAll(*children):
 def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
 
-    :param fs: The sequence of Futures (possibly created by another instance) to
-        wait upon.
+    :param fs: The sequence of Futures to wait upon.
     :param timeout: The maximum number of seconds to wait. If negative or not
         specified, then there is no limit on the wait time. More information in
-        the `Timeout usage`_ section.
+        the :doc:`usage` page.
     :param return_when: Indicates when this function should return. The options
         are:
 
@@ -417,7 +415,8 @@ def _joinAll(*children):
     return [_join(future) for future in _waitAll(*children)]
 
 def shutdown(wait=True):
-    """This function is here for compatibility with `futures` (PEP 3148).
+    """This function is here for compatibility with `futures` (PEP 3148) and
+    doesn't have any behavior.
 
     :param wait: Unapplied parameter."""
     pass
