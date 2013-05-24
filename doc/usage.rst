@@ -96,6 +96,13 @@ substitute to the standard |map()|_, for instance::
     Keep in mind that objects are not shared between workers and that changes
     made to an object in a function are not seen by other workers.
 
+Map_as_completed
+~~~~~~~~~~~~~~~~
+
+The :meth:`~scoop.futures.map_as_completed` function is used exactly in the same way 
+as the :meth:`~scoop.futures.map` function. The only difference is that this function 
+will return the results as soon as they are made available.
+
 Submit
 ~~~~~~
 
