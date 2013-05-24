@@ -120,6 +120,26 @@ def map(func, *iterables, **kwargs):
     for future in _waitAll(*_mapFuture(func, *iterables)):
         yield future.resultValue
 
+def map_as_completed(func, *iterables, **kwargs):
+    """Equivalent to map, but the results are returned as soon as they are made
+    availible.
+
+    :param func: Any picklable callable object (function or class object with
+        *__call__* method); this object will be called to execute the Futures.
+        The callable must return a value.
+    :param iterables: Iterable objects; each will be zipped to form an iterable
+        of arguments tuples that will be passed to the callable object as a
+        separate Future.
+    :param timeout: The maximum number of seconds to wait. If None, then there
+        is no limit on the wait time. More information in the usage document
+        `Timeout usage`_.
+
+    :returns: A generator of map results, each corresponding to one map
+        iteration."""
+    # TODO: Handle timeout
+    for future in as_completed(_mapFuture(func, *iterables)):
+        yield future.resultValue
+
 def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
