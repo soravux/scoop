@@ -122,7 +122,7 @@ def map(func, *iterables, **kwargs):
 
 def map_as_completed(func, *iterables, **kwargs):
     """Equivalent to map, but the results are returned as soon as they are made
-    availible.
+    available.
 
     :param func: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
