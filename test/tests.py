@@ -212,6 +212,10 @@ def funcSharedFunction():
             result = False
     return result
 
+def funcMapAsCompleted(n):
+    result = list(futures.map_as_completed(func4, [i+1 for i in range(n)]))
+    return sum(result)
+
 
 def main(n):
     task = futures.submit(func0, n)
@@ -455,6 +459,14 @@ class TestApi(TestScoopCommon):
         done, not_done = futures._startup(funcWait, 0)
         self.assertTrue((len(done) + len(not_done)) == 1000)
 
+    def test_map_as_completed_single(self):
+        result = futures._startup(funcMapAsCompleted, 30)
+        self.assertEqual(result, 9455)
+
+    def test_map_as_completed_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcMapAsCompleted, 30)
+        self.assertEqual(result, 9455)
 
 
 
