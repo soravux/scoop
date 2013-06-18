@@ -154,10 +154,10 @@ class ZMQCommunicator(object):
 
     def sendFuture(self, future):
         try:
-            if shared.getConst(future.callable.__name__,
+            if shared.getConst(future.callable.__hash__,
                                timeout=0):
                 # Enforce name reference passing if already shared
-                future.callable = SharedElementEncapsulation(future.callable.__name__)
+                future.callable = SharedElementEncapsulation(future.callable.__hash__)
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
@@ -166,7 +166,7 @@ class ZMQCommunicator(object):
             # TODO: use its fully qualified name
             scoop.logger.warn("Pickling Error: {0}".format(e))
             previousCallback = future.callable
-            future.callable = future.callable.__name__
+            future.callable = future.callable.__hash__
             self.socket.send_multipart([b"TASK",
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
