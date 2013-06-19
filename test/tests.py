@@ -42,7 +42,7 @@ except AttributeError:
     # SIGQUIT doesn't exist on Windows
     signal.signal(signal.SIGTERM, cleanSubprocesses)
 
-    
+
 def func0(n):
     task = futures.submit(func1, n)
     result = task.result()
@@ -79,10 +79,10 @@ def funcLambda(n):
 
 def funcCallback():
     f = futures.submit(func4, 100)
-    
+
     def callBack(future):
         future.was_callabacked = True
-        
+
     f.add_done_callback(callBack)
     if len(f.callback) == 0:
         return False
@@ -91,13 +91,13 @@ def funcCallback():
         return f.was_callabacked
     except:
         return False
-        
+
 
 def funcCancel():
     f = futures.submit(func4, 100)
     f.cancel()
     return f.cancelled()
-            
+
 
 def funcCompleted(n):
     launches = []
@@ -122,6 +122,7 @@ def funcWait(timeout):
     done, not_done = futures.wait(fs, timeout=timeout)
     return done, not_done
 
+
 def funcExcept(n):
     f = futures.submit(funcRaise, n)
     try:
@@ -134,7 +135,7 @@ def funcExcept(n):
 
 def funcRaise(n):
     raise Exception("Test exception")
-    
+
 
 def funcSub(n):
     f = futures.submit(func4, n)
@@ -222,7 +223,7 @@ def main(n):
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()
     return result
-    
+
 
 def main_simple(n):
     task = futures.submit(func3, n)
@@ -247,7 +248,7 @@ class TestScoopCommon(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         # Parent initialization
         super(TestScoopCommon, self).__init__(*args, **kwargs)
-        
+
     def multiworker_set(self):
         global subprocesses
         worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
@@ -255,7 +256,7 @@ class TestScoopCommon(unittest.TestCase):
         "127.0.0.1", "--taskPort", "5555", "--metaPort", "5556", "tests.py"])
         subprocesses.append(worker)
         return worker
-        
+
     def setUp(self):
         global subprocesses
         # Start the server
@@ -282,7 +283,7 @@ class TestScoopCommon(unittest.TestCase):
         scoop.DEBUG = False
         scoop.SIZE = 2
         scoop._control.execQueue = FutureQueue()
-        
+
     def tearDown(self):
         global subprocesses
         scoop._control.futureDict.clear()
@@ -295,7 +296,7 @@ class TestScoopCommon(unittest.TestCase):
         # Stabilise zmq after a deleted socket
         del subprocesses[:]
         time.sleep(0.1)
-            
+
 
 class TestMultiFunction(TestScoopCommon):
     def __init__(self, *args, **kwargs):
@@ -310,28 +311,28 @@ class TestMultiFunction(TestScoopCommon):
         _control.FutureQueue.lowwatermark = 5
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-        
+
     def test_small_no_lowwatermark_uniworker(self):
         _control.FutureQueue.highwatermark = 9999999999999
         _control.FutureQueue.lowwatermark = 1
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-    
+
     def test_small_foreign_uniworker(self):
         _control.FutureQueue.highwatermark = 1
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-        
+
     def test_small_local_uniworker(self):
         _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-    
+
     def test_large_uniworker(self):
         _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
-        
+
     def test_large_no_lowwatermark_uniworker(self):
         _control.FutureQueue.lowwatermark = 1
         _control.FutureQueue.highwatermark = 9999999999999
@@ -342,12 +343,12 @@ class TestMultiFunction(TestScoopCommon):
         _control.FutureQueue.highwatermark = 1
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
-        
+
     def test_large_local_uniworker(self):
         _control.FutureQueue.highwatermark = 9999999999999
         result = futures._startup(self.main_func, 20)
         self.assertEqual(result, self.large_result)
-        
+
     def test_small_local_multiworker(self):
         self.w = self.multiworker_set()
         _control.FutureQueue.highwatermark = 9999999999
@@ -356,7 +357,7 @@ class TestMultiFunction(TestScoopCommon):
         self.assertEqual(result, self.small_result)
         time.sleep(0.5)
         os.environ = Backupenv
-    
+
     def test_small_foreign_multiworker(self):
         self.w = self.multiworker_set()
         _control.FutureQueue.highwatermark = 1
@@ -381,6 +382,12 @@ class TestMultiFunction(TestScoopCommon):
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
 
+    def test_partial(self):
+        """This function removes some attributes (such as __name__)."""
+        from functools import partial
+        result = futures._startup(partial(self.main_func), 4)
+        self.assertEqual(result, self.small_result)
+
 
 class TestSingleFunction(TestMultiFunction):
     def __init__(self, *args, **kwargs):
@@ -388,7 +395,7 @@ class TestSingleFunction(TestMultiFunction):
         super(TestSingleFunction, self).__init__(*args, **kwargs)
         self.main_func = main_simple
         self.small_result = 30
-        self.large_result = 2870 
+        self.large_result = 2870
 
 
 class TestApi(TestScoopCommon):
@@ -500,7 +507,7 @@ class TestShared(TestScoopCommon):
 
     def test_shareFunction(self):
         result = futures._startup(funcSharedConstant)
-        self.assertEqual(result, True)        
+        self.assertEqual(result, True)
 
 
 if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
