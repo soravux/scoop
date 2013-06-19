@@ -231,15 +231,18 @@ class Host(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-                self.log.info("Zombie process(es) possibly left on "
+                self.log.warn("Zombie process(es) possibly left on "
                              "host {0}!".format(self.hostname))
         elif not self.isLocal():
-            command = "kill -9 -{0} >&/dev/null".format(self.remoteProcessGID)
+            command = ("python -c "
+                       "'import os, signal; os.killpg({0}, signal.SIGKILL)' "
+                       ">&/dev/null").format(self.remoteProcessGID)
             subprocess.Popen(self.BASE_SSH
                              + [self.hostname]
                              + [command],
             ).wait()
 
+        # Output child processes stdout and stderr to console
         for process in self.subprocesses:
             if process.stdout is not None:
                 sys.stdout.write(process.stdout.read().decode("utf-8"))
