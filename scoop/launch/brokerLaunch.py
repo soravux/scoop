@@ -165,6 +165,7 @@ class remoteBroker(object):
 
     def close(self):
         """Connection(s) cleanup."""
+        # TODO: DRY with workerLaunch.py
         # Ensure everything is cleaned up on exit
         logging.debug('Closing broker on host {0}.'.format(self.hostname))
 
@@ -176,14 +177,18 @@ class remoteBroker(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-                logging.info("Zombie process(es) possibly left on "
+                logging.warn("Zombie process(es) possibly left on "
                              "host {0}!".format(self.hostname))
         elif not self.isLocal():
-            command = "ssh -x -n {0} 'kill -9 -{1} &>/dev/null'"
-            command = command.format(self.hostname, self.remoteProcessGID)
-            command = shlex.split(command)
-            subprocess.Popen(command).wait()
+            command = ("python -c "
+                       "'import os, signal; os.killpg({0}, signal.SIGKILL)' "
+                       ">&/dev/null").format(self.remoteProcessGID)
+            subprocess.Popen(self.BASE_SSH
+                             + [self.hostname]
+                             + [command],
+            ).wait()
 
+        # Output child processes stdout and stderr to console
         sys.stdout.write(self.shell.stdout.read().decode("utf-8"))
         sys.stdout.flush()
 
