@@ -276,7 +276,7 @@ class FutureQueue(object):
 
     def timelen(self, queue_):
         stats = scoop._control.execStats
-        times = Counter(f.callable.__hash__ for f in queue_)
+        times = Counter(hash(f.callable) for f in queue_)
         return sum(stats[f].mean() * occur for f, occur in times.items())
 
     def append(self, future):
