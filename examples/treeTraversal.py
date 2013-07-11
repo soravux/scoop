@@ -30,16 +30,21 @@ def maxTreeDepthDivide(rootValue, currentDepth=0, parallelLevel=2):
     if currentDepth >= parallelLevel:
         return thisRoot.maxDepth(currentDepth)
     else:
-        return max(futures.map(maxTreeDepthDivide,
-                               [thisRoot.left.payload,
-                                thisRoot.right.payload,
-                                ],
-                               currentDepth=currentDepth+1,
-                               parallelLevel=parallelLevel))
+        return max(
+            futures.map(
+                maxTreeDepthDivide,
+                [
+                    thisRoot.left.payload,
+                    thisRoot.right.payload,
+                ],
+                currentDepth=currentDepth + 1,
+                parallelLevel=parallelLevel,
+            )
+        )
 
 
 class BinaryTreeNode(object):
-    """A simple binary tree with non-repeatable."""
+    """A simple binary tree."""
     def __init__(self, payload=None, left=None, right=None):
         self.payload = payload
         self.left = left
@@ -86,6 +91,7 @@ class BinaryTreeNode(object):
 
 if __name__ == '__main__':
     print("Beginning Tree generation.")
+
 # Generate the same tree on every workers.
 random.seed(314159265)
 exampleTree = BinaryTreeNode(0)
@@ -100,10 +106,13 @@ if __name__ == '__main__':
 
     # Splits the tree in two and process the left and right branches parallely
     ts = time.time()
-    presult = max(futures.map(maxTreeDepthDivide,
-                              [exampleTree.payload,
-                               ],
-                              parallelLevel=2))
+    presult = max(
+        futures.map(
+            maxTreeDepthDivide,
+            [exampleTree.payload],
+            parallelLevel=1,
+        )
+    )
     pts = time.time() - ts
 
     # Serial computation of tree depth
