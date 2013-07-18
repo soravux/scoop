@@ -65,13 +65,6 @@ class _stat(deque):
             return math.sqrt(len(self) * self._squared_sum - self._sum ** 2) / len(self)
         return float("inf")
 
-execStats = defaultdict(_stat)
-
-debug_stats = None
-QueueLength = None
-if scoop.DEBUG:
-    init_debug()
-
 
 def advertiseBrokerWorkerDown(exctype, value, traceback):
     """Hook advertizing the broker if an impromptu shutdown is occuring."""
@@ -250,3 +243,11 @@ def runController(callable_, *args, **kargs):
     if future.exceptionValue:
         raise future.exceptionValue
     return future.resultValue
+
+
+execStats = defaultdict(_stat)
+
+debug_stats = None
+QueueLength = None
+if scoop.DEBUG:
+    init_debug()

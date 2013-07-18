@@ -20,6 +20,7 @@ import os
 import functools
 import argparse
 import logging
+
 try:
     import psutil
 except ImportError:
@@ -81,13 +82,6 @@ class Bootstrap(object):
                                 brokerAddress=self.args.brokerAddress,
                                 metaAddress=self.args.metaAddress,
                             ))
-            # Make the workerName random
-            # Check to remove str
-            import uuid
-            self.args.workerName = str(uuid.uuid4())
-            self.log.info("Using worker name {workerName}.".format(
-                workerName=self.args.workerName,
-            ))
 
             self.args.origin = True
 
@@ -146,11 +140,6 @@ class Bootstrap(object):
         self.parser.add_argument('--origin',
                                  help="To specify that the worker is the origin",
                                  action='store_true')
-        self.parser.add_argument('--workerName', help="The name of the worker",
-                                 default="0")
-        # TODO: Remove --brokerName, should be dynamic
-        self.parser.add_argument('--brokerName', help="The name of the broker",
-                                 default="broker")
         self.parser.add_argument('--brokerHostname',
                                  help="The routable hostname of a broker",
                                  default="")
@@ -195,14 +184,11 @@ class Bootstrap(object):
         """Setup the SCOOP constants."""
         scoop.IS_RUNNING = True
         scoop.IS_ORIGIN = self.args.origin
-        scoop.WORKER_NAME = self.args.workerName.encode()
-        scoop.BROKER_NAME = self.args.brokerName.encode()
         scoop.BROKER = BrokerInfo(self.args.brokerHostname,
                                   self.args.taskPort,
                                   self.args.metaPort)
         scoop.SIZE = self.args.size
         scoop.DEBUG = self.args.debug
-        scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.MAIN_MODULE = self.args.executable
         scoop.CONFIGURATION = {
           'headless': not bool(self.args.executable),
@@ -305,7 +291,7 @@ class Bootstrap(object):
                 "futures_startup()",
                 globs,
                 locals(),
-                "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
+                "./profile/{0}.prof".format(os.getpid())
             )
         else:
             try:

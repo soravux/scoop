@@ -20,6 +20,7 @@ import scoop
 import time
 import sys
 import random
+import socket
 try:
     import cPickle as pickle
 except ImportError:
@@ -34,6 +35,10 @@ class ReferenceBroken(Exception):
     pass
 
 
+class Shutdown(Exception):
+    pass
+
+
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
     context = zmq.Context()
@@ -43,22 +48,46 @@ class ZMQCommunicator(object):
         self.number_of_broker = float('inf')
         self.broker_set = set()
 
+        # Create an inter-worker socket
+        self.direct_socket = ZMQCommunicator.context.socket(zmq.ROUTER)
+        self.direct_socket_port = self.direct_socket.bind_to_random_port("tcp://*")
+        if zmq.zmq_version_info() >= (3, 0, 0):
+            self.direct_socket.setsockopt(zmq.SNDHWM, 0)
+            self.direct_socket.setsockopt(zmq.RCVHWM, 0)
+
+        # Get the current address of the interface facing the broker
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect((scoop.BROKER.hostname, scoop.BROKER.task_port))
+        external_addr = s.getsockname()[0]
+        s.close()
+
+        # Set current worker name to the addr:port of the inter-worker socket
+        scoop.worker = "{addr}:{port}".format(
+            addr=external_addr,
+            port=self.direct_socket_port,
+        )
+
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
-        self.socket.setsockopt(zmq.IDENTITY, scoop.WORKER_NAME)
+        self.socket.setsockopt_string(zmq.IDENTITY, scoop.worker)
         if zmq.zmq_version_info() >= (3, 0, 0):
             self.socket.setsockopt(zmq.RCVHWM, 0)
             self.socket.setsockopt(zmq.SNDHWM, 0)
-
-        self.poller = zmq.Poller()
-        self.poller.register(self.socket, zmq.POLLIN)
 
         # socket for the shutdown signal
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
         if zmq.zmq_version_info() >= (3, 0, 0):
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
-        self.poller.register(self.infoSocket, zmq.POLLIN)
+        
+        # Set pollers
+        self.task_poller = zmq.Poller()
+        self.task_poller.register(self.direct_socket, zmq.POLLIN)
+        self.task_poller.register(self.socket, zmq.POLLIN)
+
+        self.info_poller = zmq.Poller()
+        self.info_poller.register(self.infoSocket, zmq.POLLIN)
+
         self._addBroker(scoop.BROKER)
 
         # Send an INIT to get all previously set variables and share
@@ -105,8 +134,9 @@ class ZMQCommunicator(object):
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
-        socks = dict(self.poller.poll(timeout))
-        return self.socket in socks
+        #socks = dict(self.task_poller.poll(timeout))
+        #print(self.task_poller.poll(timeout))
+        return self.task_poller.poll(timeout)
 
     def _recv(self):
         msg = self.socket.recv_multipart()
@@ -139,8 +169,7 @@ class ZMQCommunicator(object):
         return thisFuture
 
     def pumpInfoSocket(self):
-        socks = dict(self.poller.poll(0))
-        while self.infoSocket in socks:
+        while self.info_poller.poll(0):
             msg = self.infoSocket.recv_multipart()
             if msg[0] == b"SHUTDOWN":
                 if scoop.IS_ORIGIN is False:
@@ -173,7 +202,7 @@ class ZMQCommunicator(object):
                         self.number_of_broker = len(self.broker_set) + len(new_brokers)
                         scoop.logger.warning(("The number of brokers could not be set"
                                         " on worker {0}. A total of {1} worker(s)"
-                                        " were set.".format(scoop.WORKER_NAME,
+                                        " were set.".format(scoop.worker,
                                                             self.number_of_broker)))
 
                     for broker in new_brokers:
@@ -181,8 +210,6 @@ class ZMQCommunicator(object):
                         meta_address = "tcp://" + broker.hostname + broker.info_port
                         self._addBroker(broker_address, meta_address)
                     self.broker_set.update(new_brokers)
-
-            socks = dict(self.poller.poll(0))
 
     def convertVariable(self, key, varName, varValue):
         """Puts the function in the globals() of the main module."""
@@ -230,7 +257,7 @@ class ZMQCommunicator(object):
         self.socket.send_multipart([b"REPLY",
                                     pickle.dumps(future,
                                                  pickle.HIGHEST_PROTOCOL),
-                                    future.id.worker[0]])
+                                    future.id.worker.encode()])
 
     def sendVariable(self, key, value):
         self.socket.send_multipart([b"VARIABLE",
@@ -261,7 +288,3 @@ class ZMQCommunicator(object):
             self.socket.close()
             self.infoSocket.close()
             time.sleep(0.3)
-
-
-class Shutdown(Exception):
-    pass
