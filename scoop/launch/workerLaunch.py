@@ -32,11 +32,8 @@ class Host(object):
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
         [
-            'pythonPath', 'path',
-            'nice', 'pythonExecutable',
-            'size', 'workerNum',
-            'brokerHostname', 'brokerPorts',
-            'debug', 'profiling',
+            'pythonPath', 'path', 'nice', 'pythonExecutable', 'size', 'origin',
+            'brokerHostname', 'brokerPorts', 'debug', 'profiling',
             'executable', 'args',
         ]
     )
@@ -111,12 +108,10 @@ class Host(object):
         if worker.nice is not None:
             c.extend(['--nice', str(worker.nice)])
         c.extend(['--size', str(worker.size)])
-        c.extend(['--workerName', str(worker.workerNum)])
-        c.extend(['--brokerName', 'broker'])
         c.extend(['--brokerHostname', broker])
         c.extend(['--taskPort', str(worker.brokerPorts[0])])
         c.extend(['--metaPort', str(worker.brokerPorts[1])])
-        if worker.workerNum == 1 and worker.executable:
+        if worker.origin and worker.executable:
             c.append('--origin')
         if worker.debug:
             c.append('--debug')

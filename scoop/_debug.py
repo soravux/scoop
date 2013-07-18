@@ -23,21 +23,8 @@ except ImportError:
 import scoop
 
 
-def getWorkerName(workerNum, width=5, prefix='worker'):
-    """Return the name of the worker
-        width: 5 (100k workers)
-    """
-    return "{prefix}{workerNum}".format(prefix=prefix,
-                                        workerNum=workerNum.zfill(width),
-                                        )
-
-
-scoop.DEBUG_IDENTIFIER = (getWorkerName(scoop.WORKER_NAME.decode("utf-8")),
-                          scoop.BROKER_NAME.decode("utf-8"))
-
-
 def getDebugIdentifier():
-    return "-".join(scoop.DEBUG_IDENTIFIER)
+    return scoop.worker
 
 
 def writeWorkerDebug(debugStats, queueLength):

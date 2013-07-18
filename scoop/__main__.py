@@ -200,7 +200,7 @@ class ScoopApp(object):
             'nice': self.nice,
             'pythonExecutable': self.python_executable,
             'size': self.n,
-            'workerNum': self.workersLeft,
+            'origin': self.workersLeft == 1,
             'brokerHostname': self.externalHostname,
             'brokerPorts': (self.brokers[0].brokerPort,
                             self.brokers[0].infoPort),
