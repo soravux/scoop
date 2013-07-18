@@ -19,17 +19,26 @@ This example shows a way to parallelize binary tree traversal.
 """
 import random
 import sys
-from scoop import futures
+from itertools import cycle
+
+from scoop import futures, shared
 
 
 def maxTreeDepthDivide(rootValue, currentDepth=0, parallelLevel=2):
     """Finds a tree node that represents rootValue and computes the max depth
        of this tree branch.
        This function will emit new futures until currentDepth=parallelLevel"""
-    thisRoot = exampleTree.search(rootValue)
+    thisRoot = shared.getConst('myTree').search(rootValue)
     if currentDepth >= parallelLevel:
         return thisRoot.maxDepth(currentDepth)
     else:
+        # Base case
+        if not any([thisRoot.left, thisRoot.right]):
+            return currentDepth
+        if not all([thisRoot.left, thisRoot.right]):
+            return thisRoot.maxDepth(currentDepth)
+
+        # Parallel recursion
         return max(
             futures.map(
                 maxTreeDepthDivide,
@@ -37,8 +46,8 @@ def maxTreeDepthDivide(rootValue, currentDepth=0, parallelLevel=2):
                     thisRoot.left.payload,
                     thisRoot.right.payload,
                 ],
-                currentDepth=currentDepth + 1,
-                parallelLevel=parallelLevel,
+                cycle([currentDepth + 1]),
+                cycle([parallelLevel]),
             )
         )
 
@@ -92,17 +101,19 @@ class BinaryTreeNode(object):
 if __name__ == '__main__':
     print("Beginning Tree generation.")
 
-# Generate the same tree on every workers.
-random.seed(314159265)
-exampleTree = BinaryTreeNode(0)
-for _ in range(128000):
-    exampleTree.insert(random.randint(-sys.maxsize - 1, sys.maxsize))
+    # Generate the same tree on every workers.
+    random.seed(314159265)
+    exampleTree = BinaryTreeNode(0)
+    for _ in range(128000):
+        exampleTree.insert(random.randint(-sys.maxsize - 1, sys.maxsize))
+
+    shared.setConst(myTree=exampleTree)
+
+    print("Tree generation done.")
 
 
 if __name__ == '__main__':
     import time
-
-    print("Tree generation done.")
 
     # Splits the tree in two and process the left and right branches parallely
     ts = time.time()
@@ -120,8 +131,10 @@ if __name__ == '__main__':
     sresult = exampleTree.maxDepth()
     sts = time.time() - ts
 
-    print(presult, sresult)
+    print("Parallel result: {0}".format(presult))
+    print("Serial result:   {0}".format(sresult))
     
-    print("Parallel time: {0:.5f}s\nSerial time:   {1:.5f}s".format(pts, sts))
+    print("Parallel time: {0:.5f}s".format(pts))
+    print("Serial time:   {0:.5f}s".format(sts))
 
     assert presult == sresult
