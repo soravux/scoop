@@ -139,7 +139,10 @@ class remoteBroker(object):
         import zmq
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.DEALER)
-        self.socket.setsockopt_string(zmq.IDENTITY, u'launcher')
+        if sys.version_info < (3,):
+            self.socket.setsockopt_string(zmq.IDENTITY, unicode('launcher'))
+        else:
+            self.socket.setsockopt_string(zmq.IDENTITY, 'launcher')
         self.socket.connect(
             "tcp://{hostname}:{port}".format(
                 port=self.brokerPort,

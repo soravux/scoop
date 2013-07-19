@@ -67,12 +67,21 @@ class ZMQCommunicator(object):
             port=self.direct_socket_port,
         )
 
+        if sys.version_info < (3,):
+            self.direct_socket.setsockopt_string(zmq.IDENTITY, unicode(scoop.worker))
+        else:
+            self.direct_socket.setsockopt_string(zmq.IDENTITY, scoop.worker)
+
         # socket for the futures, replies and request
         self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
-        self.socket.setsockopt_string(zmq.IDENTITY, scoop.worker)
         if zmq.zmq_version_info() >= (3, 0, 0):
             self.socket.setsockopt(zmq.RCVHWM, 0)
             self.socket.setsockopt(zmq.SNDHWM, 0)
+
+        if sys.version_info < (3,):
+            self.socket.setsockopt_string(zmq.IDENTITY, unicode(scoop.worker))
+        else:
+            self.socket.setsockopt_string(zmq.IDENTITY, scoop.worker)
 
         # socket for the shutdown signal
         self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)

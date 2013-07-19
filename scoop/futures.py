@@ -39,6 +39,19 @@ _AS_COMPLETED = '_AS_COMPLETED'
 _controller = None
 callbackGroupID = itertools.count()
 
+
+def ensureScoopStartedProperly(func):
+    def wrapper(*args, **kwargs):
+        if not _controller:
+            raise NotStartedProperly("SCOOP was not started properly.\n"
+                                     "Be sure to start your program with the "
+                                     "'-m scoop' parameter. You can find "
+                                     "further information in the "
+                                     "documentation.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def _startup(rootFuture, *args, **kargs):
     """Initializes the SCOOP environment.
 
@@ -67,6 +80,7 @@ def _startup(rootFuture, *args, **kargs):
                                 control.QueueLength)
     return result
 
+
 def _mapFuture(callable_, *iterables):
     """Similar to the built-in map function, but each of its
     iteration will spawn a separate independent parallel Future that will run
@@ -91,6 +105,7 @@ def _mapFuture(callable_, *iterables):
     for args in zip(*iterables):
         childrenList.append(submit(callable_, *args))
     return childrenList
+
 
 def map(func, *iterables, **kwargs):
     """Equivalent to
@@ -120,6 +135,7 @@ def map(func, *iterables, **kwargs):
     for future in _waitAll(*_mapFuture(func, *iterables)):
         yield future.resultValue
 
+
 def map_as_completed(func, *iterables, **kwargs):
     """Equivalent to map, but the results are returned as soon as they are made
     available.
@@ -140,6 +156,8 @@ def map_as_completed(func, *iterables, **kwargs):
     for future in as_completed(_mapFuture(func, *iterables)):
         yield future.resultValue
 
+
+@ensureScoopStartedProperly
 def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
@@ -164,13 +182,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     launches = []
     thisCallbackGroupID = next(callbackGroupID)
     for args in zip(*iterables):
-        try:
-            child = Future(control.current.id, mapFunc, *args)
-        except AttributeError:
-            raise NotStartedProperly("SCOOP was not started properly.\n"
-                                     "Be sure to start your program with the "
-                                     "'-m scoop' parameter. You can find further "
-                                     "information in the documentation.")
+        child = Future(control.current.id, mapFunc, *args)
         child.add_done_callback(partial(reduction, operation=reductionOp),
                                 inCallbackType=CallbackType.universal,
                                 inCallbackGroup=thisCallbackGroupID)
@@ -185,6 +197,8 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return workerResults
 
+
+@ensureScoopStartedProperly
 def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result. The reduction function will cumulatively
@@ -210,13 +224,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     # Set a callback group ID for the Futures generated within this scope
     thisCallbackGroupID = (control.current.id, next(callbackGroupID))
     for args in zip(*iterables):
-        try:
-            child = Future(control.current.id, mapFunc, *args)
-        except AttributeError:
-            raise NotStartedProperly("SCOOP was not started properly.\n"
-                                     "Be sure to start your program with the "
-                                     "'-m scoop' parameter. You can find further "
-                                     "information in the documentation.")
+        child = Future(control.current.id, mapFunc, *args)
         child.add_done_callback(partial(reduction, operation=reductionOp),
                                 inCallbackType=CallbackType.universal,
                                 inCallbackGroup=thisCallbackGroupID)
@@ -224,13 +232,17 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         control.execQueue.append(child)
         launches.append(child)
     workerResults = {}
+
     # Execute the task
     for future in sorted(_waitAll(*launches), key=lambda x: x.executor[1]):
         workerResults[(future.executor[0], future.executor[2])] = future.result()
+
     # Cleanup phase
     control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
     return reduce(reductionOp, workerResults.values())
 
+
+@ensureScoopStartedProperly
 def submit(func, *args):
     """Submit an independent asynchronous :class:`~scoop._types.Future` that will
     either run locally or remotely as `func(*args)`.
@@ -264,17 +276,12 @@ def submit(func, *args):
     if funcIsLambda or funcIsInstanceMethod:
         func = SharedElementEncapsulation(func)
 
-    try:
-        child = Future(control.current.id, func, *args)
-    except AttributeError:
-        raise NotStartedProperly(
-            "SCOOP was not started properly.\n Be sure to start your program "
-            "with the '-m scoop' parameter. You can find further information "
-            "in the documentation."
-        )
+    child = Future(control.current.id, func, *args)
+
     control.futureDict[control.current.id].children[child] = None
     control.execQueue.append(child)
     return child
+
 
 def _waitAny(*children):
     """Waits on any child Future created by the calling Future.
@@ -308,6 +315,7 @@ def _waitAny(*children):
         yield childFuture
         n -= 1
 
+
 def _waitAll(*children):
     """Wait on all child futures specified by a tuple of previously created
        Future.
@@ -325,6 +333,7 @@ def _waitAll(*children):
     for future in children:
         for f in _waitAny(future):
             yield f
+
 
 def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
@@ -408,6 +417,7 @@ def as_completed(fs, timeout=None):
     """
     return _waitAny(*fs)
 
+
 def _join(child):
     """This private function is for joining the current Future with one of its
     child Future.
@@ -421,6 +431,7 @@ def _join(child):
     for future in _waitAny(child):
         return future.resultValue
 
+
 def _joinAll(*children):
     """This private function is for joining the current Future with all of the
     children Futures specified in a tuple.
@@ -433,6 +444,7 @@ def _joinAll(*children):
     This function will wait for the completion of all specified child Futures
     before returning to the caller."""
     return [_join(future) for future in _waitAll(*children)]
+
 
 def shutdown(wait=True):
     """This function is here for compatibility with `futures` (PEP 3148) and
