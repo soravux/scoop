@@ -12,7 +12,9 @@ class TestStopWatch(unittest.TestCase):
         first = watch.get()
         time.sleep(0.1)
         second = watch.get()
-        self.assertGreater(second - first, 0.1)
+        # *nix tend to overshoot a tiny bit, Windows tend to always be under
+        # by max. 1ms
+        self.assertAlmostEqual(second - first, 0.1, places=2)
 
     def test_halt(self):
         watch = StopWatch()
@@ -29,13 +31,14 @@ class TestStopWatch(unittest.TestCase):
         watch.resume()
         time.sleep(0.1)
         second = watch.get()
-        self.assertGreater(second - first, 0.1)
+        # See test_get
+        self.assertAlmostEqual(second - first, 0.1, places=2)
 
     def test_reset(self):
         watch = StopWatch()
         time.sleep(0.1)
         watch.reset()
-        self.assertLess(watch.get(), 0.1)
+        self.assertLess(watch.get(), 0.001)
 
 
 if __name__ == "__main__":
