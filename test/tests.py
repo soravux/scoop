@@ -252,8 +252,8 @@ class TestScoopCommon(unittest.TestCase):
     def multiworker_set(self):
         global subprocesses
         worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
-        "--workerName", "worker", "--brokerName", "broker", "--brokerHostname",
-        "127.0.0.1", "--taskPort", "5555", "--metaPort", "5556", "tests.py"])
+        "--brokerHostname", "127.0.0.1", "--taskPort", "5555",
+        "--metaPort", "5556", "tests.py"])
         subprocesses.append(worker)
         return worker
 
@@ -275,8 +275,8 @@ class TestScoopCommon(unittest.TestCase):
         scoop.WORKER_NAME = 'origin'.encode()
         scoop.BROKER_NAME = 'broker'.encode()
         scoop.BROKER = BrokerInfo("127.0.0.1",
-                                  "5555",
-                                  "5556")
+                                  5555,
+                                  5556)
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.MAIN_MODULE = "tests.py"
         scoop.VALID = True
