@@ -77,7 +77,7 @@ class Broker(object):
             self.taskSocket.bind(tSock)
             self.tSockPort = tSock.split(":")[-1]
 
-        # zmq Socket for the shutdown TODO this is temporary
+        # zmq Socket for the pool informations
         self.infoSocket = self.context.socket(zmq.PUB)
         self.infoSockPort = 0
         if mSock[-2:] == ":*":
@@ -91,11 +91,6 @@ class Broker(object):
             self.taskSocket.setsockopt(zmq.RCVHWM, 0)
             self.infoSocket.setsockopt(zmq.SNDHWM, 0)
             self.infoSocket.setsockopt(zmq.RCVHWM, 0)
-
-        # Init self.poller
-        self.poller = zmq.Poller()
-        self.poller.register(self.taskSocket, zmq.POLLIN)
-        self.poller.register(self.infoSocket, zmq.POLLIN)
 
         # Init connection to fellow brokers
         self.clusterSocket = self.context.socket(zmq.DEALER)
@@ -162,9 +157,7 @@ class Broker(object):
         """Redirects messages until a shutdown message is received.
         """
         while True:
-            socks = dict(self.poller.poll(-1))
-            if not (self.taskSocket in socks.keys()
-            and socks[self.taskSocket] == zmq.POLLIN):
+            if not (zmq.POLLIN & self.taskSocket.poll(-1)):
                 continue
 
             msg = self.taskSocket.recv_multipart()
@@ -178,7 +171,6 @@ class Broker(object):
 
             # New task inbound
             if msg_type == TASK:
-                returnAddress = msg[0]
                 task = msg[2]
                 try:
                     address = self.availableWorkers.popleft()

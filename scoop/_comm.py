@@ -48,18 +48,20 @@ class ZMQCommunicator(object):
         self.number_of_broker = float('inf')
         self.broker_set = set()
 
-        # Create an inter-worker socket
-        self.direct_socket = ZMQCommunicator.context.socket(zmq.ROUTER)
-        self.direct_socket_port = self.direct_socket.bind_to_random_port("tcp://*")
-        if zmq.zmq_version_info() >= (3, 0, 0):
-            self.direct_socket.setsockopt(zmq.SNDHWM, 0)
-            self.direct_socket.setsockopt(zmq.RCVHWM, 0)
-
         # Get the current address of the interface facing the broker
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect((scoop.BROKER.hostname, scoop.BROKER.task_port))
         external_addr = s.getsockname()[0]
         s.close()
+
+        # Create an inter-worker socket
+        self.direct_socket = ZMQCommunicator.context.socket(zmq.ROUTER)
+        self.direct_socket_port = self.direct_socket.bind_to_random_port(
+            "tcp://{0}".format(external_addr)
+        )
+        if zmq.zmq_version_info() >= (3, 0, 0):
+            self.direct_socket.setsockopt(zmq.SNDHWM, 0)
+            self.direct_socket.setsockopt(zmq.RCVHWM, 0)
 
         # Set current worker name to the addr:port of the inter-worker socket
         scoop.worker = "{addr}:{port}".format(
@@ -93,9 +95,6 @@ class ZMQCommunicator(object):
         self.task_poller = zmq.Poller()
         self.task_poller.register(self.direct_socket, zmq.POLLIN)
         self.task_poller.register(self.socket, zmq.POLLIN)
-
-        self.info_poller = zmq.Poller()
-        self.info_poller.register(self.infoSocket, zmq.POLLIN)
 
         self._addBroker(scoop.BROKER)
 
@@ -143,12 +142,15 @@ class ZMQCommunicator(object):
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
-        #socks = dict(self.task_poller.poll(timeout))
-        #print(self.task_poller.poll(timeout))
         return self.task_poller.poll(timeout)
 
     def _recv(self):
-        msg = self.socket.recv_multipart()
+        # Prioritize answers over new tasks
+        if zmq.POLLIN & self.direct_socket.poll(0):
+            msg = self.direct_socket.recv_multipart()
+        else:
+            msg = self.socket.recv_multipart()
+
         try:
             thisFuture = pickle.loads(msg[1])
         except AttributeError as e:
@@ -178,7 +180,7 @@ class ZMQCommunicator(object):
         return thisFuture
 
     def pumpInfoSocket(self):
-        while self.info_poller.poll(0):
+        while zmq.POLLIN & self.infoSocket.poll(0):
             msg = self.infoSocket.recv_multipart()
             if msg[0] == b"SHUTDOWN":
                 if scoop.IS_ORIGIN is False:
@@ -263,10 +265,12 @@ class ZMQCommunicator(object):
 
     def sendResult(self, future):
         future.callable = None
-        self.socket.send_multipart([b"REPLY",
-                                    pickle.dumps(future,
-                                                 pickle.HIGHEST_PROTOCOL),
-                                    future.id.worker.encode()])
+        self.socket.send_multipart([
+            b"REPLY",
+            pickle.dumps(future,
+                         pickle.HIGHEST_PROTOCOL),
+            future.id.worker.encode(),
+        ])
 
     def sendVariable(self, key, value):
         self.socket.send_multipart([b"VARIABLE",
