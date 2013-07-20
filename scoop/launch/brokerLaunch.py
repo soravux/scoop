@@ -57,11 +57,7 @@ class localBroker(object):
         import zmq
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.DEALER)
-        if sys.version < '3':
-            self.socket.setsockopt_string(zmq.IDENTITY,
-                                          unicode('launcher'))
-        else:
-            self.socket.setsockopt_string(zmq.IDENTITY, 'launcher')
+        self.socket.setsockopt(zmq.IDENTITY, b'launcher')
         self.socket.connect(
             "tcp://127.0.0.1:{port}".format(
                 port=self.brokerPort,

@@ -14,9 +14,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from . import shared, encapsulation
-import zmq
-import scoop
 import time
 import sys
 import random
@@ -26,7 +23,11 @@ try:
 except ImportError:
     import pickle
 
+import zmq
+from zmq.error import ZMQError
 
+import scoop
+from . import shared, encapsulation
 from .shared import SharedElementEncapsulation
 
 
@@ -37,6 +38,16 @@ class ReferenceBroken(Exception):
 
 class Shutdown(Exception):
     pass
+
+
+def CreateZMQSocket(sock_type):
+    """Create a socket of the given sock_type and deactivate message dropping"""
+    sock = ZMQCommunicator.context.socket(sock_type)
+    sock.setsockopt(zmq.LINGER, 1000)
+    if zmq.zmq_version_info() >= (3, 0, 0):
+        sock.setsockopt(zmq.SNDHWM, 0)
+        sock.setsockopt(zmq.RCVHWM, 0)
+    return sock
 
 
 class ZMQCommunicator(object):
@@ -55,46 +66,40 @@ class ZMQCommunicator(object):
         s.close()
 
         # Create an inter-worker socket
-        self.direct_socket = ZMQCommunicator.context.socket(zmq.ROUTER)
-        self.direct_socket_port = self.direct_socket.bind_to_random_port(
-            "tcp://{0}".format(external_addr)
-        )
-        if zmq.zmq_version_info() >= (3, 0, 0):
-            self.direct_socket.setsockopt(zmq.SNDHWM, 0)
-            self.direct_socket.setsockopt(zmq.RCVHWM, 0)
-
-        # Set current worker name to the addr:port of the inter-worker socket
-        scoop.worker = "{addr}:{port}".format(
-            addr=external_addr,
-            port=self.direct_socket_port,
-        )
-
-        if sys.version_info < (3,):
-            self.direct_socket.setsockopt_string(zmq.IDENTITY, unicode(scoop.worker))
-        else:
-            self.direct_socket.setsockopt_string(zmq.IDENTITY, scoop.worker)
+        self.direct_socket_peers = []
+        self.direct_socket = CreateZMQSocket(zmq.ROUTER)
+        # TODO: This doesn't seems to be respected in the ROUTER socket
+        self.direct_socket.setsockopt(zmq.SNDTIMEO, 0)
+        # Code stolen from pyzmq's bind_to_random_port() from sugar/socket.py
+        for i in range(100):
+            try:
+                self.direct_socket_port = random.randrange(49152, 65536)
+                # Set current worker inter-worker socket name to its addr:port
+                scoop.worker = "{addr}:{port}".format(
+                    addr=external_addr,
+                    port=self.direct_socket_port,
+                ).encode()
+                self.direct_socket.setsockopt(zmq.IDENTITY, scoop.worker)
+                self.direct_socket.bind("tcp://*:{0}".format(
+                    self.direct_socket_port,
+                ))
+            except ZMQError as exception:
+                if not exception.errno == zmq.EADDRINUSE:
+                    raise
+            else:
+                break
 
         # socket for the futures, replies and request
-        self.socket = ZMQCommunicator.context.socket(zmq.DEALER)
-        if zmq.zmq_version_info() >= (3, 0, 0):
-            self.socket.setsockopt(zmq.RCVHWM, 0)
-            self.socket.setsockopt(zmq.SNDHWM, 0)
-
-        if sys.version_info < (3,):
-            self.socket.setsockopt_string(zmq.IDENTITY, unicode(scoop.worker))
-        else:
-            self.socket.setsockopt_string(zmq.IDENTITY, scoop.worker)
+        self.socket = CreateZMQSocket(zmq.DEALER)
+        self.socket.setsockopt(zmq.IDENTITY, scoop.worker)
 
         # socket for the shutdown signal
-        self.infoSocket = ZMQCommunicator.context.socket(zmq.SUB)
-        if zmq.zmq_version_info() >= (3, 0, 0):
-            self.infoSocket.setsockopt(zmq.RCVHWM, 0)
-            self.infoSocket.setsockopt(zmq.SNDHWM, 0)
+        self.infoSocket = CreateZMQSocket(zmq.SUB)
         
-        # Set pollers
+        # Set poller
         self.task_poller = zmq.Poller()
-        self.task_poller.register(self.direct_socket, zmq.POLLIN)
         self.task_poller.register(self.socket, zmq.POLLIN)
+        self.task_poller.register(self.direct_socket, zmq.POLLIN)
 
         self._addBroker(scoop.BROKER)
 
@@ -122,6 +127,15 @@ class ZMQCommunicator(object):
 
         self.OPEN = True
 
+    def addPeer(self, peer):
+        if peer not in self.direct_socket_peers:
+            self.direct_socket_peers.append(peer)
+            new_peer = "tcp://{0}".format(peer.decode("utf-8"))
+            self.direct_socket.connect(new_peer)
+            # Wait for zmq socket stabilize
+            # TODO: Find another (asynchronous) way to know when it's stable
+            time.sleep(0.05)
+
     def _addBroker(self, brokerEntry):
         # Add a broker to the socket and the infosocket.
         broker_address = "tcp://{hostname}:{port}".format(
@@ -142,15 +156,18 @@ class ZMQCommunicator(object):
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
-        return self.task_poller.poll(timeout)
+        a = self.task_poller.poll(timeout)
+        return a
 
     def _recv(self):
         # Prioritize answers over new tasks
-        if zmq.POLLIN & self.direct_socket.poll(0):
+        if self.direct_socket.poll(0):
             msg = self.direct_socket.recv_multipart()
+            # Remove the sender address
+            msg = msg[1:]
         else:
             msg = self.socket.recv_multipart()
-
+            
         try:
             thisFuture = pickle.loads(msg[1])
         except AttributeError as e:
@@ -162,6 +179,11 @@ class ZMQCommunicator(object):
                 )
             )
             raise ReferenceBroken(e)
+
+        # Try to connect directly to this worker to send the result afterwards
+        if msg[0] == b"TASK":
+            self.addPeer(thisFuture.id.worker)
+            
         isCallable = callable(thisFuture.callable)
         isDone = thisFuture._ended()
         if not isCallable and not isDone:
@@ -180,7 +202,7 @@ class ZMQCommunicator(object):
         return thisFuture
 
     def pumpInfoSocket(self):
-        while zmq.POLLIN & self.infoSocket.poll(0):
+        while self.infoSocket.poll(0):
             msg = self.infoSocket.recv_multipart()
             if msg[0] == b"SHUTDOWN":
                 if scoop.IS_ORIGIN is False:
@@ -265,12 +287,24 @@ class ZMQCommunicator(object):
 
     def sendResult(self, future):
         future.callable = None
-        self.socket.send_multipart([
+
+        # Try to send the result directly to its parent
+        self.addPeer(future.id.worker)
+
+        self.direct_socket.send_multipart([
+            future.id.worker,
             b"REPLY",
             pickle.dumps(future,
                          pickle.HIGHEST_PROTOCOL),
-            future.id.worker.encode(),
         ])
+
+        # TODO: Fallback on Broker routing if no direct connection possible
+        #self.socket.send_multipart([
+        #    b"REPLY",
+        #    pickle.dumps(future,
+        #                 pickle.HIGHEST_PROTOCOL),
+        #    future.id.worker,
+        #])
 
     def sendVariable(self, key, value):
         self.socket.send_multipart([b"VARIABLE",

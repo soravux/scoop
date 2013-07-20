@@ -70,6 +70,7 @@ class Broker(object):
 
         # zmq Socket for the tasks, replies and request.
         self.taskSocket = self.context.socket(zmq.ROUTER)
+        self.taskSocket.setsockopt(zmq.LINGER, 1000)
         self.tSockPort = 0
         if tSock[-2:] == ":*":
             self.tSockPort = self.taskSocket.bind_to_random_port(tSock[:-2])
@@ -79,6 +80,7 @@ class Broker(object):
 
         # zmq Socket for the pool informations
         self.infoSocket = self.context.socket(zmq.PUB)
+        self.infoSocket.setsockopt(zmq.LINGER, 1000)
         self.infoSockPort = 0
         if mSock[-2:] == ":*":
             self.infoSockPort = self.infoSocket.bind_to_random_port(mSock[:-2])
@@ -157,7 +159,7 @@ class Broker(object):
         """Redirects messages until a shutdown message is received.
         """
         while True:
-            if not (zmq.POLLIN & self.taskSocket.poll(-1)):
+            if not self.taskSocket.poll(-1):
                 continue
 
             msg = self.taskSocket.recv_multipart()
