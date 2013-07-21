@@ -35,8 +35,7 @@ TASK = b"TASK"
 REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
-ERASEBUFFER = b"ERASEBUFFER"
-WORKERDOWN = b"WORKERDOWN"
+TASKEND = b"TASKEND"
 BROKER_INFO = b"BROKER_INFO"
 # Broker interconnection
 CONNECT = b"CONNECT"
@@ -117,6 +116,7 @@ class Broker(object):
         # The busy workers variable will contain a dict (map) of workers: task
         self.availableWorkers = deque()
         self.unassignedTasks = deque()
+        self.groupTasks = {}
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
@@ -172,7 +172,7 @@ class Broker(object):
                                    len(self.availableWorkers)))
 
             # New task inbound
-            if msg_type == TASK:
+            if msg_type in TASK:
                 task = msg[2]
                 try:
                     address = self.availableWorkers.popleft()
@@ -233,15 +233,14 @@ class Broker(object):
 
             # Clean the buffers when a coherent (mapReduce/mapScan)
             # operation terminates
-            elif msg_type == ERASEBUFFER:
-                groupID = msg[2]
-                self.infoSocket.send_multipart([ERASEBUFFER,
-                                                groupID])
-
-            # A worker is leaving the pool
-            elif msg_type == WORKERDOWN:
-                # TODO
-                pass
+            elif msg_type == TASKEND:
+                askResult = msg[2]
+                groupID = msg[3]
+                self.infoSocket.send_multipart([
+                    TASKEND,
+                    askResult,
+                    groupID,
+                ])
 
             # Add a given broker to its fellow list
             elif msg_type == CONNECT:

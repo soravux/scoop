@@ -180,12 +180,12 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
     launches = []
-    thisCallbackGroupID = next(callbackGroupID)
+    groupID = next(callbackGroupID)
     for args in zip(*iterables):
-        child = Future(control.current.id, mapFunc, *args)
+        child = _createFuture(mapFunc, *args)
         child.add_done_callback(partial(reduction, operation=reductionOp),
                                 inCallbackType=CallbackType.universal,
-                                inCallbackGroup=thisCallbackGroupID)
+                                inCallbackGroup=groupID)
         control.futureDict[control.current.id].children[child] = None
         control.execQueue.append(child)
         launches.append(child)
@@ -194,8 +194,10 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     for future in _waitAll(*launches):
         workerResults.setdefault(future.executor, []).append(future.result())
     # Cleanup phase
-    control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
-    return workerResults
+    control.execQueue.socket.taskEnd(groupID)
+    return_value = list(elem[0] for elem in workerResults.values())
+    return_value.append(reduce(reductionOp, return_value))
+    return return_value
 
 
 @ensureScoopStartedProperly
@@ -222,25 +224,57 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     # TODO: make DRY with submit
     launches = []
     # Set a callback group ID for the Futures generated within this scope
-    thisCallbackGroupID = (control.current.id, next(callbackGroupID))
+    groupID = (control.current.id, next(callbackGroupID))
     for args in zip(*iterables):
-        child = Future(control.current.id, mapFunc, *args)
+        child = _createFuture(mapFunc, *args)
         child.add_done_callback(partial(reduction, operation=reductionOp),
                                 inCallbackType=CallbackType.universal,
-                                inCallbackGroup=thisCallbackGroupID)
+                                inCallbackGroup=groupID)
+        child.sendResultBack = False
         control.futureDict[control.current.id].children[child] = None
         control.execQueue.append(child)
         launches.append(child)
     workerResults = {}
 
-    # Execute the task
-    for future in sorted(_waitAll(*launches), key=lambda x: x.executor[1]):
-        workerResults[(future.executor[0], future.executor[2])] = future.result()
+    # Execute the task (wait for children to finish)
+    for future in _waitAny(*launches):
+        pass
+
+    # Process localy done tasks
+    scoop.reduction.answers[groupID][scoop.worker] = (
+        int(scoop.reduction.sequence[groupID]),
+        scoop.reduction.total[groupID],
+    )
 
     # Cleanup phase
-    control.execQueue.socket.eraseBuffer(thisCallbackGroupID)
-    return reduce(reductionOp, workerResults.values())
+    control.execQueue.socket.taskEnd(groupID)
 
+    # Reduce the results
+    while sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]) != len(launches):
+        control.execQueue.updateQueue()
+    workerResults = list(zip(*scoop.reduction.answers[groupID].values()))[1]
+    return reduce(reductionOp, workerResults)
+
+
+def _createFuture(func, *args):
+    """Helper function to create a future."""
+    assert callable(func), (
+        "The provided func parameter is not a callable."
+    )
+
+    # If function is a lambda or class method, share it (or its parent object)
+    # beforehand
+    lambdaType = type(lambda: None)
+    funcIsLambda = isinstance(func, lambdaType) and func.__name__ == '<lambda>'
+    # Determine if function is a method. Methods derived from external
+    # languages such as C++ aren't detected by ismethod and must be checked
+    # using isbuiltin and checked for a __self__.
+    funcIsMethod = ismethod(func) or isbuiltin(func)
+    funcIsInstanceMethod = funcIsMethod and hasattr(func, '__self__')
+    if funcIsLambda or funcIsInstanceMethod:
+        func = SharedElementEncapsulation(func)
+
+    return Future(control.current.id, func, *args)
 
 @ensureScoopStartedProperly
 def submit(func, *args):
@@ -260,23 +294,7 @@ def submit(func, *args):
     may carry on with any further computations while the Future completes.
     Result retrieval is made via the :meth:`~scoop._types.Future.result`
     function on the Future."""
-    assert callable(func), (
-        "The provided func parameter is not a callable."
-    )
-
-    # If function is a lambda or class method, share it (or its parent object)
-    # beforehand
-    lambdaType = type(lambda: None)
-    funcIsLambda = isinstance(func, lambdaType) and func.__name__ == '<lambda>'
-    # Determine if function is a method. Methods derived from external
-    # languages such as C++ aren't detected by ismethod and must be checked
-    # using isbuiltin and checked for a __self__.
-    funcIsMethod = ismethod(func) or isbuiltin(func)
-    funcIsInstanceMethod = funcIsMethod and hasattr(func, '__self__')
-    if funcIsLambda or funcIsInstanceMethod:
-        func = SharedElementEncapsulation(func)
-
-    child = Future(control.current.id, func, *args)
+    child = self._createFuture(func, *args)
 
     control.futureDict[control.current.id].children[child] = None
     control.execQueue.append(child)
@@ -372,8 +390,8 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
 
     elif timeout == 0:
         # Zero-value entry means non-blocking
-        scoop._control.execQueue.flush()
-        scoop._control.execQueue.updateQueue()
+        control.execQueue.flush()
+        control.execQueue.updateQueue()
         done = set(f for f in fs if f._ended())
         not_done = set(fs) - done
         return DoneAndNotDoneFutures(done, not_done)
@@ -384,11 +402,11 @@ def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
         start_time = time.time()
         while time.time() - start_time < timeout:
             # Flush futures on local queue (to be executed remotely)
-            scoop._control.execQueue.flush()
+            control.execQueue.flush()
             # Block until data arrives (to free CPU time)
-            scoop._control.execQueue.socket._poll(time.time() - start_time)
+            control.execQueue.socket._poll(time.time() - start_time)
             # Update queue
-            scoop._control.execQueue.updateQueue()
+            control.execQueue.updateQueue()
 
             for f in fs:
                 if f._ended():

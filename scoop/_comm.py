@@ -24,7 +24,6 @@ except ImportError:
     import pickle
 
 import zmq
-from zmq.error import ZMQError
 
 import scoop
 from . import shared, encapsulation
@@ -83,9 +82,11 @@ class ZMQCommunicator(object):
                 self.direct_socket.bind("tcp://*:{0}".format(
                     self.direct_socket_port,
                 ))
-            except ZMQError as exception:
-                if not exception.errno == zmq.EADDRINUSE:
-                    raise
+            except:
+                # Except on ZMQError with a check on EADDRINUSE should go here
+                # but its definition is not consistent in pyzmq over multiple
+                # versions
+                pass
             else:
                 break
 
@@ -156,8 +157,7 @@ class ZMQCommunicator(object):
 
     def _poll(self, timeout):
         self.pumpInfoSocket()
-        a = self.task_poller.poll(timeout)
-        return a
+        return self.task_poller.poll(timeout)
 
     def _recv(self):
         # Prioritize answers over new tasks
@@ -167,7 +167,13 @@ class ZMQCommunicator(object):
             msg = msg[1:]
         else:
             msg = self.socket.recv_multipart()
-            
+        
+        # Handle group (reduction) replies
+        if msg[1] == b"GROUP":
+            data = pickle.loads(msg[2])
+            scoop.reduction.answers[data[0]][msg[0]] = (data[1], data[2])
+            return
+
         try:
             thisFuture = pickle.loads(msg[1])
         except AttributeError as e:
@@ -219,10 +225,14 @@ class ZMQCommunicator(object):
                 varName = pickle.loads(msg[1])
                 shared.elements.setdefault(key, {}).update({varName: varValue})
                 self.convertVariable(key, varName, varValue)
-            elif msg[0] == b"ERASEBUFFER":
-                scoop.reduction.cleanGroupID(pickle.loads(msg[1]))
+            elif msg[0] == b"TASKEND":
+                source_addr = pickle.loads(msg[1])
+                if source_addr and source_addr != scoop.worker:
+                    # If results are asked
+                    self.sendGroupedResult(msg[1], msg[2])
+                scoop.reduction.cleanGroupID(pickle.loads(msg[2]))
             elif msg[0] == b"BROKER_INFO":
-                #TODO: find out what to do here ...
+                # TODO: find out what to do here ...
                 if len(self.broker_set) == 0: # The first update
                     self.broker_set.add(pickle.loads(msg[1]))
                 if len(self.broker_set) < self.number_of_broker:
@@ -263,7 +273,9 @@ class ZMQCommunicator(object):
 
     def recvFuture(self):
         while self._poll(0):
-            yield self._recv()
+            received = self._recv()
+            if received:
+                yield received
 
     def sendFuture(self, future):
         try:
@@ -286,17 +298,42 @@ class ZMQCommunicator(object):
             future.callable = previousCallable
 
     def sendResult(self, future):
-        future.callable = None
+        # Remove (now) extraneous elements from future class
+        future.callable = future.args = future.greenlet =  None
+        
+        if not future.sendResultBack:
+            # Don't reply back the result if it isn't asked
+            future.resultValue = None
 
+        self._sendReply(
+            future.id.worker,
+            pickle.dumps(
+                future,
+                pickle.HIGHEST_PROTOCOL,
+            ),
+        )
+
+    def sendGroupedResult(self, destination, group_id):
+        self._sendReply(
+            destination,
+            b"GROUP",
+            pickle.dumps([
+                group_id,
+                int(scoop.reduction.sequence[group_id]),
+                scoop.reduction.total[group_id],
+            ], pickle.HIGHEST_PROTOCOL),
+        )
+
+    def _sendReply(self, destination, *args):
+        """Send a REPLY directly to its destination. If it doesn't work, launch
+        it back to the broker."""
         # Try to send the result directly to its parent
-        self.addPeer(future.id.worker)
+        self.addPeer(destination)
 
         self.direct_socket.send_multipart([
-            future.id.worker,
+            destination,
             b"REPLY",
-            pickle.dumps(future,
-                         pickle.HIGHEST_PROTOCOL),
-        ])
+        ] + list(args))
 
         # TODO: Fallback on Broker routing if no direct connection possible
         #self.socket.send_multipart([
@@ -314,10 +351,18 @@ class ZMQCommunicator(object):
                                     pickle.dumps(scoop.worker,
                                                  pickle.HIGHEST_PROTOCOL)])
 
-    def eraseBuffer(self, groupID):
-        self.socket.send_multipart([b"ERASEBUFFER",
-                                    pickle.dumps(groupID,
-                                                 pickle.HIGHEST_PROTOCOL)])
+    def taskEnd(self, groupID, askResults=False):
+        self.socket.send_multipart([
+            b"TASKEND",
+            pickle.dumps(
+                askResults,
+                pickle.HIGHEST_PROTOCOL
+            ),
+            pickle.dumps(
+                groupID,
+                pickle.HIGHEST_PROTOCOL
+            ),
+        ])
 
     def sendRequest(self):
         for _ in range(len(self.broker_set)):

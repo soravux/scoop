@@ -98,6 +98,7 @@ def setConst(**kwargs):
         else:
             sendVariable(key, value)
 
+
 def getConst(name, timeout=0.1):
     """Get a shared constant.
 
@@ -118,9 +119,11 @@ def getConst(name, timeout=0.1):
         _control.execQueue.socket.pumpInfoSocket()
 
         # Constants concatenation
-        constants = dict(reduce(lambda x, y: x + list(y.items()),
-                                elements.values(),
-                                []))
+        constants = dict(reduce(
+            lambda x, y: x + list(y.items()),
+            elements.values(),
+            []
+        ))
         timeoutHappened = time.time() - timeStamp > timeout
         if constants.get(name) is not None or timeoutHappened:
             return constants.get(name)

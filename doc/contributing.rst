@@ -76,3 +76,25 @@ Naming Conventions
 If a name already exists in the standard library, an underscore is appended to
 it. (ie. a custom `range` function could be called `range_`. A custom `type`
 function could be called `type_`.)
+
+
+Architecture
+------------
+
+Communication protocols
++++++++++++++++++++++++
+
+Here are the message types from the point of view of a broker. Message coming from workers are always from their Task socket.
+
+============ ====== ================== ====================
+Message name Socket Arguments          Description
+INIT         Task                      Handshake from a worker: allows a broker to recognize a new worker and propagate the currently shared variables.
+CONNECT      Task   Addresses          Notify a broker of the existence of other brokers.
+REQUEST      Task                      Worker requesting task(s).
+TASK         Task   Task               A task (future) to be executed.
+REPLY        Task*  Task, Destination  The result of a task to be sent to its parent. Communicated directly between workers if possible.
+SHUTDOWN     Info                      Request a shutdown of the entire worker pool.
+VARIABLE     Info   Key, Value, Source A worker requested the share of a variable. The broker propagates it to its fellow workers.
+TASKEND      Info   askResult, groupID A collaborative task (scan, reduce, etc.) have ended, memory can be freed on workers.
+BROKER_INFO  Info                      Propagate information about other brokers to workers.
+============ ====== ================== ====================
