@@ -80,10 +80,6 @@ class Host(object):
         if worker.pythonPath:
             # TODO: do we really want to set PYTHONPATH='' if not defined??
             c.extend(["export", "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath), '&&'])
-
-        # Try to go into the directory. If headless worker, it's not important
-        if worker.executable:
-            c.extend(['cd', worker.path, "&&"])
         return c
 
     def _WorkerCommand_bootstrap(self, worker):
@@ -108,6 +104,7 @@ class Host(object):
         if worker.nice is not None:
             c.extend(['--nice', str(worker.nice)])
         c.extend(['--size', str(worker.size)])
+        c.extend(['--workingDirectory', str(worker.path)])
         c.extend(['--brokerHostname', broker])
         c.extend(['--taskPort', str(worker.brokerPorts[0])])
         c.extend(['--metaPort', str(worker.brokerPorts[1])])
@@ -142,11 +139,9 @@ class Host(object):
         c = []
         c.extend(self._WorkerCommand_environment(worker))
 
-        c.append('(')
         c.extend(self._WorkerCommand_bootstrap(worker))
         c.extend(self._WorkerCommand_options(worker, workerID))
         c.extend(self._WorkerCommand_executable(worker))
-        c.append(')')
 
         return c
 
@@ -172,11 +167,10 @@ class Host(object):
             # Launching local workers
             for workerID, workerToLaunch in enumerate(self.workersArguments):
                 # Launch one per subprocess
-                c = self.getWorkerCommand(workerID)
+                c = self._getWorkerCommandList(workerID)
                 self.subprocesses.append(
                     subprocess.Popen(
                         c,
-                        shell=True,
                         # stdin=subprocess.PIPE if stdPipe else None,
                         stdout=subprocess.PIPE if stdPipe else None,
                         stderr=subprocess.PIPE if stdPipe else None,
@@ -217,6 +211,16 @@ class Host(object):
 
         self.log.debug('Closing workers on {0}.'.format(self))
 
+        # Output child processes stdout and stderr to console
+        for process in self.subprocesses:
+            if process.stdout is not None:
+                sys.stdout.write(process.stdout.read().decode("utf-8"))
+                sys.stdout.flush()
+
+            if process.stderr is not None:
+                sys.stderr.write(process.stderr.read().decode("utf-8"))
+                sys.stderr.flush()
+
         # Terminate subprocesses
         for process in self.subprocesses:
             try:
@@ -236,13 +240,3 @@ class Host(object):
                              + [self.hostname]
                              + [command],
             ).wait()
-
-        # Output child processes stdout and stderr to console
-        for process in self.subprocesses:
-            if process.stdout is not None:
-                sys.stdout.write(process.stdout.read().decode("utf-8"))
-                sys.stdout.flush()
-
-            if process.stderr is not None:
-                sys.stderr.write(process.stderr.read().decode("utf-8"))
-                sys.stderr.flush()
