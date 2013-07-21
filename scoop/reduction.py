@@ -17,16 +17,35 @@
 import itertools
 from collections import defaultdict
 
+
+class Counter(object):
+    def __init__(self, *args):
+        self.iterator = itertools.count(*args)
+        self.current_value = next(self.iterator)
+
+    def __next__(self):
+        ret_val = self.current_value
+        self.current_value = next(self.iterator)
+        return ret_val
+
+    def __int__(self):
+        return self.current_value
+
+
 # Contains the reduction of every child ran on this worker
 total = {}
+# Contains the number of tasks reduced for this worker
 # Set the number of ran futures for a given group
-sequence = defaultdict(itertools.count)
+sequence = defaultdict(Counter)
+# Reception buffer upon task termination: group_id { worker id : (qty, result)}
+answers = defaultdict(dict)
 
 
 def reduction(inFuture, operation):
     """Generic reduction method. Subclass it (using partial() is recommended)
     to specify an operation or enhance its features if needed."""
     global total
+
     uniqueReferences = []
     try:
         for cb in inFuture.callback:
@@ -40,7 +59,6 @@ def reduction(inFuture, operation):
         else:
             total[uniqueReference] = operation(total[uniqueReference],
                                                inFuture.result())
-    # TODO: This is not stable
     inFuture.resultValue = total[uniqueReferences[0]]
 
 

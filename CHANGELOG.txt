@@ -1,3 +1,20 @@
+0.7.0-RC1 (2013/?/?)
+------------------
+
++ Fixed: Local launches could generate zombie processes
++ Added: map_as_completed() in the futures API interface
++ Added: Benchmark utilities
++ Improved: Documentation
++ Improved: mapReduce() now won't communicate intermediary results
++ Improved: Future results are now sent back directly to the worker awaiting for it
++ Improved: Various socket optimizations
+
+0.6.2 (2013/07/02)
+------------------
+
++ Fixed: Process cleanup on csh/tsh shell variants
++ Fixed: Using partials could crash - switched identifying a Future callable from __name__ to its hash()
+
 0.6.1 (2013/03/04)
 ------------------
 

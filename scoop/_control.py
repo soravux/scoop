@@ -212,7 +212,7 @@ def runController(callable_, *args, **kargs):
     future.greenlet = greenlet.greenlet(runFuture)
     future = future._switch(future)
 
-    while future.parentId != rootId or not future._ended() or not scoop.IS_ORIGIN:
+    while not scoop.IS_ORIGIN or future.parentId != rootId or not future._ended():
         # process future
         if future._ended():
             # future is finished

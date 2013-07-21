@@ -97,6 +97,7 @@ class Future(object):
         self.greenlet = None  # cooperative thread for running future
         self.resultValue = None  # future result
         self.exceptionValue = None  # exception raised by callable
+        self.sendResultBack = True
         self.isDone = False
         self.callback = []  # set callback
         self.children = {}  # set children list of the callable (dict for speedier delete)
@@ -342,11 +343,19 @@ class FutureQueue(object):
         Updates the local queue with elements from the broker."""
         for future in self.socket.recvFuture():
             if future._ended():
-                # If the answer is coming back, update its entries
-                thisFuture = scoop._control.futureDict[future.id]
+                # If the answer is coming back, update its entry
+                try:
+                    thisFuture = scoop._control.futureDict[future.id]
+                except KeyError:
+                    # Already received?
+                    scoop.logger.warn('{0}: Received an unexpected future: '
+                                      '{1}'.format(scoop.worker, future.id))
+                    continue
                 thisFuture.resultValue = future.resultValue
                 thisFuture.exceptionValue = future.exceptionValue
                 thisFuture.executor = future.executor
+                thisFuture.index = future.index
+                thisFuture.isDone = future.isDone
                 # Execute standard callbacks here (on parent)
                 thisFuture._execute_callbacks(CallbackType.standard)
                 self.append(thisFuture)
