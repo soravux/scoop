@@ -62,6 +62,10 @@ class Bootstrap(object):
 
         self.init_logging()
 
+        # Change to the desired directory
+        if self.args.workingDirectory:
+            os.chdir(self.args.workingDirectory)
+
         if not self.args.brokerHostname:
             self.log.info("Discovering SCOOP Brokers on network...")
             pools = discovery.Seek()
@@ -166,6 +170,10 @@ class Bootstrap(object):
         self.parser.add_argument('--echoGroup',
                                  help="Echo the process Group ID before launch",
                                  action='store_true')
+        self.parser.add_argument('--workingDirectory',
+                                 help="Set the working directory for the "
+                                      "execution",
+                                 default=None)
         self.parser.add_argument('executable',
                                  nargs='?',
                                  help='The executable to start with scoop')
