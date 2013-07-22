@@ -68,7 +68,7 @@ def func3(n):
 
 
 def func4(n):
-    result = n*n
+    result = n * n
     return result
 
 def funcLambda(n):
@@ -493,7 +493,7 @@ class TestCoherent(TestScoopCommon):
 
     def test_mapScan(self):
         result = futures._startup(funcMapScan, [10, 20, 30])
-        self.assertEqual(max(max(a for a in list(result.values()))), 1400)
+        self.assertEqual(max(result), 1400)
         self.assertEqual(len(scoop.reduction.total), 0)
 
 
