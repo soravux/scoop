@@ -98,9 +98,10 @@ class ZMQCommunicator(object):
         self.infoSocket = CreateZMQSocket(zmq.SUB)
         
         # Set poller
-        self.task_poller = zmq.Poller()
-        self.task_poller.register(self.socket, zmq.POLLIN)
-        self.task_poller.register(self.direct_socket, zmq.POLLIN)
+        self.poller = zmq.Poller()
+        self.poller.register(self.socket, zmq.POLLIN)
+        self.poller.register(self.direct_socket, zmq.POLLIN)
+        self.poller.register(self.infoSocket, zmq.POLLIN)
 
         self._addBroker(scoop.BROKER)
 
@@ -154,24 +155,23 @@ class ZMQCommunicator(object):
 
         self.broker_set.add(brokerEntry)
 
-
     def _poll(self, timeout):
         self.pumpInfoSocket()
-        return self.task_poller.poll(timeout)
+        return self.poller.poll(timeout)
 
     def _recv(self):
         # Prioritize answers over new tasks
         if self.direct_socket.poll(0):
-            msg = self.direct_socket.recv_multipart()
+            router_msg = self.direct_socket.recv_multipart()
             # Remove the sender address
-            msg = msg[1:]
+            msg = router_msg[1:]
         else:
             msg = self.socket.recv_multipart()
         
         # Handle group (reduction) replies
         if msg[1] == b"GROUP":
             data = pickle.loads(msg[2])
-            scoop.reduction.answers[data[0]][msg[0]] = (data[1], data[2])
+            scoop.reduction.answers[data[0]][router_msg[0]] = (data[1], data[2])
             return
 
         try:
@@ -229,7 +229,7 @@ class ZMQCommunicator(object):
                 source_addr = pickle.loads(msg[1])
                 if source_addr and source_addr != scoop.worker:
                     # If results are asked
-                    self.sendGroupedResult(msg[1], msg[2])
+                    self.sendGroupedResult(source_addr, pickle.loads(msg[2]))
                 scoop.reduction.cleanGroupID(pickle.loads(msg[2]))
             elif msg[0] == b"BROKER_INFO":
                 # TODO: find out what to do here ...
@@ -298,6 +298,7 @@ class ZMQCommunicator(object):
             future.callable = previousCallable
 
     def sendResult(self, future):
+        """Send a terminated future back to its parent."""
         # Remove (now) extraneous elements from future class
         future.callable = future.args = future.greenlet =  None
         
@@ -314,13 +315,14 @@ class ZMQCommunicator(object):
         )
 
     def sendGroupedResult(self, destination, group_id):
+        """Send a reduction result."""
         self._sendReply(
             destination,
             b"GROUP",
             pickle.dumps([
                 group_id,
                 int(scoop.reduction.sequence[group_id]),
-                scoop.reduction.total[group_id],
+                scoop.reduction.total.get(group_id),
             ], pickle.HIGHEST_PROTOCOL),
         )
 

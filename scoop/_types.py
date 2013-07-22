@@ -354,7 +354,6 @@ class FutureQueue(object):
                 thisFuture.resultValue = future.resultValue
                 thisFuture.exceptionValue = future.exceptionValue
                 thisFuture.executor = future.executor
-                thisFuture.index = future.index
                 thisFuture.isDone = future.isDone
                 # Execute standard callbacks here (on parent)
                 thisFuture._execute_callbacks(CallbackType.standard)
