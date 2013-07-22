@@ -237,21 +237,27 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     workerResults = {}
 
     # Execute the task (wait for children to finish)
+    control.execQueue.updateQueue()
     for future in _waitAny(*launches):
         pass
 
-    # Process localy done tasks
-    scoop.reduction.answers[groupID][scoop.worker] = (
-        int(scoop.reduction.sequence[groupID]),
-        scoop.reduction.total[groupID],
-    )
+    # Process locally done tasks
+    if groupID in scoop.reduction.total:
+        scoop.reduction.answers[groupID][scoop.worker] = (
+            int(scoop.reduction.sequence[groupID]),
+            scoop.reduction.total[groupID],
+        )
 
     # Cleanup phase
-    control.execQueue.socket.taskEnd(groupID)
+    control.execQueue.socket.taskEnd(groupID, askResults=scoop.worker)
 
     # Reduce the results
-    while sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]) != len(launches):
+    while groupID not in scoop.reduction.answers \
+    or sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]) != len(launches):
         control.execQueue.updateQueue()
+        # TODO: This should be be decoupled
+        control.execQueue.socket.pumpInfoSocket()
+
     workerResults = list(zip(*scoop.reduction.answers[groupID].values()))[1]
     return reduce(reductionOp, workerResults)
 
