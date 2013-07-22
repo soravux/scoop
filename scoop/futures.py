@@ -300,7 +300,7 @@ def submit(func, *args):
     may carry on with any further computations while the Future completes.
     Result retrieval is made via the :meth:`~scoop._types.Future.result`
     function on the Future."""
-    child = self._createFuture(func, *args)
+    child = _createFuture(func, *args)
 
     control.futureDict[control.current.id].children[child] = None
     control.execQueue.append(child)
