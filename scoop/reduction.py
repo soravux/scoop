@@ -23,6 +23,10 @@ class Counter(object):
         self.iterator = itertools.count(*args)
         self.current_value = next(self.iterator)
 
+    def next(self):
+        """Support for Python 2."""
+        self.__next__()
+
     def __next__(self):
         ret_val = self.current_value
         self.current_value = next(self.iterator)
