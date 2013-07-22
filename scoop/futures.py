@@ -178,7 +178,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
         `Timeout usage`_. 
 
     :returns: Every return value of the reduction function applied to every
-              mapped data sequentially ordered."""
+              mapped data. Output may be randomly ordered."""
     launches = []
     groupID = next(callbackGroupID)
     for args in zip(*iterables):
@@ -189,15 +189,17 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
         control.futureDict[control.current.id].children[child] = None
         control.execQueue.append(child)
         launches.append(child)
-    workerResults = {}
+    results = []
+
     # Execute the task
     for future in _waitAll(*launches):
-        workerResults.setdefault(future.executor, []).append(future.result())
+        results.append((future.executor, future.result()))
+
     # Cleanup phase
     control.execQueue.socket.taskEnd(groupID)
-    return_value = list(elem[0] for elem in workerResults.values())
-    return_value.append(reduce(reductionOp, return_value))
-    return return_value
+
+    # Re-order
+    return list(zip(*sorted(results, key=lambda x: (x[0]))))[1]
 
 
 @ensureScoopStartedProperly
