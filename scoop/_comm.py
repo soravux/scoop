@@ -26,7 +26,7 @@ except ImportError:
 import zmq
 
 import scoop
-from . import shared, encapsulation
+from . import shared, encapsulation, utils
 from .shared import SharedElementEncapsulation
 
 
@@ -60,9 +60,12 @@ class ZMQCommunicator(object):
 
         # Get the current address of the interface facing the broker
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect((scoop.BROKER.hostname, scoop.BROKER.task_port))
+        s.connect((scoop.BROKER.externalHostname, scoop.BROKER.task_port))
         external_addr = s.getsockname()[0]
         s.close()
+
+        if external_addr in utils.loopbackReferences:
+            external_addr = scoop.BROKER.externalHostname
 
         # Create an inter-worker socket
         self.direct_socket_peers = []
@@ -89,6 +92,8 @@ class ZMQCommunicator(object):
                 pass
             else:
                 break
+        else:
+            raise Exception("Could not create direct connection socket")
 
         # socket for the futures, replies and request
         self.socket = CreateZMQSocket(zmq.DEALER)

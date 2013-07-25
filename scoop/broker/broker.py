@@ -40,7 +40,10 @@ BROKER_INFO = b"BROKER_INFO"
 # Broker interconnection
 CONNECT = b"CONNECT"
 
-BrokerInfo = namedtuple('BrokerInfo', ['hostname', 'task_port', 'info_port'])
+BrokerInfo = namedtuple('BrokerInfo', ['hostname',
+                                       'task_port',
+                                       'info_port',
+                                       'externalHostname'])
 
 class LaunchingError(Exception): pass
 
