@@ -276,7 +276,8 @@ class TestScoopCommon(unittest.TestCase):
         scoop.BROKER_NAME = 'broker'.encode()
         scoop.BROKER = BrokerInfo("127.0.0.1",
                                   5555,
-                                  5556)
+                                  5556,
+                                  "127.0.0.1")
         scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.MAIN_MODULE = "tests.py"
         scoop.VALID = True
