@@ -56,11 +56,9 @@ The following objects are available to a program that was launched using SCOOP.
 Constants               Description
 ====================    ====================================================================
 scoop.IS_ORIGIN         Boolean value. True if current instance is the root worker.
-scoop.BROKER_ADDRESS    String value. Address of the socket communicating work information.
-scoop.META_ADDRESS      String value. Address of the socket communicating meta information.
-scoop.SIZE              Integer value. Size of the current worker pool.
+scoop.BROKER            broker.broker.BrokerInfo namedtuple. Address, ports and hostname of the broker.
 scoop.DEBUG             Boolean value. True if debug mode is enabled, false otherwise.
 scoop.IS_RUNNING        Boolean value. True if SCOOP is currently running, false otherwise.
 scoop.worker            2-tuple. Unique identifier of the current instance in the pool.
-scoop.logger            Logger object. Provides log formatting and redirection facilities. See the `official documentation <http://docs.python.org/2/library/logging.html#logging.Logger>`_ for more informations on its usage.
+scoop.logger            Logger object. Provides log formatting and redirection facilities. See the `official documentation <http://docs.python.org/2/library/logging.html#logging.Logger>`_ for more information on its usage.
 ====================    ====================================================================

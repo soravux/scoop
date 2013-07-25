@@ -33,8 +33,8 @@ class Host(object):
         'launchingArguments',
         [
             'pythonPath', 'path', 'nice', 'pythonExecutable', 'size', 'origin',
-            'brokerHostname', 'brokerPorts', 'debug', 'profiling',
-            'executable', 'args',
+            'brokerHostname', 'brokerPorts', 'debug', 'profiling', 'executable',
+            'args',
         ]
     )
 
@@ -106,6 +106,7 @@ class Host(object):
         c.extend(['--size', str(worker.size)])
         c.extend(['--workingDirectory', str(worker.path)])
         c.extend(['--brokerHostname', broker])
+        c.extend(['--externalBrokerHostname', worker.brokerHostname])
         c.extend(['--taskPort', str(worker.brokerPorts[0])])
         c.extend(['--metaPort', str(worker.brokerPorts[1])])
         if worker.origin and worker.executable:

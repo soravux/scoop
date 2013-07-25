@@ -147,6 +147,10 @@ class Bootstrap(object):
         self.parser.add_argument('--brokerHostname',
                                  help="The routable hostname of a broker",
                                  default="")
+        self.parser.add_argument('--externalBrokerHostname',
+                                 help="Externally routable hostname of local "
+                                      "worker",
+                                 default="")
         self.parser.add_argument('--taskPort',
                                  help="The port of the broker task socket",
                                  type=int)
@@ -192,9 +196,14 @@ class Bootstrap(object):
         """Setup the SCOOP constants."""
         scoop.IS_RUNNING = True
         scoop.IS_ORIGIN = self.args.origin
-        scoop.BROKER = BrokerInfo(self.args.brokerHostname,
-                                  self.args.taskPort,
-                                  self.args.metaPort)
+        scoop.BROKER = BrokerInfo(
+            self.args.brokerHostname,
+            self.args.taskPort,
+            self.args.metaPort,
+            self.args.externalBrokerHostname
+                if self.args.externalBrokerHostname
+                else self.args.brokerHostname,
+        )
         scoop.SIZE = self.args.size
         scoop.DEBUG = self.args.debug
         scoop.MAIN_MODULE = self.args.executable
