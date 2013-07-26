@@ -43,9 +43,15 @@ def CreateZMQSocket(sock_type):
     """Create a socket of the given sock_type and deactivate message dropping"""
     sock = ZMQCommunicator.context.socket(sock_type)
     sock.setsockopt(zmq.LINGER, 1000)
+
+    # Remove message dropping
     if zmq.zmq_version_info() >= (3, 0, 0):
         sock.setsockopt(zmq.SNDHWM, 0)
         sock.setsockopt(zmq.RCVHWM, 0)
+
+        # Don't accept unroutable messages
+        if sock_type == zmq.ROUTER:
+            sock.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
     return sock
 
 
@@ -139,9 +145,6 @@ class ZMQCommunicator(object):
             self.direct_socket_peers.append(peer)
             new_peer = "tcp://{0}".format(peer.decode("utf-8"))
             self.direct_socket.connect(new_peer)
-            # Wait for zmq socket stabilize
-            # TODO: Find another (asynchronous) way to know when it's stable
-            time.sleep(0.05)
 
     def _addBroker(self, brokerEntry):
         # Add a broker to the socket and the infosocket.
@@ -337,18 +340,19 @@ class ZMQCommunicator(object):
         # Try to send the result directly to its parent
         self.addPeer(destination)
 
-        self.direct_socket.send_multipart([
-            destination,
-            b"REPLY",
-        ] + list(args))
-
-        # TODO: Fallback on Broker routing if no direct connection possible
-        #self.socket.send_multipart([
-        #    b"REPLY",
-        #    pickle.dumps(future,
-        #                 pickle.HIGHEST_PROTOCOL),
-        #    future.id.worker,
-        #])
+        try:
+            self.direct_socket.send_multipart([
+                destination,
+                b"REPLY",
+            ] + list(args),
+                flags=zmq.NOBLOCK)
+        except zmq.error.ZMQError as e:
+            # Fallback on Broker routing if no direct connection possible
+            self.socket.send_multipart([
+                b"REPLY", 
+                ] + list(args) + [
+                destination,
+            ])
 
     def sendVariable(self, key, value):
         self.socket.send_multipart([b"VARIABLE",
