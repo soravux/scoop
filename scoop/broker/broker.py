@@ -90,18 +90,18 @@ class Broker(object):
             self.infoSocket.bind(mSock)
             self.infoSockPort = mSock.split(":")[-1]
 
-        if zmq.zmq_version_info() >= (3, 0, 0):
-            self.taskSocket.setsockopt(zmq.SNDHWM, 0)
-            self.taskSocket.setsockopt(zmq.RCVHWM, 0)
-            self.infoSocket.setsockopt(zmq.SNDHWM, 0)
-            self.infoSocket.setsockopt(zmq.RCVHWM, 0)
+        self.taskSocket.setsockopt(zmq.SNDHWM, 0)
+        self.taskSocket.setsockopt(zmq.RCVHWM, 0)
+        self.infoSocket.setsockopt(zmq.SNDHWM, 0)
+        self.infoSocket.setsockopt(zmq.RCVHWM, 0)
 
         # Init connection to fellow brokers
         self.clusterSocket = self.context.socket(zmq.DEALER)
         self.clusterSocket.setsockopt_string(zmq.IDENTITY, self.getName())
-        if zmq.zmq_version_info() >= (3, 0, 0):
-            self.clusterSocket.setsockopt(zmq.RCVHWM, 0)
-            self.clusterSocket.setsockopt(zmq.SNDHWM, 0)
+            
+        self.clusterSocket.setsockopt(zmq.RCVHWM, 0)
+        self.clusterSocket.setsockopt(zmq.SNDHWM, 0)
+
         self.cluster = []
         self.clusterAvailable = set()
 

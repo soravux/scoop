@@ -45,13 +45,12 @@ def CreateZMQSocket(sock_type):
     sock.setsockopt(zmq.LINGER, 1000)
 
     # Remove message dropping
-    if zmq.zmq_version_info() >= (3, 0, 0):
-        sock.setsockopt(zmq.SNDHWM, 0)
-        sock.setsockopt(zmq.RCVHWM, 0)
+    sock.setsockopt(zmq.SNDHWM, 0)
+    sock.setsockopt(zmq.RCVHWM, 0)
 
-        # Don't accept unroutable messages
-        if sock_type == zmq.ROUTER:
-            sock.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
+    # Don't accept unroutable messages
+    if sock_type == zmq.ROUTER:
+        sock.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
     return sock
 
 
