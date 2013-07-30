@@ -256,17 +256,9 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     # Reduce the results
     while groupID not in scoop.reduction.answers \
     or sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]) != len(launches):
+        control.execQueue.socket._poll(0)
         control.execQueue.updateQueue()
-        # TODO: This should be be decoupled
-        control.execQueue.socket.pumpInfoSocket()
-        # TODO: Sleep here
-        print(sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]))
-        print(scoop.reduction.answers[groupID])
-        import time
-        time.sleep(1)
 
-    workerResults = list(zip(*scoop.reduction.answers[groupID].values()))[1]
-    print(workerResults)
     return scoop.reduction.total.get(groupID).resultValue
 
 
