@@ -15,6 +15,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import itertools
+import copy
 from collections import defaultdict
 
 import scoop
@@ -33,6 +34,11 @@ class Counter(object):
         ret_val = self.current_value
         self.current_value = next(self.iterator)
         return ret_val
+
+    def __add__(self, other):
+        for _ in range(other):
+            self.__next__()
+        return self
 
     def __int__(self):
         return self.current_value
@@ -73,11 +79,13 @@ def reduction(inFuture, operation):
         # This section can not be a defaultdict because the reduction answer
         # could be any data structure.
         if uniqueReference not in total:
-            total[uniqueReference] = inFuture.result()
+            total[uniqueReference] = inFuture
         else:
-            total[uniqueReference] = operation(total[uniqueReference],
-                                               inFuture.result())
-    inFuture.resultValue = total[uniqueReferences[0]]
+            inFuture.resultValue = operation(
+                total[uniqueReference].resultValue,
+                inFuture.result(),
+            )
+            total[uniqueReference] = copy.copy(inFuture)
 
 
 class ReductionTree(object):
@@ -114,7 +122,10 @@ class ReductionTree(object):
             return None
 
     def get_my_children(self):
-        return [x.payload for x in self.dfs(scoop.worker).children if x.payload]
+        my_node = self.dfs(scoop.worker)
+
+        if my_node:
+            return [x.payload for x in my_node.children if x.payload]
 
 
 def cleanGroupID(inGroupID):

@@ -256,12 +256,10 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     # Reduce the results
     while groupID not in scoop.reduction.answers \
     or sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]) != len(launches):
+        control.execQueue.socket._poll(0)
         control.execQueue.updateQueue()
-        # TODO: This should be be decoupled
-        control.execQueue.socket.pumpInfoSocket()
 
-    workerResults = list(zip(*scoop.reduction.answers[groupID].values()))[1]
-    return reduce(reductionOp, workerResults)
+    return scoop.reduction.total.get(groupID).resultValue
 
 
 def _createFuture(func, *args):
