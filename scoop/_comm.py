@@ -172,17 +172,20 @@ class ZMQCommunicator(object):
         if self.direct_socket.poll(0):
             router_msg = self.direct_socket.recv_multipart()
             # Remove the sender address
-            msg = router_msg[1:]
+            msg = router_msg[1:] + [router_msg[0]]
         else:
             msg = self.socket.recv_multipart()
         
         # Handle group (reduction) replies
         if msg[1] == b"GROUP":
-            print(scoop.worker, "Received!")
             data = pickle.loads(msg[2])
-            reduction.answers[data[0]][router_msg[0]] = (data[1], data[2])
-            data[2]._execute_callbacks("universal")
-            reduction.sequence[data[0]] += data[1]
+            group_id = data[0]
+            execution_qty = data[1]
+            future = data[2]
+            worker_address = msg[-1]
+            reduction.answers[group_id][worker_address] = (execution_qty, future)
+            future._execute_callbacks("universal")
+            reduction.sequence[group_id] += execution_qty
             self.processGroupTasks()
             return
 
@@ -245,7 +248,6 @@ class ZMQCommunicator(object):
             not_waiting_anymore_results = not sources
             destination_is_not_us = groupID in reduction.comm_dst
             if not_waiting_anymore_results and destination_is_not_us:
-                print(scoop.worker, "sending", reduction.comm_dst.get(groupID))
                 self.sendGroupedResult(
                     reduction.comm_dst[groupID], groupID
                 )
@@ -277,6 +279,9 @@ class ZMQCommunicator(object):
                     worker_list.remove(source_addr)
                 except:
                     pass
+                # Check if we've worked on the task; otherwise don't do anything
+                if not scoop.worker in worker_list + [source_addr]:
+                    continue
                 if source_addr:
                     # If results are asked
                     reduction_tree = reduction.ReductionTree(
@@ -284,14 +289,10 @@ class ZMQCommunicator(object):
                     )
                     destination = reduction_tree.get_my_parent()
                     sources = reduction_tree.get_my_children()
-                    # Ensure we've worked on the task; otherwise don't do anything
-                    if destination or sources:
-                        if destination:
-                            reduction.comm_dst[groupID] = destination 
-                        reduction.comm_src[groupID] = sources
-                        self.processGroupTasks()
-                    print(scoop.worker, "src: ", reduction.comm_src[groupID],
-                          " dst: ", reduction.comm_dst.get(groupID))
+                    if destination:
+                        reduction.comm_dst[groupID] = destination 
+                    reduction.comm_src[groupID] = sources
+                    self.processGroupTasks()
             elif msg[0] == b"BROKER_INFO":
                 # TODO: find out what to do here ...
                 if len(self.broker_set) == 0: # The first update
@@ -411,10 +412,6 @@ class ZMQCommunicator(object):
         # Try to send the result directly to its parent
         self.addPeer(destination)
 
-        # TODO: ROUTING THROUGH BROKER NOT WORKING
-        import time
-        time.sleep(0.1)
-
         try:
             self.direct_socket.send_multipart([
                 destination,
@@ -423,8 +420,8 @@ class ZMQCommunicator(object):
                 flags=zmq.NOBLOCK)
         except zmq.error.ZMQError as e:
             # Fallback on Broker routing if no direct connection possible
-            scoop.logger.info("{0}: Could not send result directly to peer "
-                              "{1}".format(scoop.worker, destination))
+            scoop.logger.debug("{0}: Could not send result directly to peer "
+                               "{1}".format(scoop.worker, destination))
             self.socket.send_multipart([
                 b"REPLY", 
                 ] + list(args) + [
