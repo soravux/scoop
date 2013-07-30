@@ -199,6 +199,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     control.execQueue.socket.taskEnd(groupID)
 
     # Re-order
+    scoop.reduction.total.pop(groupID)
     return list(zip(*sorted(results, key=lambda x: (x[0]))))[1]
 
 
@@ -259,7 +260,9 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         control.execQueue.socket._poll(0)
         control.execQueue.updateQueue()
 
-    return scoop.reduction.total.get(groupID).resultValue
+    ret_value = scoop.reduction.total.get(groupID).resultValue
+    scoop.reduction.total.pop(groupID)
+    return ret_value
 
 
 def _createFuture(func, *args):
