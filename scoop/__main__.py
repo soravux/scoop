@@ -207,6 +207,7 @@ class ScoopApp(object):
             'debug': self.debug,
             'profiling': self.profile,
             'executable': self.executable,
+            'verbose': self.verbose,
             'args': self.args,
         }
         return args, kwargs
