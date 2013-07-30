@@ -454,6 +454,7 @@ def main():
     except Exception as e:
         logging.error('Error while launching SCOOP subprocesses:')
         logging.error(traceback.format_exc())
+        rootTaskExitCode = -1
     finally:
         scoopApp.close()
 
