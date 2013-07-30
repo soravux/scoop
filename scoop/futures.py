@@ -259,9 +259,15 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         control.execQueue.updateQueue()
         # TODO: This should be be decoupled
         control.execQueue.socket.pumpInfoSocket()
+        # TODO: Sleep here
+        print(sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]))
+        print(scoop.reduction.answers[groupID])
+        import time
+        time.sleep(1)
 
     workerResults = list(zip(*scoop.reduction.answers[groupID].values()))[1]
-    return reduce(reductionOp, workerResults)
+    print(workerResults)
+    return scoop.reduction.total.get(groupID).resultValue
 
 
 def _createFuture(func, *args):
