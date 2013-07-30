@@ -131,6 +131,7 @@ class ReductionTree(object):
 def cleanGroupID(inGroupID):
     global total
     total.pop(inGroupID)
+    answers.pop(inGroupID)
     sequence.pop(inGroupID)
     comm_dst.pop(inGroupID)
     comm_src.pop(inGroupID)
