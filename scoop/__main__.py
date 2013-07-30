@@ -301,6 +301,7 @@ class ScoopApp(object):
                     data = inStream.read(1)
             self.errors = rootProcess.wait()
         self.log.info('Root process is done.')
+        return self.errors
 
     def close(self):
         """Subprocess cleanup."""
