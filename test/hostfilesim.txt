@@ -1,0 +1,4 @@
+host1 worker=8
+host2 4
+host3  2 3 4
+host4 X 2
