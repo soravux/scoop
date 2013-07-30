@@ -32,6 +32,7 @@ from .. import discovery
 INIT = b"INIT"
 REQUEST = b"REQUEST"
 TASK = b"TASK"
+WORK = b"WORK"
 REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
@@ -119,7 +120,7 @@ class Broker(object):
         # The busy workers variable will contain a dict (map) of workers: task
         self.availableWorkers = deque()
         self.unassignedTasks = deque()
-        self.groupTasks = {}
+        self.groupTasks = defaultdict(list)
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
@@ -194,6 +195,11 @@ class Broker(object):
                 else:
                     self.taskSocket.send_multipart([address, TASK, task])
 
+            elif msg_type == WORK:
+                address = msg[0]
+                groupID = pickle.loads(msg[2])
+                self.groupTasks[groupID].append(address)
+
             # Answer needing delivery
             elif msg_type == REPLY:
                 address = msg[3]
@@ -238,11 +244,15 @@ class Broker(object):
             # operation terminates
             elif msg_type == TASKEND:
                 askResult = msg[2]
-                groupID = msg[3]
+                groupID = pickle.loads(msg[3])
                 self.infoSocket.send_multipart([
                     TASKEND,
                     askResult,
-                    groupID,
+                    msg[3],
+                    pickle.dumps(
+                        self.groupTasks.pop(groupID),
+                        pickle.HIGHEST_PROTOCOL
+                    )
                 ])
 
             # Add a given broker to its fellow list
