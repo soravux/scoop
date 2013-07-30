@@ -178,8 +178,8 @@ class ScoopApp(object):
             first_worker = (worker == self.worker_hosts[-1][0])
             self.log.info('   {0}:\t{1} {2}'.format(
                 worker,
-                number - 1 if first_worker or not headless else str(number),
-                "+ origin" if first_worker or not headless else "",
+                number - 1 if first_worker or headless else str(number),
+                "+ origin" if first_worker or headless else "",
                 )
             )
 
