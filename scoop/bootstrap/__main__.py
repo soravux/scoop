@@ -185,12 +185,19 @@ class Bootstrap(object):
                                  nargs=argparse.REMAINDER,
                                  help='The arguments to pass to the executable',
                                  default=[])
+        self.parser.add_argument('--verbose', '-v', action='count',
+                                 help=("Verbosity level of this launch script"
+                                      "(-vv for "
+                                      "more)"), default=1)
+        self.parser.add_argument('--quiet', '-q', action='store_true',
+                                 help="Suppress the output")
 
     def parse(self):
         """Generate a argparse parser and parse the command-line arguments"""
         if self.parser is None:
             self.makeParser()
         self.args = self.parser.parse_args()
+        self.verbose = self.args.verbose if not self.args.quiet else 0
 
     def setScoop(self):
         """Setup the SCOOP constants."""
