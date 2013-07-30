@@ -538,6 +538,9 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
             unittest.TextTestRunner(verbosity=2).run(utStat)
         elif sys.argv[1] == "stopwatch":
             unittest.TextTestRunner(verbosity=2).run(utStopWatch)
+        elif sys.argv[1] == "verbose":
+            sys.argv = sys.argv[0:1]
+            unittest.main(verbosity=2)
     else:
         unittest.main()
 elif __name__ == '__main__':
