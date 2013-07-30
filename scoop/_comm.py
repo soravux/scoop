@@ -26,7 +26,7 @@ except ImportError:
 import zmq
 
 import scoop
-from . import shared, encapsulation, utils
+from . import shared, encapsulation, utils, reduction
 from .shared import SharedElementEncapsulation
 
 
@@ -178,7 +178,10 @@ class ZMQCommunicator(object):
         # Handle group (reduction) replies
         if msg[1] == b"GROUP":
             data = pickle.loads(msg[2])
-            scoop.reduction.answers[data[0]][router_msg[0]] = (data[1], data[2])
+            reduction.answers[data[0]][router_msg[0]] = (data[1], data[2])
+            # TODO: What if we weren't waiting this result?
+            reduction.comm_src[data[0]].remove(data[1])
+            self.processGroupTasks()
             return
 
         try:
@@ -193,9 +196,21 @@ class ZMQCommunicator(object):
             )
             raise ReferenceBroken(e)
 
-        # Try to connect directly to this worker to send the result afterwards
         if msg[0] == b"TASK":
-            self.addPeer(thisFuture.id.worker)
+            # Try to connect directly to this worker to send the result
+            # afterwards if Future is from a map. If it is from a synchronized
+            # operation, notify the Broker that we are part of this reduction.
+            if thisFuture.sendResultBack:
+                self.addPeer(thisFuture.id.worker)
+            else:
+                try:
+                    groupIDs = reduction.get_future_group_ids(thisFuture)
+                    for groupID in groupIDs:
+                        self.sendSynchronizedNotification(groupID)
+                except:
+                    scoop.logger.warn("Could not find the reference on the "
+                                      "following future: "
+                                      "{0}".format(thisFuture))
             
         isCallable = callable(thisFuture.callable)
         isDone = thisFuture._ended()
@@ -213,6 +228,15 @@ class ZMQCommunicator(object):
                 raise ReferenceBroken("This element could not be pickled: "
                                       "{0}.".format(thisFuture))
         return thisFuture
+
+    def processGroupTasks(self):
+        for groupID, sources in list(reduction.comm_src.items()):
+            if not sources:
+                # We are not waiting any more results, send our result
+                self.sendGroupedResult(
+                    reduction.comm_dst[groupID], groupID
+                )
+                reduction.cleanGroupID(groupID)
 
     def pumpInfoSocket(self):
         while self.infoSocket.poll(0):
@@ -234,10 +258,18 @@ class ZMQCommunicator(object):
                 self.convertVariable(key, varName, varValue)
             elif msg[0] == b"TASKEND":
                 source_addr = pickle.loads(msg[1])
+                groupID = pickle.loads(msg[2])
+                worker_list = sorted(pickle.loads(msg[3]))
+                try: worker_list.remove(source_addr)
+                except: pass
                 if source_addr and source_addr != scoop.worker:
                     # If results are asked
-                    self.sendGroupedResult(source_addr, pickle.loads(msg[2]))
-                scoop.reduction.cleanGroupID(pickle.loads(msg[2]))
+                    reduction_tree = reduction.ReductionTree(
+                        [source_addr] + worker_list,
+                    )
+                    reduction.comm_dst[groupID] = reduction_tree.get_my_parent()
+                    reduction.comm_src[groupID] = reduction_tree.get_my_children()
+                    self.processGroupTasks()
             elif msg[0] == b"BROKER_INFO":
                 # TODO: find out what to do here ...
                 if len(self.broker_set) == 0: # The first update
@@ -285,6 +317,7 @@ class ZMQCommunicator(object):
                 yield received
 
     def sendFuture(self, future):
+        """Send a Future to be executed remotely."""
         try:
             if shared.getConst(hash(future.callable),
                                timeout=0):
@@ -303,6 +336,19 @@ class ZMQCommunicator(object):
                                         pickle.dumps(future,
                                                      pickle.HIGHEST_PROTOCOL)])
             future.callable = previousCallable
+
+    def sendSynchronizedNotification(self, group_id):
+        """Notify the broker we're executing a synchronized task."""
+        if group_id not in reduction.notified:
+            self.socket.send_multipart([
+                b"WORK",
+                pickle.dumps(
+                    group_id,
+                    pickle.HIGHEST_PROTOCOL
+                ),
+            ])
+
+            reduction.notified.append(group_id)
 
     def sendResult(self, future):
         """Send a terminated future back to its parent."""
@@ -328,8 +374,8 @@ class ZMQCommunicator(object):
             b"GROUP",
             pickle.dumps([
                 group_id,
-                int(scoop.reduction.sequence[group_id]),
-                scoop.reduction.total.get(group_id),
+                int(reduction.sequence[group_id]),
+                reduction.total.get(group_id),
             ], pickle.HIGHEST_PROTOCOL),
         )
 

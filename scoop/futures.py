@@ -178,7 +178,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
         `Timeout usage`_. 
 
     :returns: Every return value of the reduction function applied to every
-              mapped data. Output may be randomly ordered."""
+              mapped data sequentially ordered."""
     launches = []
     groupID = next(callbackGroupID)
     for args in zip(*iterables):
