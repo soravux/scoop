@@ -9,8 +9,8 @@ The software requirements for SCOOP are as follows:
 * `Python <http://www.python.org/>`_ >= 2.6 or >= 3.2
 * `Distribute <http://packages.python.org/distribute/>`_ >= 0.6.2
 * `Greenlet <http://pypi.python.org/pypi/greenlet>`_ >= 0.3.4
-* `pyzmq <http://www.zeromq.org/bindings:python>`_ and 
-  `libzmq <http://www.zeromq.org/>`_ >= 2.2.0
+* `pyzmq <http://www.zeromq.org/bindings:python>`_  >= 13.1.0 and 
+  `libzmq <http://www.zeromq.org/>`_ >= 3.2.0
 * :program:`ssh` for remote execution
 
 Installation
