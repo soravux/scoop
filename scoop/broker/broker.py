@@ -251,7 +251,7 @@ class Broker(object):
                     askResult,
                     msg[3],
                     pickle.dumps(
-                        self.groupTasks.pop(groupID),
+                        self.groupTasks.pop(groupID, []),
                         pickle.HIGHEST_PROTOCOL
                     )
                 ])
