@@ -94,6 +94,9 @@ class Bootstrap(object):
         self.run()
 
     def init_logging(self, log=None):
+        """Creates a logger.
+        dictConfig is used to limit interference with user loggers. basicConfig
+        would override user code."""
         verbose_levels = {
             -2: "CRITICAL",
             -1: "ERROR",
@@ -126,7 +129,7 @@ class Bootstrap(object):
             {
                 "SCOOPFormatter":
                 {
-                    "format":"[%(asctime)-15s] %(levelname)-7s %(message)s",
+                    "format": "[%(asctime)-15s] %(module)-9s (unconnected) %(levelname)-7s %(message)s",
                 },
             },
         }
