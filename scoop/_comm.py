@@ -274,15 +274,15 @@ class ZMQCommunicator(object):
             elif msg[0] == b"TASKEND":
                 source_addr = pickle.loads(msg[1])
                 groupID = pickle.loads(msg[2])
-                worker_list = sorted(pickle.loads(msg[3]))
-                try:
-                    worker_list.remove(source_addr)
-                except:
-                    pass
-                # Check if we've worked on the task; otherwise don't do anything
-                if not scoop.worker in worker_list + [source_addr]:
-                    continue
                 if source_addr:
+                    worker_list = sorted(pickle.loads(msg[3]))
+                    try:
+                        worker_list.remove(source_addr)
+                    except:
+                        pass
+                    # Ensure this worker has participated to the task
+                    if not scoop.worker in worker_list + [source_addr]:
+                        continue
                     # If results are asked
                     reduction_tree = reduction.ReductionTree(
                         [source_addr] + worker_list,
@@ -293,6 +293,9 @@ class ZMQCommunicator(object):
                         reduction.comm_dst[groupID] = destination 
                     reduction.comm_src[groupID] = sources
                     self.processGroupTasks()
+                else:
+                    # Erase the reduction buffers if no data is awaited anymore
+                    reduction.cleanGroupID(groupID)
             elif msg[0] == b"BROKER_INFO":
                 # TODO: find out what to do here ...
                 if len(self.broker_set) == 0: # The first update

@@ -62,7 +62,7 @@ def get_future_group_ids(inFuture):
     uniqueReferences = []
     try:
         for cb in inFuture.callback:
-            if cb.groupID:
+            if cb.groupID is not None:
                 uniqueReferences.append(cb.groupID)
     except IndexError:
         raise Exception("Could not find reduction reference.")
@@ -130,8 +130,8 @@ class ReductionTree(object):
 
 def cleanGroupID(inGroupID):
     global total
-    total.pop(inGroupID)
-    answers.pop(inGroupID)
-    sequence.pop(inGroupID)
-    comm_dst.pop(inGroupID)
-    comm_src.pop(inGroupID)
+    total.pop(inGroupID, None)
+    answers.pop(inGroupID, None)
+    sequence.pop(inGroupID, None)
+    comm_dst.pop(inGroupID, None)
+    comm_src.pop(inGroupID, None)
