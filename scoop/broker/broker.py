@@ -64,13 +64,6 @@ class Broker(object):
         self.debug = debug
         self.hostname = hostname
 
-        # Create identifier for this broker
-        import uuid
-        self.name = str(uuid.uuid4())
-        scoop.logger.info("Using name {workerName}.".format(
-            workerName=self.getName(),
-        ))
-
         # zmq Socket for the tasks, replies and request.
         self.taskSocket = self.context.socket(zmq.ROUTER)
         self.taskSocket.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
@@ -81,6 +74,12 @@ class Broker(object):
         else:
             self.taskSocket.bind(tSock)
             self.tSockPort = tSock.split(":")[-1]
+
+        # Create identifier for this broker
+        self.name = "{0}:{1}".format(hostname, self.tSockPort)
+        scoop.logger.info("Using name {workerName}.".format(
+            workerName=self.getName(),
+        ))
 
         # zmq Socket for the pool informations
         self.infoSocket = self.context.socket(zmq.PUB)
@@ -263,10 +262,12 @@ class Broker(object):
                 except pickle.PickleError:
                     scoop.logger.error("Could not understand CONNECT message.")
                     continue
+                scoop.logger.info("Connecting to other brokers...")
                 self.addBrokerList(connect_brokers)
 
             # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:
+                scoop.logger.debug("SHUTDOWN command received.")
                 self.shutdown()
                 break
 

@@ -19,6 +19,7 @@ import sys
 import random
 import socket
 import copy
+import logging
 try:
     import cPickle as pickle
 except ImportError:
@@ -100,6 +101,14 @@ class ZMQCommunicator(object):
                 break
         else:
             raise Exception("Could not create direct connection socket")
+
+        # Update the logger to know our name
+        scoop.logger.handlers[0].setFormatter(
+            logging.Formatter(
+                "[%(asctime)-15s] %(module)-9s ({0}) %(levelname)-7s "
+                "%(message)s".format(scoop.worker)
+            )
+        )
 
         # socket for the futures, replies and request
         self.socket = CreateZMQSocket(zmq.DEALER)
@@ -423,8 +432,10 @@ class ZMQCommunicator(object):
                 flags=zmq.NOBLOCK)
         except zmq.error.ZMQError as e:
             # Fallback on Broker routing if no direct connection possible
-            scoop.logger.debug("{0}: Could not send result directly to peer "
-                               "{1}".format(scoop.worker, destination))
+            scoop.logger.debug(
+                "{0}: Could not send result directly to peer {1}, routing through "
+                "broker.".format(scoop.worker, destination)
+            )
             self.socket.send_multipart([
                 b"REPLY", 
                 ] + list(args) + [
