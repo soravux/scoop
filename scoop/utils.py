@@ -163,6 +163,7 @@ def getDefaultHosts():
     """This is the default host for a simple SCOOP launch"""
     return [('127.0.0.1', getCPUcount())]
 
+
 try:
     # Python 2.X  fallback
     basestring  # attempt to evaluate basestring
