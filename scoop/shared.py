@@ -19,11 +19,12 @@
 import itertools
 from inspect import ismethod, isbuiltin
 from functools import reduce
-from . import encapsulation, utils
 import time
 
-elements = None
+from . import encapsulation, utils
 
+
+elements = None
 
 def _ensureAtomicity(fn):
     """Ensure atomicity of passed elements on the whole worker pool"""
@@ -44,9 +45,17 @@ def _ensureAtomicity(fn):
         # This is because of the documentation framework (sphinx).
 
         from . import _control
+        from scoop._types import NotStartedProperly
 
         # Enforce retrieval of currently awaiting constants
-        _control.execQueue.socket.pumpInfoSocket()
+        try:
+            _control.execQueue.socket.pumpInfoSocket()
+        except AttributeError:
+            raise NotStartedProperly("SCOOP was not started properly.\n"
+                                     "Be sure to start your program with the "
+                                     "'-m scoop' parameter. You can find "
+                                     "further information in the "
+                                     "documentation.")
 
         for key, value in kwargs.items():
             # Object name existence check
