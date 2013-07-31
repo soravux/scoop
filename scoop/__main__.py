@@ -250,7 +250,11 @@ class ScoopApp(object):
             for broker in self.brokers:
                 # Only send data of other brokers to a given broker
                 connect_data = [
-                    BrokerInfo(x.getHost(), *x.getPorts())
+                    BrokerInfo(
+                        x.getHost(),
+                        *x.getPorts(),
+                        externalHostname=x.getHost()
+                    )
                     for x in self.brokers
                     if x is not broker
                 ]
