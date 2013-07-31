@@ -60,7 +60,7 @@ class Bootstrap(object):
         if self.args is None:
             self.parse()
 
-        self.init_logging()
+        self.log = self.init_logging()
 
         # Change to the desired directory
         if self.args.workingDirectory:
@@ -134,7 +134,7 @@ class Bootstrap(object):
             },
         }
         dictConfig(dict_log_config)
-        self.log = logging.getLogger("SCOOPLogger")
+        return logging.getLogger("SCOOPLogger")
 
     def makeParser(self):
         """Generate the argparse parser object containing the bootloader

@@ -20,12 +20,14 @@ import time
 import zmq
 import sys
 import threading
-import scoop
+import copy
+import logging
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
+import scoop
 from .. import discovery
 
 # Worker requests
@@ -75,9 +77,25 @@ class Broker(object):
             self.taskSocket.bind(tSock)
             self.tSockPort = tSock.split(":")[-1]
 
+
         # Create identifier for this broker
         self.name = "{0}:{1}".format(hostname, self.tSockPort)
-        scoop.logger.info("Using name {workerName}.".format(
+
+        # Initialize broker logging
+        from ..bootstrap.__main__ import Bootstrap
+        class Object(object):
+            pass
+        bypass = Object()
+        bypass.verbose = 2
+        self.logger = Bootstrap.init_logging(bypass, None)
+        self.logger.handlers[0].setFormatter(
+            logging.Formatter(
+                "[%(asctime)-15s] %(module)-9s ({0}) %(levelname)-7s "
+                "%(message)s".format(self.name)
+            )
+        )
+
+        self.logger.info("Using name {workerName}.".format(
             workerName=self.getName(),
         ))
 
@@ -260,14 +278,14 @@ class Broker(object):
                 try:
                     connect_brokers = pickle.loads(msg[2])
                 except pickle.PickleError:
-                    scoop.logger.error("Could not understand CONNECT message.")
+                    self.logger.error("Could not understand CONNECT message.")
                     continue
-                scoop.logger.info("Connecting to other brokers...")
+                self.logger.info("Connecting to other brokers...")
                 self.addBrokerList(connect_brokers)
 
             # Shutdown of this broker was requested
             elif msg_type == SHUTDOWN:
-                scoop.logger.debug("SHUTDOWN command received.")
+                self.logger.debug("SHUTDOWN command received.")
                 self.shutdown()
                 break
 
