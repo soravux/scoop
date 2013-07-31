@@ -121,7 +121,7 @@ if __name__ == '__main__':
         futures.map(
             maxTreeDepthDivide,
             [exampleTree.payload],
-            parallelLevel=1,
+            parallelLevel=2,
         )
     )
     pts = time.time() - ts

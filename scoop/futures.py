@@ -228,7 +228,6 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         is no limit on the wait time. More information in the :doc:`usage` page.
 
     :returns: A single value."""
-    # TODO: make DRY with submit
     launches = []
     # Set a callback group ID for the Futures generated within this scope
     groupID = (control.current.id, next(callbackGroupID))
