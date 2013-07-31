@@ -4,6 +4,7 @@
 + Fixed: Local launches could generate zombie processes
 + Added: map_as_completed() in the futures API interface
 + Added: Benchmark utilities
++ Added: Support for multi-brokers
 + Improved: Documentation
 + Improved: mapReduce() now won't communicate intermediary results
 + Improved: Future results are now sent back directly to the worker awaiting for it
