@@ -27,7 +27,7 @@ import scoop
 from ._types import Future, NotStartedProperly, CallbackType
 from .reduction import reduction
 from . import _control as control
-from .shared import setConst, getConst, SharedElementEncapsulation
+
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
 FIRST_COMPLETED = 'FIRST_COMPLETED'
@@ -281,6 +281,7 @@ def _createFuture(func, *args):
     funcIsMethod = ismethod(func) or isbuiltin(func)
     funcIsInstanceMethod = funcIsMethod and hasattr(func, '__self__')
     if funcIsLambda or funcIsInstanceMethod:
+        from .shared import SharedElementEncapsulation
         func = SharedElementEncapsulation(func)
 
     return Future(control.current.id, func, *args)
