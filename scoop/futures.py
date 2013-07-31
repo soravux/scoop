@@ -199,7 +199,7 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     control.execQueue.socket.taskEnd(groupID)
 
     # Re-order
-    scoop.reduction.total.pop(groupID)
+    scoop.reduction.total.pop(groupID, None)
     return list(zip(*sorted(results, key=lambda x: (x[0]))))[1]
 
 
@@ -261,7 +261,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         control.execQueue.updateQueue()
 
     ret_value = scoop.reduction.total.get(groupID).resultValue
-    scoop.reduction.total.pop(groupID)
+    scoop.reduction.total.pop(groupID, None)
     return ret_value
 
 
