@@ -196,7 +196,11 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
         results.append((future.executor, future.result()))
 
     # Cleanup phase
-    control.execQueue.socket.taskEnd(groupID)
+    control.execQueue.socket.taskEnd(groupID, askResults=scoop.worker)
+
+    while int(scoop.reduction.sequence[groupID]) != len(launches):
+        control.execQueue.socket._poll(0)
+        control.execQueue.updateQueue()
 
     # Re-order
     scoop.reduction.total.pop(groupID, None)
@@ -255,8 +259,7 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     control.execQueue.socket.taskEnd(groupID, askResults=scoop.worker)
 
     # Reduce the results
-    while groupID not in scoop.reduction.answers \
-    or sum(list(zip(*scoop.reduction.answers[groupID].values()))[0]) != len(launches):
+    while int(scoop.reduction.sequence[groupID]) != len(launches):
         control.execQueue.socket._poll(0)
         control.execQueue.updateQueue()
 
