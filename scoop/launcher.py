@@ -72,8 +72,7 @@ class ScoopApp(object):
         if self.verbose > 2:
             self.verbose = 2
 
-        self.log = None
-        self.init_logging(log)
+        self.log = self.init_logging(log)
 
         # Show runtime information (useful for debugging)
         self.log.info("SCOOP {0} {1} on {2} using Python {3}, API: {4}".format(
@@ -124,7 +123,7 @@ class ScoopApp(object):
             level=verbose_levels[self.verbose],
             format="[%(asctime)-15s] %(module)-9s %(levelname)-7s %(message)s"
         )
-        self.log = logging.getLogger(self.__class__.__name__)
+        return logging.getLogger(self.__class__.__name__)
 
     def divideHosts(self, hosts, qty):
         """Divide processes among hosts."""
