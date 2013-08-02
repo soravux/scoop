@@ -37,13 +37,11 @@ else:
 
 import scoop
 from ..broker.broker import BrokerInfo
-from .. import discovery
+from .. import discovery, utils
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
-    from scoop.backports.dictconfig import dictConfig
 else:
     import runpy
-    from logging.config import dictConfig
 
 
 class Bootstrap(object):
@@ -60,7 +58,7 @@ class Bootstrap(object):
         if self.args is None:
             self.parse()
 
-        self.log = self.init_logging()
+        self.log = utils.initLogging(self.verbose)
 
         # Change to the desired directory
         if self.args.workingDirectory:
@@ -92,49 +90,6 @@ class Bootstrap(object):
         self.setScoop()
 
         self.run()
-
-    def init_logging(self, log=None):
-        """Creates a logger.
-        dictConfig is used to limit interference with user loggers. basicConfig
-        would override user code."""
-        verbose_levels = {
-            -2: "CRITICAL",
-            -1: "ERROR",
-            0: "WARNING",
-            1: "INFO",
-            2: "DEBUG",
-            3: "NOSET",
-        }
-        log_handlers = {
-            "console":
-            {
-
-                "class": "logging.StreamHandler",
-                "formatter": "SCOOPFormatter",
-                "stream": "ext://sys.stdout",
-            },
-        }
-        dict_log_config = {
-            "version": 1,
-            "handlers": log_handlers,
-            "loggers":
-            {
-                "SCOOPLogger":
-                {
-                    "handlers": ["console"],
-                    "level": verbose_levels[self.verbose],
-                },
-            },
-            "formatters":
-            {
-                "SCOOPFormatter":
-                {
-                    "format": "[%(asctime)-15s] %(module)-9s (unconnected) %(levelname)-7s %(message)s",
-                },
-            },
-        }
-        dictConfig(dict_log_config)
-        return logging.getLogger("SCOOPLogger")
 
     def makeParser(self):
         """Generate the argparse parser object containing the bootloader

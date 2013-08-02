@@ -22,6 +22,7 @@ from functools import reduce
 import time
 
 from . import encapsulation, utils
+import scoop
 
 
 elements = None
@@ -61,16 +62,18 @@ def _ensureAtomicity(fn):
             # Object name existence check
             if key in itertools.chain(*(elem.keys() for elem in elements.values())):
                 raise TypeError("This constant already exists: {0}.".format(key))
-            
-        # Call the function
-        fn(*args, **kwargs)
 
-        # Wait for element propagation
-        import time
-        import scoop
+        # Retry element propagation until it is returned
         while all(key in elements.get(scoop.worker, []) for key in kwargs.keys()) is not True:
+            scoop.logger.debug("Sending global variables {0}...".format(
+                list(kwargs.keys())
+            ))
+            # Call the function
+            fn(*args, **kwargs)
+
             # Enforce retrieval of currently awaiting constants
             _control.execQueue.socket.pumpInfoSocket()
+
             # TODO: Make previous blocking instead of sleep
             time.sleep(0.1)
 

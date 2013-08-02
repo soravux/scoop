@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 #    This file is part of Scalable COncurrent Operations in Python (SCOOP).
 #
@@ -475,7 +476,6 @@ class TestApi(TestScoopCommon):
         self.w = self.multiworker_set()
         result = futures._startup(funcMapAsCompleted, 30)
         self.assertEqual(result, 9455)
-
 
 
 class TestCoherent(TestScoopCommon):
