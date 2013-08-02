@@ -176,6 +176,20 @@ Its functionnalities are summarised as such::
 .. note::
     A constant can only be defined once on the entire pool of workers.
 
+Logging
+-------
+
+You can use the `scoop.logger` logger to output useful information alongside
+your strings such as the time, the worker name which emitted the log and the
+module in which the log was emitted.
+
+Here is a sample usage::
+
+    import scoop
+
+    scoop.logger.warn("This is a warning!")
+
+
 Examples
 --------
 

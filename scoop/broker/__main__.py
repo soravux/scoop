@@ -87,6 +87,12 @@ if __name__ == "__main__":
         ))
         sys.stdout.flush()
 
+
+
+        thisBroker.logger.info("Using name {workerName}".format(
+            workerName=self.getName(),
+        ))
+
     try:
         thisBroker.run()
     finally:
