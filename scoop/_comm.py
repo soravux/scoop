@@ -103,12 +103,19 @@ class ZMQCommunicator(object):
             raise Exception("Could not create direct connection socket")
 
         # Update the logger to know our name
-        scoop.logger.handlers[0].setFormatter(
-            logging.Formatter(
-                "[%(asctime)-15s] %(module)-9s ({0}) %(levelname)-7s "
-                "%(message)s".format(scoop.worker)
+        try:
+            scoop.logger.handlers[0].setFormatter(
+                logging.Formatter(
+                    "[%(asctime)-15s] %(module)-9s ({0}) %(levelname)-7s "
+                    "%(message)s".format(scoop.worker)
+                )
             )
-        )
+        except IndexError:
+            scoop.logger.warn(
+                "Could not set worker name into logger ({0})".format(
+                    scoop.worker
+                )
+            )
 
         # socket for the futures, replies and request
         self.socket = CreateZMQSocket(zmq.DEALER)

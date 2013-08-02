@@ -19,7 +19,15 @@ from multiprocessing import cpu_count
 from itertools import groupby
 import os
 import re
+import sys
 import socket
+import logging
+
+if sys.version_info < (2, 7):
+    from scoop.backports.dictconfig import dictConfig
+else:
+    from logging.config import dictConfig
+
 
 loopbackReferences = [
     "127.0.0.1",
@@ -35,6 +43,50 @@ localHostnames.extend([
     ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
         if not ip.startswith("127.")][:1]
 )
+
+
+def initLogging(default_verbosity=2, log=None):
+        """Creates a logger.
+        dictConfig is used to limit interference with user loggers. basicConfig
+        would override user code."""
+        verbose_levels = {
+            -2: "CRITICAL",
+            -1: "ERROR",
+            0: "WARNING",
+            1: "INFO",
+            2: "DEBUG",
+            3: "NOSET",
+        }
+        log_handlers = {
+            "console":
+            {
+                "class": "logging.StreamHandler",
+                "formatter": "SCOOPFormatter",
+                "stream": "ext://sys.stdout",
+            },
+        }
+        dict_log_config = {
+            "version": 1,
+            "handlers": log_handlers,
+            "loggers":
+            {
+                "SCOOPLogger":
+                {
+                    "handlers": ["console"],
+                    "level": verbose_levels[default_verbosity],
+                },
+            },
+            "formatters":
+            {
+                "SCOOPFormatter":
+                {
+                    "format": "[%(asctime)-15s] %(module)-9s (unconnected) "
+                              "%(levelname)-7s %(message)s",
+                },
+            },
+        }
+        dictConfig(dict_log_config)
+        return logging.getLogger("SCOOPLogger")
 
 
 def externalHostname(hosts):

@@ -28,7 +28,7 @@ except ImportError:
     import pickle
 
 import scoop
-from .. import discovery
+from .. import discovery, utils
 
 # Worker requests
 INIT = b"INIT"
@@ -82,12 +82,7 @@ class Broker(object):
         self.name = "{0}:{1}".format(hostname, self.tSockPort)
 
         # Initialize broker logging
-        from ..bootstrap.__main__ import Bootstrap
-        class Object(object):
-            pass
-        bypass = Object()
-        bypass.verbose = 2
-        self.logger = Bootstrap.init_logging(bypass, None)
+        self.logger = utils.initLogging()
         self.logger.handlers[0].setFormatter(
             logging.Formatter(
                 "[%(asctime)-15s] %(module)-9s ({0}) %(levelname)-7s "
@@ -95,7 +90,7 @@ class Broker(object):
             )
         )
 
-        self.logger.info("Using name {workerName}.".format(
+        self.logger.info("Using name {workerName}".format(
             workerName=self.getName(),
         ))
 
