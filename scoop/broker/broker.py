@@ -48,7 +48,9 @@ BrokerInfo = namedtuple('BrokerInfo', ['hostname',
                                        'info_port',
                                        'externalHostname'])
 
+
 class LaunchingError(Exception): pass
+
 
 class Broker(object):
     def __init__(self, tSock="tcp://*:*", mSock="tcp://*:*", debug=False,
@@ -89,10 +91,6 @@ class Broker(object):
                 "%(message)s".format(self.name)
             )
         )
-
-        self.logger.info("Using name {workerName}".format(
-            workerName=self.getName(),
-        ))
 
         # zmq Socket for the pool informations
         self.infoSocket = self.context.socket(zmq.PUB)

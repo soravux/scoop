@@ -132,9 +132,15 @@ class Host(object):
         # It replaces simple quotation marks with \\\" which gets evaluated to
         # \" by the second shell which prints it out as a double quote.
         if worker.args:
-            c.extend([
-                '"{0}"'.format(a.replace('"', '\\\"')) for a in worker.args
-            ])
+            if self.isLocal():
+                # If local, no shell is used so no escaping needed
+                c.extend([
+                    '{0}'.format(a) for a in worker.args
+                ])
+            else:
+                c.extend([
+                    '"{0}"'.format(a.replace('"', '\\\"')) for a in worker.args
+                ])
         return c
 
     def _getWorkerCommandList(self, workerID):
@@ -162,7 +168,7 @@ class Host(object):
         # Output: ( [launch command 1] & ) && ( [launch command 2] & ) [...]
         command = []
         for workerID, worker in enumerate(self.workersArguments):
-            command.append("( " + self.getWorkerCommand(workerID))
+            command.append("(" + self.getWorkerCommand(workerID))
         command[-1] += ")"
         return " & ) && ".join(command)
 
