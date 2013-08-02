@@ -99,6 +99,7 @@ class BinaryTreeNode(object):
         return None
 
 if __name__ == '__main__':
+    import time
     print("Beginning Tree generation.")
 
     # Generate the same tree on every workers.
@@ -110,10 +111,6 @@ if __name__ == '__main__':
     shared.setConst(myTree=exampleTree)
 
     print("Tree generation done.")
-
-
-if __name__ == '__main__':
-    import time
 
     # Splits the tree in two and process the left and right branches parallely
     ts = time.time()
