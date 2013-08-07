@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
 
         thisBroker.logger.info("Using name {workerName}".format(
-            workerName=self.getName(),
+            workerName=thisBroker.getName(),
         ))
 
     try:
