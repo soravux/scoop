@@ -29,6 +29,7 @@ import os
 import sys
 import operator
 import signal
+import math
 from tests_parser import TestUtils
 from tests_stat import TestStat
 from tests_stopwatch import TestStopWatch
@@ -77,6 +78,9 @@ def funcLambda(n):
     result = list(futures.map(lambda_func, [i+1 for i in range(n)]))
     return sum(result)
 
+def funcCos():
+    result = list(futures.map(math.cos, [i for i in range(10)]))
+    return sum(result)
 
 def funcCallback():
     f = futures.submit(func4, 100)
@@ -426,6 +430,12 @@ class TestApi(TestScoopCommon):
         self.w = self.multiworker_set()
         result = futures._startup(funcLambda, 30)
         self.assertEqual(result, 9455)
+
+    def test_map_imported_func(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcCos)
+        self.assertGreater(result, 0.4)
+        self.assertLess(result, 0.5)
 
     def test_submit_single(self):
         result = futures._startup(funcSub, 10)
