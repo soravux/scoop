@@ -157,8 +157,7 @@ class SharedElementEncapsulation(object):
         else:
             # Element to share
             # Determine if function is a method. Methods derived from external
-            # languages such as C++ aren't detected by ismethod and must be checked
-            # using isbuiltin and checked for a __self__.
+            # languages such as C++ aren't detected by ismethod.
             if ismethod(element):
                 # Must share whole object before ability to use its method
                 self.isMethod = True

@@ -278,10 +278,9 @@ def _createFuture(func, *args):
     lambdaType = type(lambda: None)
     funcIsLambda = isinstance(func, lambdaType) and func.__name__ == '<lambda>'
     # Determine if function is a method. Methods derived from external
-    # languages such as C++ aren't detected by ismethod and must be checked
-    # using isbuiltin and checked for a __self__.
+    # languages such as C++ aren't detected by ismethod.
     funcIsMethod = ismethod(func)
-    if funcIsLambda or funcIsInstanceMethod:
+    if funcIsLambda or funcIsMethod:
         from .shared import SharedElementEncapsulation
         func = SharedElementEncapsulation(func)
 
