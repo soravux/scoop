@@ -46,7 +46,7 @@ class ScoopApp(object):
 
     def __init__(self, hosts, n, b, verbose, python_executable,
             externalHostname, executable, arguments, tunnel, log, path, debug,
-            nice, env, profile, pythonPath):
+            nice, env, profile, pythonPath, prolog):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
                                                "specify one host.")
@@ -56,6 +56,7 @@ class ScoopApp(object):
         # launch information
         self.python_executable = python_executable[0]
         self.pythonpath = pythonPath
+        self.prolog = prolog
         self.n = n
         self.b = b
         self.tunnel = tunnel
@@ -196,6 +197,7 @@ class ScoopApp(object):
         args = []
         kwargs = {
             'pythonPath': self.pythonpath,
+            'prolog': self.prolog,
             'path': self.path,
             'nice': self.nice,
             'pythonExecutable': self.python_executable,
@@ -403,6 +405,11 @@ def makeParser():
                         help="The PYTHONPATH environment variable (default is "
                              "current PYTHONPATH)",
                         default=[os.environ.get('PYTHONPATH', '')])
+    parser.add_argument('--prolog',
+                        nargs=1,
+                        help="Path to a shell script or executable that will "
+                             "be executed at the launch of every worker",
+                        default=[None])
     parser.add_argument('--debug',
                         help=argparse.SUPPRESS,
                         action='store_true')
@@ -447,10 +454,9 @@ def main():
                         args.python_interpreter,
                         args.external_hostname[0],
                         args.executable, args.args, args.tunnel,
-                        args.log, args.path,
-                        args.debug, args.nice,
-                        utils.getEnv(), args.profile,
-                        args.pythonpath[0])
+                        args.log, args.path, args.debug, args.nice,
+                        utils.getEnv(), args.profile, args.pythonpath[0],
+                        args.prolog[0])
 
     rootTaskExitCode = False
     try:

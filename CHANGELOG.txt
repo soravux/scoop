@@ -1,5 +1,11 @@
-0.7.0-RC1 (2013/?/?)
-------------------
+0.7.0-RC2 (2013/?/?)
+----------------------
+
++ Fixed: Bug sharing lambda function (referenced elements could not unpickle)
++ Fixed: Bug sharing method (elements would falsely be treated as methods)
+
+0.7.0-RC1 (2013/08/02)
+----------------------
 
 + Fixed: Local launches could generate zombie processes
 + Added: map_as_completed() in the futures API interface
@@ -7,7 +13,7 @@
 + Added: Support for multi-brokers
 + Improved: Documentation
 + Improved: mapReduce() now won't communicate intermediary results
-+ Improved: Future results are now sent back directly to the worker awaiting for it
++ Improved: Future results are now sent back directly to its destination
 + Improved: Reduction has now a tree communication scheme (logarithmic reduce)
 + Improved: Various socket optimizations
 

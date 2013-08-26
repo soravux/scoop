@@ -34,7 +34,7 @@ class Host(object):
         [
             'pythonPath', 'path', 'nice', 'pythonExecutable', 'size', 'origin',
             'brokerHostname', 'brokerPorts', 'debug', 'profiling', 'executable',
-            'verbose', 'args',
+            'verbose', 'args', 'prolog'
         ]
     )
 
@@ -70,16 +70,21 @@ class Host(object):
 
         self.workersArguments.append(la)
 
-    def setCommand(self):
-        # replace remoteSSHLaunch
-        pass
-
     def _WorkerCommand_environment(self, worker):
-        """Return list of (shell) commands to prepare the environment for bootstrap"""
+        """Return list of shell commands to prepare the environment for bootstrap"""
         c = []
+        if worker.prolog:
+            c.extend([
+                "source",
+                worker.prolog,
+                "&&",
+            ])
         if worker.pythonPath:
-            # TODO: do we really want to set PYTHONPATH='' if not defined??
-            c.extend(["export", "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath), '&&'])
+            c.extend([
+                "export",
+                "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath),
+                "&&",
+            ])
         return c
 
     def _WorkerCommand_bootstrap(self, worker):
@@ -148,7 +153,8 @@ class Host(object):
         worker = self.workersArguments[workerID]
 
         c = []
-        c.extend(self._WorkerCommand_environment(worker))
+        if not self.isLocal():
+            c.extend(self._WorkerCommand_environment(worker))
 
         c.extend(self._WorkerCommand_bootstrap(worker))
         c.extend(self._WorkerCommand_options(worker, workerID))
