@@ -35,11 +35,14 @@ except ImportError:
     from types import FileType as FileType
 
 
-def functionFactory(in_code):
+def functionFactory(in_code, name, defaults, globals_):
     """Creates a function at runtime using binary compiled inCode"""
     def generatedFunction():
         pass
     generatedFunction.__code__ = marshal.loads(in_code)
+    generatedFunction.__name__ = name
+    generatedFunction.__defaults = defaults
+    generatedFunction.__globals__.update(pickle.loads(globals_))
     return generatedFunction
 
 
@@ -52,20 +55,35 @@ class FunctionEncapsulation(object):
         """Creates a serializable (picklable) object of a function"""
         self.code = marshal.dumps(in_func.__code__)
         self.name = name
-        # TODO: __defaults__, docstrings
+        self.defaults = in_func.__defaults__
+        # Pickle references to functions used in the function
+        used_globals = {}
+        for key, value in in_func.__globals__.items():
+            if key in in_func.__code__.co_names:
+                used_globals[key] = value
+        self.globals = pickle.dumps(used_globals, pickle.HIGHEST_PROTOCOL)
 
     def __call__(self, *args, **kwargs):
         """Called by local worker (which doesn't _communicate this class)"""
-        return functionFactory(self.code)(*args, **kwargs)
+        return functionFactory(
+            self.code,
+            self.name,
+            self.defaults,
+            self.globals,
+        )(*args, **kwargs)
 
     def __name__(self):
         return self.name
 
     def getFunction(self):
         """Called by remote workers. Useful to populate main module globals()
-        for interactive shells"""
-        #Retrieve the serialized function
-        return functionFactory(self.code)
+        for interactive shells. Retrieves the serialized function."""
+        return functionFactory(
+            self.code,
+            self.name,
+            self.defaults,
+            self.globals,
+        )
 
 
 class ExternalEncapsulation(object):

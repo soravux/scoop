@@ -17,7 +17,7 @@
 #
 
 import itertools
-from inspect import ismethod, isbuiltin
+from inspect import ismethod
 from functools import reduce
 import time
 
@@ -159,16 +159,14 @@ class SharedElementEncapsulation(object):
             # Determine if function is a method. Methods derived from external
             # languages such as C++ aren't detected by ismethod and must be checked
             # using isbuiltin and checked for a __self__.
-            funcIsMethod = ismethod(element) or isbuiltin(element)
-            if funcIsMethod and hasattr(element, '__self__'):
+            if ismethod(element):
                 # Must share whole object before ability to use its method
                 self.isMethod = True
                 self.methodName = element.__name__
                 element = element.__self__
 
             # Lambda-like or unshared code to share
-            # TODO: Replace by a CRC for uniqueness of element on pool
-            uniqueID = str(id(element))
+            uniqueID = str(scoop.worker) + str(id(element)) + str(hash(element))
             self.uniqueID = uniqueID
             if getConst(uniqueID, timeout=0) == None:
                 funcRef = {uniqueID: element}
@@ -179,8 +177,10 @@ class SharedElementEncapsulation(object):
 
     def __call__(self, *args, **kwargs):
         if self.isMethod:
-            wholeObj = getConst(self.__repr__(),
-                                timeout=float("inf"))
+            wholeObj = getConst(
+                self.__repr__(),
+                timeout=float("inf"),
+            )
             return getattr(wholeObj, self.methodName)(*args, **kwargs)
         else:
             return getConst(self.__repr__(),
