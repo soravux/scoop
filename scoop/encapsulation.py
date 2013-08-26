@@ -18,6 +18,7 @@ import marshal
 import tempfile
 import types
 import os
+from inspect import ismodule
 from functools import partial
 try:
     import cPickle as pickle
@@ -34,8 +35,10 @@ except ImportError:
     from StringIO import StringIO as FileLikeIO
     from types import FileType as FileType
 
+import scoop
 
-def functionFactory(in_code, name, defaults, globals_):
+
+def functionFactory(in_code, name, defaults, globals_, imports):
     """Creates a function at runtime using binary compiled inCode"""
     def generatedFunction():
         pass
@@ -43,6 +46,10 @@ def functionFactory(in_code, name, defaults, globals_):
     generatedFunction.__name__ = name
     generatedFunction.__defaults = defaults
     generatedFunction.__globals__.update(pickle.loads(globals_))
+    for key, value in imports.items():
+        imported_module = __import__(value)
+        scoop.logger.debug("Dynamically loaded module {0}".format(value))
+        generatedFunction.__globals__.update({key: imported_module})
     return generatedFunction
 
 
@@ -57,20 +64,20 @@ class FunctionEncapsulation(object):
         self.name = name
         self.defaults = in_func.__defaults__
         # Pickle references to functions used in the function
-        used_globals = {}
+        used_globals = {} # name: function
+        used_modules = {} # used name: origin module name
         for key, value in in_func.__globals__.items():
             if key in in_func.__code__.co_names:
-                used_globals[key] = value
+                if ismodule(value):
+                    used_modules[key] = value.__name__
+                else:
+                    used_globals[key] = value
         self.globals = pickle.dumps(used_globals, pickle.HIGHEST_PROTOCOL)
+        self.imports = used_modules
 
     def __call__(self, *args, **kwargs):
         """Called by local worker (which doesn't _communicate this class)"""
-        return functionFactory(
-            self.code,
-            self.name,
-            self.defaults,
-            self.globals,
-        )(*args, **kwargs)
+        return self.getFunction()(*args, **kwargs)
 
     def __name__(self):
         return self.name
@@ -83,6 +90,7 @@ class FunctionEncapsulation(object):
             self.name,
             self.defaults,
             self.globals,
+            self.imports,
         )
 
 

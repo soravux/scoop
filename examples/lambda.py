@@ -18,9 +18,20 @@
 SCOOP also works on lambda functions even if they aren't picklable by default.
 """
 from scoop import futures, shared
+from math import cos
+import operator
 
 
 if __name__ == "__main__":
+    # Standard lambda function
     myFunc = lambda x: x * 2
+    # Lambda function using a globally defined function
+    myFunc2 = lambda x: cos(x)
+    # Lambda function using a function through a module definition
+    myFunc3 = lambda x: operator.add(x, 1)
+
+    # Calls to SCOOP
     print(list(futures.map(myFunc, range(10))))
-    
+    print(list(futures.map(myFunc2, range(10))))
+    print(list(futures.map(myFunc3, range(10))))
+
