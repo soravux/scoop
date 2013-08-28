@@ -28,7 +28,7 @@ except ImportError:
 import zmq
 
 import scoop
-from . import shared, encapsulation, utils, reduction
+from . import shared, encapsulation, utils
 from .shared import SharedElementEncapsulation
 
 
@@ -192,19 +192,6 @@ class ZMQCommunicator(object):
         else:
             msg = self.socket.recv_multipart()
         
-        # Handle group (reduction) replies
-        if msg[1] == b"GROUP":
-            data = pickle.loads(msg[2])
-            group_id = data[0]
-            execution_qty = data[1]
-            future = data[2]
-            worker_address = msg[-1]
-            reduction.answers[group_id][worker_address] = (execution_qty, future)
-            future._execute_callbacks("universal")
-            reduction.sequence[group_id] += execution_qty
-            self.processGroupTasks()
-            return
-
         try:
             thisFuture = pickle.loads(msg[1])
         except AttributeError as e:
@@ -219,20 +206,10 @@ class ZMQCommunicator(object):
 
         if msg[0] == b"TASK":
             # Try to connect directly to this worker to send the result
-            # afterwards if Future is from a map. If it is from a synchronized
-            # operation, notify the Broker that we are part of this reduction.
+            # afterwards if Future is from a map.
             if thisFuture.sendResultBack:
                 self.addPeer(thisFuture.id.worker)
-            else:
-                try:
-                    groupIDs = reduction.get_future_group_ids(thisFuture)
-                    for groupID in groupIDs:
-                        self.sendSynchronizedNotification(groupID)
-                except:
-                    scoop.logger.warn("Could not find the reference on the "
-                                      "following future: "
-                                      "{0}".format(thisFuture))
-            
+
         isCallable = callable(thisFuture.callable)
         isDone = thisFuture._ended()
         if not isCallable and not isDone:
@@ -249,25 +226,6 @@ class ZMQCommunicator(object):
                 raise ReferenceBroken("This element could not be pickled: "
                                       "{0}.".format(thisFuture))
         return thisFuture
-
-    def processGroupTasks(self):
-        for groupID, sources in list(reduction.comm_src.items()):
-            # Process newly arrived results
-            for worker in reduction.answers[groupID].keys():
-                try:
-                    reduction.comm_src[groupID].remove(worker)
-                except:
-                    # If we are the root
-                    pass
-            
-            # We are not waiting any more results, send our result
-            not_waiting_anymore_results = not sources
-            destination_is_not_us = groupID in reduction.comm_dst
-            if not_waiting_anymore_results and destination_is_not_us:
-                self.sendGroupedResult(
-                    reduction.comm_dst[groupID], groupID
-                )
-                reduction.cleanGroupID(groupID)
 
     def pumpInfoSocket(self):
         while self.infoSocket.poll(0):
@@ -287,31 +245,6 @@ class ZMQCommunicator(object):
                 varName = pickle.loads(msg[1])
                 shared.elements.setdefault(key, {}).update({varName: varValue})
                 self.convertVariable(key, varName, varValue)
-            elif msg[0] == b"TASKEND":
-                source_addr = pickle.loads(msg[1])
-                groupID = pickle.loads(msg[2])
-                if source_addr:
-                    worker_list = sorted(pickle.loads(msg[3]))
-                    try:
-                        worker_list.remove(source_addr)
-                    except:
-                        pass
-                    # Ensure this worker has participated to the task
-                    if not scoop.worker in worker_list + [source_addr]:
-                        continue
-                    # If results are asked
-                    reduction_tree = reduction.ReductionTree(
-                        [source_addr] + worker_list,
-                    )
-                    destination = reduction_tree.get_my_parent()
-                    sources = reduction_tree.get_my_children()
-                    if destination:
-                        reduction.comm_dst[groupID] = destination 
-                    reduction.comm_src[groupID] = sources
-                    self.processGroupTasks()
-                else:
-                    # Erase the reduction buffers if no data is awaited anymore
-                    reduction.cleanGroupID(groupID)
             elif msg[0] == b"BROKER_INFO":
                 # TODO: find out what to do here ...
                 if len(self.broker_set) == 0: # The first update
@@ -378,19 +311,6 @@ class ZMQCommunicator(object):
                                                      pickle.HIGHEST_PROTOCOL)])
             future.callable = previousCallable
 
-    def sendSynchronizedNotification(self, group_id):
-        """Notify the broker we're executing a synchronized task."""
-        if group_id not in reduction.notified:
-            self.socket.send_multipart([
-                b"WORK",
-                pickle.dumps(
-                    group_id,
-                    pickle.HIGHEST_PROTOCOL
-                ),
-            ])
-
-            reduction.notified.append(group_id)
-
     def sendResult(self, future):
         """Send a terminated future back to its parent."""
         future = copy.copy(future)
@@ -408,21 +328,6 @@ class ZMQCommunicator(object):
                 future,
                 pickle.HIGHEST_PROTOCOL,
             ),
-        )
-
-    def sendGroupedResult(self, destination, group_id):
-        """Send a reduction result."""
-        future = reduction.total.get(group_id)
-        future.callable = future.args = future.greenlet =  None
-
-        self._sendReply(
-            destination,
-            b"GROUP",
-            pickle.dumps([
-                group_id,
-                int(reduction.sequence[group_id]),
-                reduction.total.get(group_id),
-            ], pickle.HIGHEST_PROTOCOL),
         )
 
     def _sendReply(self, destination, *args):
