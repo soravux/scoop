@@ -495,17 +495,14 @@ class TestCoherent(TestScoopCommon):
     def test_mapReduce(self):
         result = futures._startup(funcMapReduce, [10, 20, 30])
         self.assertEqual(result, 1400)
-        self.assertEqual(len(scoop.reduction.total), 0)
 
     def test_doubleMapReduce(self):
         result = futures._startup(funcDoubleMapReduce, [10, 20, 30])
         self.assertTrue(result)
-        self.assertEqual(len(scoop.reduction.total), 0)
 
     def test_mapScan(self):
         result = futures._startup(funcMapScan, [10, 20, 30])
         self.assertEqual(max(result), 1400)
-        self.assertEqual(len(scoop.reduction.total), 0)
 
 
 class TestShared(TestScoopCommon):
