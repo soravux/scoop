@@ -38,7 +38,6 @@ WORK = b"WORK"
 REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
-TASKEND = b"TASKEND"
 BROKER_INFO = b"BROKER_INFO"
 # Broker interconnection
 CONNECT = b"CONNECT"
@@ -249,21 +248,6 @@ class Broker(object):
                     address,
                     pickle.dumps(self.clusterAvailable,
                                  pickle.HIGHEST_PROTOCOL),
-                ])
-
-            # Clean the buffers when a coherent (mapReduce/mapScan)
-            # operation terminates
-            elif msg_type == TASKEND:
-                askResult = msg[2]
-                groupID = pickle.loads(msg[3])
-                self.infoSocket.send_multipart([
-                    TASKEND,
-                    askResult,
-                    msg[3],
-                    pickle.dumps(
-                        self.groupTasks.pop(groupID, []),
-                        pickle.HIGHEST_PROTOCOL
-                    )
                 ])
 
             # Add a given broker to its fellow list

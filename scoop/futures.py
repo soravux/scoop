@@ -18,14 +18,13 @@ from __future__ import print_function
 
 import os
 from inspect import ismethod
-from collections import namedtuple
+from collections import namedtuple, Iterable
 from functools import partial, reduce
 import itertools
 import time
 
 import scoop
 from ._types import Future, NotStartedProperly, CallbackType
-from .reduction import reduction
 from . import _control as control
 
 
@@ -107,7 +106,7 @@ def _mapFuture(callable_, *iterables):
     return childrenList
 
 
-def map(func, *iterables, **kwargs):
+def map(func, *iterables, timeout=None):
     """Equivalent to
     `map(func, \*iterables, ...)
     <http://docs.python.org/library/functions.html#map>`_
@@ -136,7 +135,7 @@ def map(func, *iterables, **kwargs):
         yield future.resultValue
 
 
-def map_as_completed(func, *iterables, **kwargs):
+def map_as_completed(func, *iterables, timeout=None):
     """Equivalent to map, but the results are returned as soon as they are made
     available.
 
@@ -158,7 +157,7 @@ def map_as_completed(func, *iterables, **kwargs):
 
 
 @ensureScoopStartedProperly
-def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
+def mapScan(mapFunc, reductionOp, *iterables, timeout=None):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
     values. This is a blocking call.
@@ -180,35 +179,47 @@ def mapScan(mapFunc, reductionOp, *iterables, **kwargs):
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
     launches = []
-    groupID = next(callbackGroupID)
-    for args in zip(*iterables):
-        child = _createFuture(mapFunc, *args)
-        child.add_done_callback(partial(reduction, operation=reductionOp),
-                                inCallbackType=CallbackType.universal,
-                                inCallbackGroup=groupID)
-        control.futureDict[control.current.id].children[child] = None
-        control.execQueue.append(child)
-        launches.append(child)
-    results = []
 
-    # Execute the task
-    for future in _waitAll(*launches):
-        results.append((future.executor, future.result()))
 
-    # Cleanup phase
-    control.execQueue.socket.taskEnd(groupID, askResults=scoop.worker)
+def recursiveReduction(mapFunc, reductionFunc, *iterables):
+    """Generates the recursive reduction tree."""
+    if iterables:
+        half = min(len(x) // 2 for x in iterables)
+        data_left = [list(x)[:half] for x in iterables]
+        data_right = [list(x)[half:] for x in iterables]
+    else:
+        data_left = data_right = [[]]
 
-    while int(scoop.reduction.sequence[groupID]) != len(launches):
-        control.execQueue.socket._poll(0)
-        control.execQueue.updateQueue()
+    future_left = future_right = None
+    if any(len(x) <= 1 for x in data_left):
+        result_left = mapFunc(*list(zip(*data_left))[0])
+    else:
+        future_left = submit(
+            recursiveReduction,
+            mapFunc,
+            reductionFunc,
+            *data_left
+        )
 
-    # Re-order
-    scoop.reduction.total.pop(groupID, None)
-    return list(zip(*sorted(results, key=lambda x: (x[0]))))[1]
+    if any(len(x) <= 1 for x in data_right):
+        result_right = mapFunc(*list(zip(*data_right))[0])
+    else:
+        future_right = submit(
+            recursiveReduction,
+            mapFunc,
+            reductionFunc,
+            *data_right
+        )
 
+    if future_left:
+        result_left = future_left.result()
+    if future_right:
+        result_right = future_right.result()
+
+    return reductionFunc(result_left, result_right)
 
 @ensureScoopStartedProperly
-def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
+def mapReduce(mapFunc, reductionFunc, *iterables, timeout=None):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result. The reduction function will cumulatively
     merge the results of the map function in order to get a single final value.
@@ -217,10 +228,10 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
     :param mapFunc: Any picklable callable object (function or class object
         with *__call__* method); this object will be called to execute the
         Futures. The callable must return a value.
-    :param reductionOp: Any picklable callable object (function or class object
-        with *__call__* method); this object will be called to reduce pairs of
-        Futures results. The callable must support two parameters and return a
-        single value.
+    :param reductionFunc: Any picklable callable object (function or class
+        object with *__call__* method); this object will be called to reduce
+        pairs of Futures results. The callable must support two parameters and
+        return a single value.
     :param iterables: Iterable objects; each will be zipped to form an iterable
         of arguments tuples that will be passed to the callable object as a
         separate Future.
@@ -228,43 +239,12 @@ def mapReduce(mapFunc, reductionOp, *iterables, **kwargs):
         is no limit on the wait time. More information in the :doc:`usage` page.
 
     :returns: A single value."""
-    launches = []
-    # Set a callback group ID for the Futures generated within this scope
-    groupID = (control.current.id, next(callbackGroupID))
-    for args in zip(*iterables):
-        child = _createFuture(mapFunc, *args)
-        child.add_done_callback(partial(reduction, operation=reductionOp),
-                                inCallbackType=CallbackType.universal,
-                                inCallbackGroup=groupID)
-        child.sendResultBack = False
-        control.futureDict[control.current.id].children[child] = None
-        control.execQueue.append(child)
-        launches.append(child)
-    workerResults = {}
-
-    # Execute the task (wait for children to finish)
-    control.execQueue.updateQueue()
-    for future in _waitAny(*launches):
-        pass
-
-    # Process locally done tasks
-    if groupID in scoop.reduction.total:
-        scoop.reduction.answers[groupID][scoop.worker] = (
-            int(scoop.reduction.sequence[groupID]),
-            scoop.reduction.total[groupID],
-        )
-
-    # Cleanup phase
-    control.execQueue.socket.taskEnd(groupID, askResults=scoop.worker)
-
-    # Reduce the results
-    while int(scoop.reduction.sequence[groupID]) != len(launches):
-        control.execQueue.socket._poll(0)
-        control.execQueue.updateQueue()
-
-    ret_value = scoop.reduction.total.get(groupID).resultValue
-    scoop.reduction.total.pop(groupID, None)
-    return ret_value
+    return submit(
+        recursiveReduction,
+        mapFunc,
+        reductionFunc,
+        *iterables
+    ).result()
 
 
 def _createFuture(func, *args):
