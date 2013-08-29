@@ -107,7 +107,7 @@ def _mapFuture(callable_, *iterables):
     return childrenList
 
 
-def map(func, *iterables, timeout=None):
+def map(func, *iterables, **kwargs):
     """Equivalent to
     `map(func, \*iterables, ...)
     <http://docs.python.org/library/functions.html#map>`_
@@ -136,7 +136,7 @@ def map(func, *iterables, timeout=None):
         yield future.resultValue
 
 
-def map_as_completed(func, *iterables, timeout=None):
+def map_as_completed(func, *iterables, **kwargs):
     """Equivalent to map, but the results are returned as soon as they are made
     available.
 
@@ -203,7 +203,7 @@ def _recursiveReduce(mapFunc, reductionFunc, scan, *iterables):
 
 
 @ensureScoopStartedProperly
-def mapScan(mapFunc, reductionFunc, *iterables, timeout=None):
+def mapScan(mapFunc, reductionFunc, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
     values. This is a blocking call.
@@ -234,7 +234,7 @@ def mapScan(mapFunc, reductionFunc, *iterables, timeout=None):
 
 
 @ensureScoopStartedProperly
-def mapReduce(mapFunc, reductionFunc, *iterables, timeout=None):
+def mapReduce(mapFunc, reductionFunc, *iterables, **kwargs):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result. The reduction function will cumulatively
     merge the results of the map function in order to get a single final value.
