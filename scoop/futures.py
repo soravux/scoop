@@ -21,6 +21,7 @@ from inspect import ismethod
 from collections import namedtuple, Iterable
 from functools import partial, reduce
 import itertools
+import copy
 import time
 
 import scoop
@@ -156,8 +157,53 @@ def map_as_completed(func, *iterables, timeout=None):
         yield future.resultValue
 
 
+def _recursiveReduce(mapFunc, reductionFunc, scan, *iterables):
+    """Generates the recursive reduction tree. Used by mapReduce."""
+    if iterables:
+        half = min(len(x) // 2 for x in iterables)
+        data_left = [list(x)[:half] for x in iterables]
+        data_right = [list(x)[half:] for x in iterables]
+    else:
+        data_left = data_right = [[]]
+
+    # Submit the left and right parts of the reduction
+    out_futures = [None, None]
+    out_results = [None, None]
+    for index, data in enumerate([data_left, data_right]):
+        if any(len(x) <= 1 for x in data):
+            out_results[index] = mapFunc(*list(zip(*data))[0])
+        else:
+            out_futures[index] = submit(
+                _recursiveReduce,
+                mapFunc,
+                reductionFunc,
+                scan,
+                *data
+            )
+
+    # Wait for the results
+    for index, future in enumerate(out_futures):
+        if future:
+            out_results[index] = future.result()
+
+    # Apply a scan if needed
+    if scan:
+        last_results = copy.copy(out_results)
+        if type(out_results[0]) is not list:
+            out_results[0] = [out_results[0]]
+        else:
+            last_results[0] = out_results[0][-1]
+        if type(out_results[1]) is list:
+            out_results[0].extend(out_results[1][:-1])
+            last_results[1] = out_results[1][-1]
+        out_results[0].append(reductionFunc(*last_results))
+        return out_results[0]
+
+    return reductionFunc(*out_results)
+
+
 @ensureScoopStartedProperly
-def mapScan(mapFunc, reductionOp, *iterables, timeout=None):
+def mapScan(mapFunc, reductionFunc, *iterables, timeout=None):
     """Exectues the :meth:`~scoop.futures.map` function and then applies a
     reduction function to its result while keeping intermediate reduction
     values. This is a blocking call.
@@ -165,7 +211,7 @@ def mapScan(mapFunc, reductionOp, *iterables, timeout=None):
     :param mapFunc: Any picklable callable object (function or class object with
         *__call__* method); this object will be called to execute the Futures.
         The callable must return a value.
-    :param reductionOp: Any picklable callable object (function or class object
+    :param reductionFunc: Any picklable callable object (function or class object
         with *__call__* method); this object will be called to reduce pairs of
         Futures results. The callable must support two parameters and return a
         single value.
@@ -178,45 +224,14 @@ def mapScan(mapFunc, reductionOp, *iterables, timeout=None):
 
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
-    launches = []
+    return submit(
+        _recursiveReduce,
+        mapFunc,
+        reductionFunc,
+        True,
+        *iterables
+    ).result()
 
-
-def recursiveReduction(mapFunc, reductionFunc, *iterables):
-    """Generates the recursive reduction tree."""
-    if iterables:
-        half = min(len(x) // 2 for x in iterables)
-        data_left = [list(x)[:half] for x in iterables]
-        data_right = [list(x)[half:] for x in iterables]
-    else:
-        data_left = data_right = [[]]
-
-    future_left = future_right = None
-    if any(len(x) <= 1 for x in data_left):
-        result_left = mapFunc(*list(zip(*data_left))[0])
-    else:
-        future_left = submit(
-            recursiveReduction,
-            mapFunc,
-            reductionFunc,
-            *data_left
-        )
-
-    if any(len(x) <= 1 for x in data_right):
-        result_right = mapFunc(*list(zip(*data_right))[0])
-    else:
-        future_right = submit(
-            recursiveReduction,
-            mapFunc,
-            reductionFunc,
-            *data_right
-        )
-
-    if future_left:
-        result_left = future_left.result()
-    if future_right:
-        result_right = future_right.result()
-
-    return reductionFunc(result_left, result_right)
 
 @ensureScoopStartedProperly
 def mapReduce(mapFunc, reductionFunc, *iterables, timeout=None):
@@ -240,9 +255,10 @@ def mapReduce(mapFunc, reductionFunc, *iterables, timeout=None):
 
     :returns: A single value."""
     return submit(
-        recursiveReduction,
+        _recursiveReduce,
         mapFunc,
         reductionFunc,
+        False,
         *iterables
     ).result()
 
