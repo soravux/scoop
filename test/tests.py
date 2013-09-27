@@ -222,6 +222,9 @@ def funcMapAsCompleted(n):
     result = list(futures.map_as_completed(func4, [i+1 for i in range(n)]))
     return sum(result)
 
+def funcIter(n):
+    result = list(futures.map(func4, (i+1 for i in range(n))))
+    return sum(result)
 
 def main(n):
     task = futures.submit(func0, n)
@@ -487,6 +490,14 @@ class TestApi(TestScoopCommon):
         result = futures._startup(funcMapAsCompleted, 30)
         self.assertEqual(result, 9455)
 
+    def test_from_generator_single(self):
+        result = futures._startup(funcIter, 30)
+        self.assertEqual(result, 9455)
+
+    def test_from_generator_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcIter, 30)
+        self.assertEqual(result, 9455)
 
 class TestCoherent(TestScoopCommon):
     def __init(self, *args, **kwargs):
