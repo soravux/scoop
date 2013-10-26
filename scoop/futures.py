@@ -126,8 +126,7 @@ def map(func, *iterables, **kwargs):
         of arguments tuples that will be passed to the callable object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time. More information in the 
-        :ref:`timeout-usage` section.
+        is no limit on the wait time.
 
     :returns: A generator of map results, each corresponding to one map
         iteration."""
@@ -147,8 +146,7 @@ def map_as_completed(func, *iterables, **kwargs):
         of arguments tuples that will be passed to the callable object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time. More information in the 
-        :ref:`timeout-usage` section.
+        is no limit on the wait time.
 
     :returns: A generator of map results, each corresponding to one map
         iteration."""
@@ -219,8 +217,7 @@ def mapScan(mapFunc, reductionFunc, *iterables, **kwargs):
         of arguments tuples that will be passed to the mapFunc object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time. More information in the 
-        :ref:`timeout-usage` section.
+        is no limit on the wait time.
 
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
@@ -251,7 +248,7 @@ def mapReduce(mapFunc, reductionFunc, *iterables, **kwargs):
         of arguments tuples that will be passed to the callable object as a
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time. More information in the :doc:`usage` page.
+        is no limit on the wait time.
 
     :returns: A single value."""
     return submit(
@@ -361,13 +358,11 @@ def _waitAll(*children):
 
 def wait(fs, timeout=-1, return_when=ALL_COMPLETED):
     """Wait for the futures in the given sequence to complete.
-    Using this function may prevent a worker from executing. More information 
-    in the :ref:`timeout-usage` section.
+    Using this function may prevent a worker from executing.
 
     :param fs: The sequence of Futures to wait upon.
     :param timeout: The maximum number of seconds to wait. If negative or not
-        specified, then there is no limit on the wait time. More information in
-        the :doc:`usage` page.
+        specified, then there is no limit on the wait time.
     :param return_when: Indicates when this function should return. The options
         are:
 
@@ -435,8 +430,7 @@ def as_completed(fs, timeout=None):
 
     :param fs: The sequence of Futures to wait upon.
     :param timeout: The maximum number of seconds to wait. If None, then there
-        is no limit on the wait time. More information in the 
-        :ref:`timeout-usage` section.
+        is no limit on the wait time.
 
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
