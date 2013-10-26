@@ -73,14 +73,26 @@ def func4(n):
     result = n * n
     return result
 
+
 def funcLambda(n):
     lambda_func = lambda x : x*x
     result = list(futures.map(lambda_func, [i+1 for i in range(n)]))
     return sum(result)
 
+
+def funcLambdaSubfuncNotGlobal(n):
+    """Tests a lambda function containing a call to a function that is not in
+    the globals()."""
+    my_mul = operator.mul
+    lambda_func = lambda x : my_mul(x, x)
+    result = list(futures.map(lambda_func, [i+1 for i in range(n)]))
+    return sum(result)
+
+
 def funcCos():
     result = list(futures.map(math.cos, [i for i in range(10)]))
     return sum(result)
+
 
 def funcCallback():
     f = futures.submit(func4, 100)
@@ -432,6 +444,11 @@ class TestApi(TestScoopCommon):
     def test_map_lambda(self):
         self.w = self.multiworker_set()
         result = futures._startup(funcLambda, 30)
+        self.assertEqual(result, 9455)
+
+    def test_map_lambda_subfunc_not_global(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcLambdaSubfuncNotGlobal, 30)
         self.assertEqual(result, 9455)
 
     def test_map_imported_func(self):
