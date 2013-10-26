@@ -47,3 +47,11 @@ you can do as such::
     If your remote hosts needs special configuration (non-default port, some 
     specified username, etc.), you should do it in your ssh client 
     configuration file (by default ``~/.ssh/config``).
+
+.. note::
+
+    The following parameters of ``ssh`` are used by SCOOP:
+
+        * -x : Deactivates X forwarding
+        * -n : Prevents reading from stdin (batch mode)
+        * -oStrictHostKeyChecking=no : Allow the connection to hosts ``ssh`` sees for the first time. Without it, ``ssh`` interactively asks to accept the identity of the peer.
