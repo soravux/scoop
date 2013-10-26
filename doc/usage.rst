@@ -341,6 +341,8 @@ The default value choosen by SCOOP (one worker by physical core) is generaly a
 good value.
 
 
+.. _timeout-usage:
+
 Timeout usage
 -------------
 

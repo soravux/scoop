@@ -127,7 +127,7 @@ def map(func, *iterables, **kwargs):
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time. More information in the usage document
-        `Timeout usage`_.
+        :ref:`timeout-usage`.
 
     :returns: A generator of map results, each corresponding to one map
         iteration."""
@@ -148,7 +148,7 @@ def map_as_completed(func, *iterables, **kwargs):
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time. More information in the usage document
-        `Timeout usage`_.
+        :ref:`timeout-usage`.
 
     :returns: A generator of map results, each corresponding to one map
         iteration."""
@@ -220,7 +220,7 @@ def mapScan(mapFunc, reductionFunc, *iterables, **kwargs):
         separate Future.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time. More information in the usage document
-        `Timeout usage`_. 
+        :ref:`timeout-usage`.
 
     :returns: Every return value of the reduction function applied to every
               mapped data sequentially ordered."""
@@ -434,7 +434,7 @@ def as_completed(fs, timeout=None):
     :param fs: The sequence of Futures to wait upon.
     :param timeout: The maximum number of seconds to wait. If None, then there
         is no limit on the wait time. More information in the usage document
-        `Timeout usage`_. 
+        :ref:`timeout-usage`.
 
     :return: An iterator that yields the given Futures as they complete
         (finished or cancelled).
