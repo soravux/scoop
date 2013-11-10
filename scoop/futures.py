@@ -333,8 +333,10 @@ def _waitAny(*children):
         future.stopWatch.resume()
         if childFuture.exceptionValue:
             raise childFuture.exceptionValue
-        yield childFuture
-        n -= 1
+        # Only yield if executed future was in children, otherwise loop
+        if childFuture in children:
+            yield childFuture
+            n -= 1
 
 
 def _waitAll(*children):
