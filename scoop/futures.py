@@ -318,7 +318,7 @@ def _waitAny(*children):
     n = len(children)
     # check for available results and index those unavailable
     for index, future in enumerate(children):
-        if future.exceptionValue is not None:
+        if future.exceptionValue:
             raise future.exceptionValue
         if future._ended():
             yield future
