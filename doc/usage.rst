@@ -99,9 +99,9 @@ substitute to the standard |map()|_, for instance::
 Map_as_completed
 ~~~~~~~~~~~~~~~~
 
-The :meth:`~scoop.futures.map_as_completed` function is used exactly in the same way 
-as the :meth:`~scoop.futures.map` function. The only difference is that this function 
-will return the results as soon as they are made available.
+The :meth:`~scoop.futures.map_as_completed` function is used exactly in the 
+same way as the :meth:`~scoop.futures.map` function. The only difference is 
+that this function  will yield results as soon as they are made available.
 
 Submit
 ~~~~~~
@@ -117,19 +117,17 @@ Reduction API
 mapReduce
 ~~~~~~~~~
 
-The :meth:`~scoop.futures.mapReduce` function of SCOOP allows to parallelize a
-reduction function after applying the aforementionned
-:meth:`~scoop.futures.map` function.
-It returns a single value.
+The :meth:`~scoop.futures.mapReduce` function allows to parallelize a reduction 
+function after applying the aforementioned :meth:`~scoop.futures.map` function.
+It returns a single element.
 
 A reduction function takes the map results and applies a function cumulatively
 to it.
-For example, applying `reduce(lambda x, y: x+y, ["a", "b", "c", "d"])` would
-execute `(((("a")+"b")+"c")+"d")` give you the result `"abcd"`
+For example, applying ``reduce(lambda x, y: x+y, ["a", "b", "c", "d"])`` would
+execute ``(((("a")+"b")+"c")+"d")`` give you the result ``"abcd"``.
 
-Read the standard Python
-`reduce <http://docs.python.org/3.0/library/functools.html#functools.reduce>`_
-function for more information.
+More information is available in the 
+`standard Python documentation on the reduce function <http://docs.python.org/3.0/library/functools.html#functools.reduce>`_.
 
 A common reduction usage consist of a sum as the following example::
 
@@ -152,14 +150,27 @@ A common reduction usage consist of a sum as the following example::
 .. note::
     You can pass any arbitrary reduction function, not only operator ones.
 
+Architecture
+~~~~~~~~~~~~
+
+SCOOP will automatically generate a binary reduction tree and submit it.
+Every level of the tree contain reduction nodes except for the bottom-most
+which contains the mapped function.
+
+.. image:: images/reduction.png
+   :height: 280px
+   :align: center
+
+Utilities
+---------
 
 Object sharing API
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Sharing constant objects between workers is available using the
 :mod:`~scoop.shared` module.
 
-Its functionnalities are summarised as such::
+Its functionnalities are summarised in this example::
 
     from scoop import futures, shared
 
@@ -177,10 +188,10 @@ Its functionnalities are summarised as such::
     A constant can only be defined once on the entire pool of workers.
 
 Logging
--------
+~~~~~~~
 
 You can use the `scoop.logger` logger to output useful information alongside
-your strings such as the time, the worker name which emitted the log and the
+your logs such as the time, the worker name which emitted the log and the
 module in which the log was emitted.
 
 Here is a sample usage::
