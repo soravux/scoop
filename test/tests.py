@@ -230,13 +230,16 @@ def funcSharedFunction():
             result = False
     return result
 
+
 def funcMapAsCompleted(n):
     result = list(futures.map_as_completed(func4, [i+1 for i in range(n)]))
     return sum(result)
 
+
 def funcIter(n):
     result = list(futures.map(func4, (i+1 for i in range(n))))
     return sum(result)
+
 
 def main(n):
     task = futures.submit(func0, n)
@@ -250,6 +253,27 @@ def main_simple(n):
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()
     return result
+
+
+def submit_get_queues_size(n):
+    task = futures.submit(func4, n)
+    result = task.result()
+    return [
+        len(scoop._control.execQueue.inprogress),
+        len(scoop._control.execQueue.ready),
+        len(scoop._control.execQueue.movable),
+        len(scoop._control.futureDict) - 1, # - 1 because the current function is a future too
+    ]
+
+
+def map_get_queues_size(n):
+    result = list(map(func4, [n for n in range(n)]))
+    return [
+        len(scoop._control.execQueue.inprogress),
+        len(scoop._control.execQueue.ready),
+        len(scoop._control.execQueue.movable),
+        len(scoop._control.futureDict) - 1, # - 1 because the current function is a future too
+    ]
 
 
 def port_ready(port, socket):
@@ -372,11 +396,10 @@ class TestMultiFunction(TestScoopCommon):
 
     def test_small_local_multiworker(self):
         self.w = self.multiworker_set()
-        _control.FutureQueue.highwatermark = 9999999999
+        _control.FutureQueue.highwatermark = 9999999999999
         Backupenv = os.environ.copy()
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-        time.sleep(0.5)
         os.environ = Backupenv
 
     def test_small_foreign_multiworker(self):
@@ -385,23 +408,38 @@ class TestMultiFunction(TestScoopCommon):
         Backupenv = os.environ.copy()
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-        time.sleep(0.5)
         os.environ = Backupenv
 
     def test_execQueue_multiworker(self):
         self.w = self.multiworker_set()
-        result = futures._startup(func0, 20)
-        time.sleep(0.5)
+        result = futures._startup(func0, 6)
         self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
+        self.assertEqual(len(scoop._control.futureDict), 0)
 
     def test_execQueue_uniworker(self):
-        result = futures._startup(func0, 20)
-        time.sleep(0.5)
+        result = futures._startup(func0, 6)
         self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
+        self.assertEqual(len(scoop._control.futureDict), 0)
+
+    def test_execQueue_submit_uniworker(self):
+        result = futures._startup(submit_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
+    def test_execQueue_map_uniworker(self):
+        result = futures._startup(map_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
 
     def test_partial(self):
         """This function removes some attributes (such as __name__)."""
@@ -515,6 +553,7 @@ class TestApi(TestScoopCommon):
         self.w = self.multiworker_set()
         result = futures._startup(funcIter, 30)
         self.assertEqual(result, 9455)
+
 
 class TestCoherent(TestScoopCommon):
     def __init(self, *args, **kwargs):

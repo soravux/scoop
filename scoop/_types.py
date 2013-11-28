@@ -170,7 +170,8 @@ class Future(object):
     def _ended(self):
         """True if the call was successfully cancelled or finished running,
            False otherwise. This function does not update the queue."""
-        return self.resultValue is not None or self.exceptionValue is not None or self.isDone
+        # TODO: Replace every call to _ended() to .isDone
+        return self.isDone
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
