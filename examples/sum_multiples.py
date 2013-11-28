@@ -37,4 +37,5 @@ if __name__ == '__main__':
     assert serial_result == parallel_result
 
     print("Serial time: {0:.4f} s\nParallel time: {1:.4f} s"
-          "".format(serial_time, parallel_reduce_time))
+          "".format(serial_time, parallel_reduce_time)
+    )
