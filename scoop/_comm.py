@@ -199,7 +199,7 @@ class ZMQCommunicator(object):
                 "An instance could not find its base reference on a worker. "
                 "Ensure that your objects have their definition available in "
                 "the root scope of your program.\n{error}".format(
-                    error=e
+                    error=e,
                 )
             )
             raise ReferenceBroken(e)
