@@ -376,10 +376,7 @@ class FutureQueue(object):
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
         this method will raise a ValueError."""
-        if future in self:
-            self.movable.remove(future)
-        else:
-            raise ValueError(future)
+        self.movable.remove(future)
 
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""
