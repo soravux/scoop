@@ -441,6 +441,25 @@ class TestMultiFunction(TestScoopCommon):
             "Buffers are not empty after future completion"
         )
 
+    def test_execQueue_submit_multiworker(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(submit_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
+    def test_execQueue_map_multiworker(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(map_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
+
     def test_partial(self):
         """This function removes some attributes (such as __name__)."""
         from functools import partial
