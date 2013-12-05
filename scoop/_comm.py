@@ -102,7 +102,7 @@ class ZMQCommunicator(object):
         else:
             raise Exception("Could not create direct connection socket")
 
-        # Update the logger to know our name
+        # Update the logger to display our name
         try:
             scoop.logger.handlers[0].setFormatter(
                 logging.Formatter(
@@ -111,7 +111,7 @@ class ZMQCommunicator(object):
                 )
             )
         except IndexError:
-            scoop.logger.warn(
+            scoop.logger.warning(
                 "Could not set worker name into logger ({0})".format(
                     scoop.worker
                 )
@@ -199,7 +199,7 @@ class ZMQCommunicator(object):
                 "An instance could not find its base reference on a worker. "
                 "Ensure that your objects have their definition available in "
                 "the root scope of your program.\n{error}".format(
-                    error=e
+                    error=e,
                 )
             )
             raise ReferenceBroken(e)

@@ -73,14 +73,26 @@ def func4(n):
     result = n * n
     return result
 
+
 def funcLambda(n):
     lambda_func = lambda x : x*x
     result = list(futures.map(lambda_func, [i+1 for i in range(n)]))
     return sum(result)
 
+
+def funcLambdaSubfuncNotGlobal(n):
+    """Tests a lambda function containing a call to a function that is not in
+    the globals()."""
+    my_mul = operator.mul
+    lambda_func = lambda x : my_mul(x, x)
+    result = list(futures.map(lambda_func, [i+1 for i in range(n)]))
+    return sum(result)
+
+
 def funcCos():
     result = list(futures.map(math.cos, [i for i in range(10)]))
     return sum(result)
+
 
 def funcCallback():
     f = futures.submit(func4, 100)
@@ -218,8 +230,14 @@ def funcSharedFunction():
             result = False
     return result
 
+
 def funcMapAsCompleted(n):
     result = list(futures.map_as_completed(func4, [i+1 for i in range(n)]))
+    return sum(result)
+
+
+def funcIter(n):
+    result = list(futures.map(func4, (i+1 for i in range(n))))
     return sum(result)
 
 
@@ -235,6 +253,27 @@ def main_simple(n):
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()
     return result
+
+
+def submit_get_queues_size(n):
+    task = futures.submit(func4, n)
+    result = task.result()
+    return [
+        len(scoop._control.execQueue.inprogress),
+        len(scoop._control.execQueue.ready),
+        len(scoop._control.execQueue.movable),
+        len(scoop._control.futureDict) - 1, # - 1 because the current function is a future too
+    ]
+
+
+def map_get_queues_size(n):
+    result = list(map(func4, [n for n in range(n)]))
+    return [
+        len(scoop._control.execQueue.inprogress),
+        len(scoop._control.execQueue.ready),
+        len(scoop._control.execQueue.movable),
+        len(scoop._control.futureDict) - 1, # - 1 because the current function is a future too
+    ]
 
 
 def port_ready(port, socket):
@@ -357,11 +396,10 @@ class TestMultiFunction(TestScoopCommon):
 
     def test_small_local_multiworker(self):
         self.w = self.multiworker_set()
-        _control.FutureQueue.highwatermark = 9999999999
+        _control.FutureQueue.highwatermark = 9999999999999
         Backupenv = os.environ.copy()
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-        time.sleep(0.5)
         os.environ = Backupenv
 
     def test_small_foreign_multiworker(self):
@@ -370,23 +408,57 @@ class TestMultiFunction(TestScoopCommon):
         Backupenv = os.environ.copy()
         result = futures._startup(self.main_func, 4)
         self.assertEqual(result, self.small_result)
-        time.sleep(0.5)
         os.environ = Backupenv
 
     def test_execQueue_multiworker(self):
         self.w = self.multiworker_set()
-        result = futures._startup(func0, 20)
-        time.sleep(0.5)
+        result = futures._startup(func0, 6)
         self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
+        self.assertEqual(len(scoop._control.futureDict), 0)
 
     def test_execQueue_uniworker(self):
-        result = futures._startup(func0, 20)
-        time.sleep(0.5)
+        result = futures._startup(func0, 6)
         self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
         self.assertEqual(len(scoop._control.execQueue.ready), 0)
         self.assertEqual(len(scoop._control.execQueue.movable), 0)
+        self.assertEqual(len(scoop._control.futureDict), 0)
+
+    def test_execQueue_submit_uniworker(self):
+        result = futures._startup(submit_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
+    def test_execQueue_map_uniworker(self):
+        result = futures._startup(map_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
+    def test_execQueue_submit_multiworker(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(submit_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
+    def test_execQueue_map_multiworker(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(map_get_queues_size, 6)
+        self.assertEqual(
+            result,
+            [0 for _ in range(len(result))],
+            "Buffers are not empty after future completion"
+        )
+
 
     def test_partial(self):
         """This function removes some attributes (such as __name__)."""
@@ -429,6 +501,11 @@ class TestApi(TestScoopCommon):
     def test_map_lambda(self):
         self.w = self.multiworker_set()
         result = futures._startup(funcLambda, 30)
+        self.assertEqual(result, 9455)
+
+    def test_map_lambda_subfunc_not_global(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcLambdaSubfuncNotGlobal, 30)
         self.assertEqual(result, 9455)
 
     def test_map_imported_func(self):
@@ -485,6 +562,15 @@ class TestApi(TestScoopCommon):
     def test_map_as_completed_multi(self):
         self.w = self.multiworker_set()
         result = futures._startup(funcMapAsCompleted, 30)
+        self.assertEqual(result, 9455)
+
+    def test_from_generator_single(self):
+        result = futures._startup(funcIter, 30)
+        self.assertEqual(result, 9455)
+
+    def test_from_generator_multi(self):
+        self.w = self.multiworker_set()
+        result = futures._startup(funcIter, 30)
         self.assertEqual(result, 9455)
 
 

@@ -170,7 +170,8 @@ class Future(object):
     def _ended(self):
         """True if the call was successfully cancelled or finished running,
            False otherwise. This function does not update the queue."""
-        return self.resultValue is not None or self.exceptionValue is not None or self.isDone
+        # TODO: Replace every call to _ended() to .isDone
+        return self.isDone
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
@@ -375,10 +376,7 @@ class FutureQueue(object):
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
         this method will raise a ValueError."""
-        if future in self:
-            self.movable.remove(future)
-        else:
-            raise ValueError(future)
+        self.movable.remove(future)
 
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""

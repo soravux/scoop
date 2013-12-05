@@ -1,4 +1,9 @@
-0.7.0-RC2 (2013/?/?)
+0.7.0 (2013/?/?)
+------------------
+
++ Improved: Garbage collection of Futures.
+
+0.7.0-RC2 (2013/11/13)
 ----------------------
 
 + Fixed: Bug sharing lambda function (referenced elements could not unpickle)
