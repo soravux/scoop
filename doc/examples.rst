@@ -14,12 +14,12 @@ Introduction to the :meth:`~scoop.futures.map` function
 -------------------------------------------------------
 
 A core concept of task-based parallelism as presented in SCOOP is the
-map. An introductory example to map working is presented in |mapDocFile|_.
+map. An introductory example to map working is presented in |map_doc_file|_.
 
-.. |mapDocFile| replace:: :file:`examples/mapDoc.py`
-.. _mapDocFile: https://code.google.com/p/scoop/source/browse/examples/mapDoc.py
+.. |map_doc_file| replace:: :file:`examples/map_doc.py`
+.. _map_doc_file: https://code.google.com/p/scoop/source/browse/examples/map_doc.py
 
-.. literalinclude:: ../examples/mapDoc.py
+.. literalinclude:: ../examples/map_doc.py
    :lines: 21-
    :linenos:
 
@@ -48,7 +48,7 @@ The example then prints the return values of every calls on line `9`.
 You can launch this program using :program:`python -m scoop`.
 The output should look like this::
 
-  ~/scoop/examples$ python -m scoop -n 8 mapDoc.py
+  ~/scoop/examples$ python -m scoop -n 8 map_doc.py
   Hello World from Future #0
   Hello World from Future #1
   Hello World from Future #2
@@ -85,12 +85,12 @@ going forth with this example.
     made by `CaitlinJo <http://commons.wikimedia.org/wiki/User:CaitlinJo>`_
     that shows the Monte Carlo computation of :math:`\pi`.
 
-.. |piCalcFile| replace:: :file:`examples/piCalc.py`
-.. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/piCalc.py
+.. |piCalcFile| replace:: :file:`examples/pi_calc.py`
+.. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/pi_calc.py
 
 First, we need to import the needed functions as such:
 
-.. literalinclude:: ../examples/piCalcDoc.py
+.. literalinclude:: ../examples/pi_calc_doc.py
    :lines: 22-24
    :linenos:
 
@@ -116,7 +116,7 @@ number of tries.
 
 .. TODO: don't restart line numbering
 
-.. literalinclude:: ../examples/piCalcDoc.py
+.. literalinclude:: ../examples/pi_calc_doc.py
    :lines: 26-27
    :linenos:
 
@@ -135,14 +135,14 @@ are positive in a cartesian map, the result must be multiplied by 4 to get the
 relation between area and circumference, namely 
 :math:`\pi`.
 
-.. literalinclude:: ../examples/piCalcDoc.py
+.. literalinclude:: ../examples/pi_calc_doc.py
    :lines: 29-31
    :linenos:
 
 As :ref:`previously stated <test-for-main-mandatory>`, you `must` wrap your
 code with a test for the __main__ name.
 
-.. literalinclude:: ../examples/piCalcDoc.py
+.. literalinclude:: ../examples/pi_calc_doc.py
    :lines: 33-34
    :linenos:
 
@@ -155,7 +155,7 @@ Sharing Constant
 One usage of shared constants is to halt a computation when a worker has
 found a solution such as a brute forcing example.
 
-.. literalinclude:: ../examples/sharedExampleDoc.py
+.. literalinclude:: ../examples/shared_example_doc.py
    :lines: 22-
    :linenos:
 

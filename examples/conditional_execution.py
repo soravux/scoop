@@ -14,18 +14,18 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-__author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
-              "Yannick Hold-Geoffroy", "Felix-Antoine Fortin",
-              "Francois-Michel de Rainville")
-__version__ = "0.7.0"
-__revision__ = "RC2"
+"""
+Shows the conditional execution of a parallel Future.
+"""
+from scoop import futures
+import random
 
-import logging
+first_type = lambda x: x + " World"
+second_type = lambda x: x + " Parallel World"
 
-
-# In case SCOOP was not initialized correctly
-CONFIGURATION = {}
-DEBUG = False
-IS_RUNNING = False
-logger = logging.getLogger()
-SHUTDOWN_REQUESTED = False
+if __name__ == '__main__':
+    if random.random() < 0.5:
+        my_future = futures.submit(first_type, "Hello")
+    else:
+        my_future = futures.submit(second_type, "Hello")
+    print(my_future.result())
