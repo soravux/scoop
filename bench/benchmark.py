@@ -8,8 +8,9 @@ from serialization import find_pickling_speed
 from functools import partial
 
 def make_parser():
-    parser = argparse.ArgumentParser(description=('Run a parametric benchmark.'
-                                                 'of scoop.'))
+    parser = argparse.ArgumentParser(
+        description=('Run a parametric benchmark of scoop.')
+    )
 
     parser.add_argument('--time', type = float, default = 5.0,
                         help = "The mean time of each individual task")
