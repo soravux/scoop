@@ -289,7 +289,7 @@ class Broker(object):
 
         self.taskSocket.close()
         self.infoSocket.close()
-        self.context.term()
+        #self.context.term()
 
         # Write down statistics about this run if asked
         if self.debug:
@@ -299,5 +299,6 @@ class Broker(object):
                 os.mkdir('debug')
             except:
                 pass
-            with open("debug/broker-broker", 'wb') as f:
+            name = self.name.replace(":", "_")
+            with open("debug/broker-{name}".format(**locals()), 'wb') as f:
                 pickle.dump(self.stats, f)

@@ -357,10 +357,10 @@ Startup scripts (cluster or grid)
 
 You must provide a startup script on systems using a scheduler. Here are some
 example startup scripts using different grid task managers. They
-are available in the |submitFilesPath|_ directory.
+are available in the |submit_files_path|_ directory.
 
-.. |submitFilesPath| replace:: :file:`examples/submitFiles`
-.. _submitFilesPath: https://code.google.com/p/scoop/source/browse/examples/submitFiles/
+.. |submit_files_path| replace:: :file:`examples/submit_files`
+.. _submit_files_path: https://code.google.com/p/scoop/source/browse/examples/submit_files/
 
 .. note::
     **Please note that these are only examples**. Refer to the documentation of 
@@ -372,14 +372,14 @@ Torque (Moab & Maui)
 
 Here is an example of a submit file for Torque:
 
-.. literalinclude:: ../examples/submitFiles/Torque.sh
+.. literalinclude:: ../examples/submit_files/Torque.sh
 
 Sun Grid Engine (SGE)
 ~~~~~~~~~~~~~~~~~~~~~
 
 Here is an example of a submit file for SGE:
 
-.. literalinclude:: ../examples/submitFiles/SGE.sh
+.. literalinclude:: ../examples/submit_files/SGE.sh
 
 .. TODO Condor, Amazon EC2 using Boto & others
 

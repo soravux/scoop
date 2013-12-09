@@ -105,6 +105,21 @@ class ScoopApp(object):
         self.broker_hosts = self.divideHosts(hosts[:], self.b)
         self.worker_hosts = self.divideHosts(hosts, self.n)
 
+        # Logging of worker distribution warnings
+        maximumWorkers = sum(host[1] for host in hosts)
+        if self.n > maximumWorkers:
+            self.log.debug("The -n flag is set at {0} workers, which is higher "
+                           "than the maximum number of workers ({1}) specified "
+                           "by the hostfile.\nThis behavior may degrade the "
+                           "performances of scoop for cpu-bound operations."
+                           "".format(qty, maximumWorkers))
+        elif self.n < maximumWorkers:
+            self.log.debug("The -n flag is set at {0} workers, which is lower "
+                           "than the maximum number of workers ({1}) specified "
+                           "by the hostfile."
+                           "".format(qty, maximumWorkers))
+
+        # Display
         self.showHostDivision(headless=not executable)
 
         self.workers = []
@@ -132,11 +147,6 @@ class ScoopApp(object):
 
         # If specified amount of workers is greater than sum of each specified.
         if qty > maximumWorkers:
-            self.log.debug("The -n flag is set at {0} workers, which is higher "
-                         "than the maximum number of workers ({1}) specified "
-                         "by the hostfile.\nThis behavior may degrade the "
-                         "performances of scoop for cpu-bound operations."
-                         "".format(qty, maximumWorkers))
             index = 0
             while qty > maximumWorkers:
                 hosts[index] = (hosts[index][0], hosts[index][1] + 1)
@@ -145,10 +155,7 @@ class ScoopApp(object):
 
         # If specified amount of workers if lower than sum of each specified.
         elif qty < maximumWorkers:
-            self.log.debug("The -n flag is set at {0} workers, which is lower "
-                         "than the maximum number of workers ({1}) specified "
-                         "by the hostfile."
-                         "".format(qty, maximumWorkers))
+            
             while qty < maximumWorkers:
                 maximumWorkers -= hosts[-1][1]
                 if qty > maximumWorkers:
@@ -322,7 +329,9 @@ class ScoopApp(object):
         # Terminate the brokers
         for broker in self.brokers:
             try:
+                print("1")
                 broker.close()
+                print("2")
             except AttributeError:
                 # Broker was not started (probably mislaunched)
                 pass

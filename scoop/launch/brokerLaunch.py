@@ -18,7 +18,7 @@
 from threading import Thread
 import subprocess
 import shlex
-import logging
+import scoop
 import sys
 import os
 try:
@@ -47,7 +47,7 @@ class localBroker(object):
         self.broker = Thread(target=self.localBroker.run)
         self.broker.daemon = True
         self.broker.start()
-        logging.debug("Local broker launched on ports {0}, {1}"
+        scoop.logger.debug("Local broker launched on ports {0}, {1}"
                       ".".format(self.brokerPort, self.infoPort))
 
     def sendConnect(self, data):
@@ -74,7 +74,7 @@ class localBroker(object):
         return (self.brokerPort, self.infoPort)
 
     def close(self):
-        pass
+        scoop.logger.debug('Closing local broker.')
 
 
 class remoteBroker(object):
@@ -121,7 +121,7 @@ class remoteBroker(object):
         except ValueError:
             raise Exception("Could not successfully launch the remote broker.")
 
-        logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
+        scoop.logger.debug("Foreign broker launched on ports {0}, {1} of host {2}"
                       ".".format(self.brokerPort,
                                  self.infoPort,
                                  hostname,
@@ -166,7 +166,7 @@ class remoteBroker(object):
         """Connection(s) cleanup."""
         # TODO: DRY with workerLaunch.py
         # Ensure everything is cleaned up on exit
-        logging.debug('Closing broker on host {0}.'.format(self.hostname))
+        scoop.logger.debug('Closing broker on host {0}.'.format(self.hostname))
 
         # Terminate subprocesses
         try:
@@ -176,8 +176,10 @@ class remoteBroker(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-                logging.warn("Zombie process(es) possibly left on "
-                             "host {0}!".format(self.hostname))
+                scoop.logger.warn(
+                    "Zombie process(es) possibly left on host {0}!"
+                    "".format(self.hostname)
+                )
         elif not self.isLocal():
             command = ("python -c "
                        "'import os, signal; os.killpg({0}, signal.SIGKILL)' "

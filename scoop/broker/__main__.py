@@ -74,7 +74,7 @@ if __name__ == "__main__":
     if args.nice:
         if not psutil:
             scoop.logger.error("psutil not installed.")
-            raise ImportError("psutil is needed for nice functionnality.")
+            raise ImportError("psutil is needed for nice functionality.")
         p = psutil.Process(os.getpid())
         p.set_nice(args.nice)
 
@@ -86,8 +86,6 @@ if __name__ == "__main__":
             thisBroker.infoSockPort,
         ))
         sys.stdout.flush()
-
-
 
         thisBroker.logger.info("Using name {workerName}".format(
             workerName=thisBroker.getName(),

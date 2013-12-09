@@ -34,7 +34,10 @@ def getWorkersName(data):
     """Returns the list of the names of the workers sorted alphabetically"""
     names = [fichier for fichier in data.keys()]
     names.sort()
-    names.remove("broker")
+    try:
+        names.remove("broker")
+    except ValueError:
+        pass
     return names
 
 def importData(directory):
@@ -42,10 +45,8 @@ def importData(directory):
     dataTask = OrderedDict()
     dataQueue = OrderedDict()
     for fichier in os.listdir(directory):
-        with open(directory+"/"+fichier, 'rb') as f:
-            splitFile = fichier.split('-')
-            fileType = splitFile[1]
-            fileName = splitFile[0]
+        with open("{directory}/{fichier}".format(**locals()), 'rb') as f:
+            fileName, fileType = fichier.rsplit('-', maxsplit=1)
             if fileType == "QUEUE":
                 dataQueue[fileName] = pickle.load(f)
             else:
@@ -65,7 +66,7 @@ def timeRange(startTime, endTime, points):
 
 def getTimes(dataTasks):
     """Get the start time and the end time of data in milliseconds"""
-    start_time = 9999999999999999999999999; end_time = 0
+    start_time, end_time = float('inf'), 0
     for fichier, vals in dataTask.items():
         try:
             if hasattr(vals, 'values'):
@@ -135,6 +136,7 @@ def plotDensity(dataTask, filename):
 
 def plotBrokerQueue(dataTask, filename):
     # Broker queue length graph
+    print("Plotting broker queue length for {0}.".format(filename))
     plt.figure()
     plt.subplot(211)
     for fichier, vals in dataTask.items():
