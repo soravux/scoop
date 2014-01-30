@@ -45,7 +45,7 @@ localHostnames.extend([
 )
 
 
-def initLogging(default_verbosity=2, log=None):
+def initLogging(default_verbosity=0, log=None):
         """Creates a logger.
         dictConfig is used to limit interference with user loggers. basicConfig
         would override user code."""

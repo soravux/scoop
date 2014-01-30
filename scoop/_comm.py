@@ -111,7 +111,7 @@ class ZMQCommunicator(object):
                 )
             )
         except IndexError:
-            scoop.logger.warning(
+            scoop.logger.debug(
                 "Could not set worker name into logger ({0})".format(
                     scoop.worker
                 )
