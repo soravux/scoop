@@ -329,9 +329,7 @@ class ScoopApp(object):
         # Terminate the brokers
         for broker in self.brokers:
             try:
-                print("1")
                 broker.close()
-                print("2")
             except AttributeError:
                 # Broker was not started (probably mislaunched)
                 pass
