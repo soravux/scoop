@@ -115,11 +115,24 @@ class remoteBroker(object):
             self.remoteProcessGID = None
 
         # Get remote ports
+        receivedLine = self.shell.stdout.readline()
         try:
-            ports = self.shell.stdout.readline().decode().strip().split(",")
+            ports = receivedLine.decode().strip().split(",")
             self.brokerPort, self.infoPort = ports
         except ValueError:
-            raise Exception("Could not successfully launch the remote broker.")
+            # Following line for Python 2.6 compatibility (instead of [as e])
+            e = sys.exc_info()[1]
+
+            # Terminate the process, otherwide reading from stderr may wait
+            # undefinitely
+            self.shell.terminate()
+
+            stderr = self.shell.stderr.read()
+            raise Exception("Could not successfully launch the remote broker.\n"
+                            "Requested remote broker ports, received:\n"
+                            "{receivedLine}\n"
+                            "Port number decoding error:\n{e}\n"
+                            "SSH process stderr:\n{stderr}".format(**locals()))
 
         scoop.logger.debug("Foreign broker launched on ports {0}, {1} of host {2}"
                       ".".format(self.brokerPort,
