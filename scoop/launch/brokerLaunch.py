@@ -189,10 +189,10 @@ class remoteBroker(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-                scoop.logger.warn(
-                    "Zombie process(es) possibly left on host {0}!"
-                    "".format(self.hostname)
-                )
+            scoop.logger.warn(
+                "Zombie process(es) possibly left on host {0}!"
+                "".format(self.hostname)
+            )
         elif not self.isLocal():
             command = ("python -c "
                        "'import os, signal; os.killpg({0}, signal.SIGKILL)' "

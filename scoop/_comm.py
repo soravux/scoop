@@ -294,7 +294,8 @@ class ZMQCommunicator(object):
     def sendFuture(self, future):
         """Send a Future to be executed remotely."""
         try:
-            if shared.getConst(hash(future.callable), timeout=0):
+            if shared.getConst(hash(future.callable),
+                               timeout=0):
                 # Enforce name reference passing if already shared
                 future.callable = SharedElementEncapsulation(hash(future.callable))
             self.socket.send_multipart([b"TASK",
