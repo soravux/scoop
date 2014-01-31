@@ -71,11 +71,6 @@ class TimeoutError(Exception):
     pass
 
 
-class NotStartedProperly(Exception):
-    """SCOOP was not started properly"""
-    pass
-
-
 FutureId = namedtuple('FutureId', ['worker', 'rank'])
 callbackEntry = namedtuple('callbackEntry', ['func', 'callbackType', 'groupID'])
 class Future(object):

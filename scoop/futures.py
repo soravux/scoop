@@ -14,8 +14,6 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
-
 import os
 from inspect import ismethod
 from collections import namedtuple, Iterable
@@ -23,11 +21,15 @@ from functools import partial, reduce
 import itertools
 import copy
 import time
-import warnings
 
 import scoop
-from ._types import Future, NotStartedProperly, CallbackType
+from ._types import Future, CallbackType
 from . import _control as control
+from .fallbacks import (
+    ensureScoopStartedProperlyMapFallback,
+    ensureScoopStartedProperly,
+    NotStartedProperly
+)
 
 
 # Constants stated by PEP 3148 (http://www.python.org/dev/peps/pep-3148/#module-functions)
@@ -39,38 +41,6 @@ _AS_COMPLETED = '_AS_COMPLETED'
 # This is the greenlet for running the controller logic.
 _controller = None
 callbackGroupID = itertools.count()
-
-
-def ensureScoopStartedProperlyMapFallback(func):
-    def wrapper(*args, **kwargs):
-        if not _controller:
-            if not hasattr(ensureScoopStartedProperlyMapFallback, "already"):
-                warnings.warn(
-                    "SCOOP was not started properly.\n"
-                    "Be sure to start your program with the "
-                    "'-m scoop' parameter. You can find "
-                    "further information in the "
-                    "documentation.\n"
-                    "Your map call has been replaced by the builtin "
-                    "serial Python map().",
-                    RuntimeWarning
-                )
-                ensureScoopStartedProperlyMapFallback.already = True
-            return __builtins__['map'](*args, **kwargs)
-        return func(*args, **kwargs)
-    return wrapper
-
-
-def ensureScoopStartedProperly(func):
-    def wrapper(*args, **kwargs):
-        if not _controller:
-            raise NotStartedProperly("SCOOP was not started properly.\n"
-                                     "Be sure to start your program with the "
-                                     "'-m scoop' parameter. You can find "
-                                     "further information in the "
-                                     "documentation.")
-        return func(*args, **kwargs)
-    return wrapper
 
 
 def _startup(rootFuture, *args, **kargs):
