@@ -17,12 +17,12 @@
 """
 A very simple example of recursive nested tasks.
 Each task maps 2 others tasks, each of these 2 tasks maps 2 others, etc.,
-up to RECURSIVITY_LEVEL.
+up to RECURSIVITY_DEPTH.
 """
 
 from scoop import futures
 
-RECURSIVITY_LEVEL = 12
+RECURSIVITY_DEPTH = 12
 
 def recursiveFunc(level):
     if level == 0:
@@ -30,12 +30,8 @@ def recursiveFunc(level):
     else:
         args = [level-1] * 2
         s = sum(futures.map(recursiveFunc, args))
-        if level == RECURSIVITY_LEVEL:
-            print("2^{level} = {s}".format(
-                level=level,
-                s=s
-            ))
         return s
 
 if __name__ == "__main__":
-    recursiveFunc(RECURSIVITY_LEVEL)
+    result = recursiveFunc(RECURSIVITY_DEPTH)
+    print("2^{RECURSIVITY_DEPTH} = {result}".format(**locals()))

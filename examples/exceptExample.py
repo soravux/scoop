@@ -47,7 +47,7 @@ def func2(n):
     for i in range(n):
         launches.append(futures.submit(func3, i + 1))
     result = futures.as_completed(launches)
-    return sum(result)
+    return sum(res.result() for res in result)
 
 def func3(n):
     result = []

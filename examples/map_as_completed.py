@@ -15,17 +15,23 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-SCOOP also works on methods even if they aren't picklable by default.
-Note that this will correctly propagate the internal state of its instance.
+Shows the usage of the map_as_completed() function
 """
-from scoop import futures, shared
+from scoop import futures
 
 
-class MyClass(object):
-    def myMethod(self, x):
-        return x * 2
+def hello(input_):
+    return input_
 
 
 if __name__ == "__main__":
-    a = MyClass()
-    print(list(futures.map(a.myMethod, range(10))))
+    print("Execution of map():")
+    # Example of how to use a normal map function
+    for out in futures.map(hello, range(10)):
+        print("Hello from #{}!".format(out))
+
+    print("Execution of map_as_completed():")
+    # Example of map_as_completed usage. Note that the results won't necessarily be ordered
+    # like the previous 
+    for out in futures.map_as_completed(hello, range(10)):
+        print("Hello from #{}!".format(out))

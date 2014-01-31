@@ -15,22 +15,17 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-Shows how to develop a program working with or without scoop launched
-providing serial map fallback. This example works even if SCOOP isn't
-installed.
+Shows the conditional execution of a parallel Future.
 """
-try:
-    import scoop
-    if scoop.is_running:
-        from scoop.futures import map as map_
+from scoop import futures
+import random
+
+first_type = lambda x: x + " World"
+second_type = lambda x: x + " Parallel World"
+
+if __name__ == '__main__':
+    if random.random() < 0.5:
+        my_future = futures.submit(first_type, "Hello")
     else:
-        raise ImportError()
-except ImportError:
-    map_ = map
-
-def helloWorld(value):
-    return "Hello World from Future #{0}".format(value)
-
-if __name__ == "__main__":
-    returnValues = list(map_(helloWorld, range(16)))
-    print("\n".join(returnValues))
+        my_future = futures.submit(second_type, "Hello")
+    print(my_future.result())

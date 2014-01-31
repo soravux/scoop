@@ -20,6 +20,7 @@ import os
 import time
 import tempfile
 import sys
+import math
 from functools import partial
 
 import greenlet
@@ -37,16 +38,19 @@ current = None
 futureDict = {}
 # Queue of futures pending execution
 execQueue = None
-# Statistics of execution
+# Execution Statistics
 class _stat(deque):
     def __init__(self, *args, **kargs):
         self._sum = 0
+        self._squared_sum = 0
         super(_stat, self).__init__(*args, maxlen=10, **kargs)
 
     def appendleft(self, x):
         if len(self) >= self.maxlen:
             self._sum -= self[-1]
+            self._squared_sum -= self[-1] ** 2
         self._sum += x
+        self._squared_sum += x ** 2
         super(_stat, self).appendleft(x)
 
     def mean(self):
@@ -55,15 +59,15 @@ class _stat(deque):
             return self._sum / ourSize
         return float("inf")
 
-execStats = defaultdict(_stat)
+    def std(self):
+        ourSize = len(self)
+        if ourSize > 3:
+            return math.sqrt(len(self) * self._squared_sum - self._sum ** 2) / len(self)
+        return float("inf")
 
-debug_stats = None
-QueueLength = None
-if scoop.DEBUG:
-    init_debug()
 
-# Hook to advertise the broker if the worker exits unexpectedly
 def advertiseBrokerWorkerDown(exctype, value, traceback):
+    """Hook advertizing the broker if an impromptu shutdown is occuring."""
     if not scoop.SHUTDOWN_REQUESTED:
         execQueue.socket.shutdown()
     sys.__excepthook__(exctype, value, traceback)
@@ -78,6 +82,7 @@ def init_debug():
         debug_stats = defaultdict(list_defaultdict)
         QueueLength = []
 
+
 def delFutureById(futureId, parentId):
     """Delete future on id basis"""
     try:
@@ -91,6 +96,7 @@ def delFutureById(futureId, parentId):
     except KeyError:
         pass
 
+
 def delFuture(afuture):
     """Delete future afuture"""
     try:
@@ -102,8 +108,9 @@ def delFuture(afuture):
     except KeyError:
         pass
 
-# This is the callable greenlet for running tasks.
+
 def runFuture(future):
+    """Callable greenlet in charge of running tasks."""
     global debug_stats
     global QueueLength
     if scoop.DEBUG:
@@ -116,12 +123,17 @@ def runFuture(future):
         uniqueReference = [cb.groupID for cb in future.callback][0]
     except IndexError:
         uniqueReference = None
-    future.executor = (scoop.worker,
-                       next(scoop.reduction.sequence[uniqueReference]),
-                       uniqueReference)
+    future.executor = (scoop.worker, uniqueReference)
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
-    except Exception as err:
+    except BaseException as err:
+        import traceback
+        scoop.logger.debug(
+            "The following error occurend on a worker:\n{err}\n{tb}".format(
+                err=err,
+                tb=traceback.format_exc(),
+            )
+        )
         future.exceptionValue = err
     future.executionTime = future.stopWatch.get()
     future.isDone = True
@@ -146,19 +158,16 @@ def runFuture(future):
         QueueLength.append((t, execQueue.timelen(execQueue)))
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
-    for callback in future.callback:
-        if future.parentId.worker == scoop.worker or \
-        callback.callbackType == CallbackType.universal:
-            try: callback.func(future)
-            except: pass  # Ignored callback exception as stated in PEP 3148
+    future._execute_callbacks(CallbackType.universal)
 
     # Delete references to the future
     future._delete()
 
     return future
 
-# This is the callable greenlet that implements the controller logic.
-def runController(callable, *args, **kargs):
+
+def runController(callable_, *args, **kargs):
+    """Callable greenlet implementing controller logic."""
     global execQueue
     # initialize and run root future
     rootId = FutureId(-1, 0)
@@ -194,16 +203,16 @@ def runController(callable, *args, **kargs):
 
     # launch future if origin or try to pickup a future if slave worker
     if scoop.IS_ORIGIN:
-        future = Future(rootId, callable, *args, **kargs)
+        future = Future(rootId, callable_, *args, **kargs)
     else:
         future = execQueue.pop()
 
     future.greenlet = greenlet.greenlet(runFuture)
     future = future._switch(future)
 
-    while future.parentId != rootId or not future.done() or not scoop.IS_ORIGIN:
+    while not scoop.IS_ORIGIN or future.parentId != rootId or not future._ended():
         # process future
-        if future.done():
+        if future._ended():
             # future is finished
             if future.id.worker != scoop.worker:
                 # future is not local
@@ -223,7 +232,7 @@ def runController(callable, *args, **kargs):
             # future is in progress; run next future from pending execution queue.
             future = execQueue.pop()
 
-        if not future.done() and future.greenlet is None:
+        if not future._ended() and future.greenlet is None:
             # initialize if the future hasn't started
             future.greenlet = greenlet.greenlet(runFuture)
             future = future._switch(future)
@@ -232,3 +241,11 @@ def runController(callable, *args, **kargs):
     if future.exceptionValue:
         raise future.exceptionValue
     return future.resultValue
+
+
+execStats = defaultdict(_stat)
+
+debug_stats = None
+QueueLength = None
+if scoop.DEBUG:
+    init_debug()

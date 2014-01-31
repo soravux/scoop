@@ -17,35 +17,76 @@
 #
 from threading import Thread
 import subprocess
-import logging
+import shlex
+import scoop
 import sys
+import os
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+import scoop
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 
 class localBroker(object):
-    def __init__(self, debug):
+    def __init__(self, debug, nice=0):
         """Starts a broker on random unoccupied ports"""
         from scoop.broker import Broker
+        if nice:
+            if not psutil:
+                scoop.logger.error("'nice' used while psutil not installed.")
+                raise ImportError("psutil is needed for nice functionnality.")
+            p = psutil.Process(os.getpid())
+            p.set_nice(nice)
         self.localBroker = Broker(debug=debug)
         self.brokerPort, self.infoPort = self.localBroker.getPorts()
         self.broker = Thread(target=self.localBroker.run)
         self.broker.daemon = True
         self.broker.start()
-        logging.debug("Local broker launched on ports {0}, {1}"
+        scoop.logger.debug("Local broker launched on ports {0}, {1}"
                       ".".format(self.brokerPort, self.infoPort))
 
+    def sendConnect(self, data):
+        """Send a CONNECT command to the broker
+            :param data: List of other broker main socket URL"""
+        # Imported dynamically - Not used if only one broker
+        import zmq
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.DEALER)
+        self.socket.setsockopt(zmq.IDENTITY, b'launcher')
+        self.socket.connect(
+            "tcp://127.0.0.1:{port}".format(
+                port=self.brokerPort,
+            )
+        )
+        self.socket.send_multipart([b"CONNECT",
+                                    pickle.dumps(data,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
+    def getHost(self):
+        return "127.0.0.1"
+
+    def getPorts(self):
+        return (self.brokerPort, self.infoPort)
+
     def close(self):
-        pass
+        scoop.logger.debug('Closing local broker.')
 
 
 class remoteBroker(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
 
-    def __init__(self, hostname, pythonExecutable):
+    def __init__(self, hostname, pythonExecutable, nice=0):
         """Starts a broker on the specified hostname on unoccupied ports"""
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
-                        "--tPort {brokerPort} "
-                        "--mPort {infoPort} "
-                        "--echoGroup ")
+                        "--echoGroup "
+                        "--echoPorts ")
+        if nice:
+            brokerString += "--nice {nice} ".format(nice=nice)
         self.hostname = hostname
         for i in range(5000, 10000, 2):
             self.shell = subprocess.Popen(self.BASE_SSH
@@ -67,18 +108,66 @@ class remoteBroker(object):
         else:
             raise Exception("Could not successfully launch the remote broker.")
 
+        # Get remote process group ID
         try:
             self.remoteProcessGID = int(self.shell.stdout.readline().strip())
         except ValueError:
             self.remoteProcessGID = None
 
-        logging.debug("Foreign broker launched on ports {0}, {1} of host {2}"
+        # Get remote ports
+        receivedLine = self.shell.stdout.readline()
+        try:
+            ports = receivedLine.decode().strip().split(",")
+            self.brokerPort, self.infoPort = ports
+        except ValueError:
+            # Following line for Python 2.6 compatibility (instead of [as e])
+            e = sys.exc_info()[1]
+
+            # Terminate the process, otherwide reading from stderr may wait
+            # undefinitely
+            self.shell.terminate()
+
+            stderr = self.shell.stderr.read()
+            raise Exception("Could not successfully launch the remote broker.\n"
+                            "Requested remote broker ports, received:\n"
+                            "{receivedLine}\n"
+                            "Port number decoding error:\n{e}\n"
+                            "SSH process stderr:\n{stderr}".format(**locals()))
+
+        scoop.logger.debug("Foreign broker launched on ports {0}, {1} of host {2}"
                       ".".format(self.brokerPort,
                                  self.infoPort,
                                  hostname,
                                  )
                       )
 
+    def sendConnect(self, data):
+        """Send a CONNECT command to the broker
+            :param data: List of other broker main socket URL"""
+        # Imported dynamically - Not used if only one broker
+        import zmq
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.DEALER)
+        if sys.version_info < (3,):
+            self.socket.setsockopt_string(zmq.IDENTITY, unicode('launcher'))
+        else:
+            self.socket.setsockopt_string(zmq.IDENTITY, 'launcher')
+        self.socket.connect(
+            "tcp://{hostname}:{port}".format(
+                port=self.brokerPort,
+                hostname = self.hostname
+            )
+        )
+        self.socket.send_multipart([b"CONNECT",
+                                    pickle.dumps(data,
+                                                 pickle.HIGHEST_PROTOCOL)])
+
+
+    def getHost(self):
+        return self.hostname
+
+    def getPorts(self):
+        return (self.brokerPort, self.infoPort)
 
     def isLocal(self):
         """Is the current broker on the localhost?"""
@@ -88,8 +177,9 @@ class remoteBroker(object):
 
     def close(self):
         """Connection(s) cleanup."""
+        # TODO: DRY with workerLaunch.py
         # Ensure everything is cleaned up on exit
-        logging.debug('Closing broker on host {0}.'.format(self.hostname))
+        scoop.logger.debug('Closing broker on host {0}.'.format(self.hostname))
 
         # Terminate subprocesses
         try:
@@ -99,8 +189,10 @@ class remoteBroker(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-            logging.warn("Zombie process(es) possibly left on "
-                         "host {0}!".format(self.hostname))
+            scoop.logger.warn(
+                "Zombie process(es) possibly left on host {0}!"
+                "".format(self.hostname)
+            )
         elif not self.isLocal():
             command = ("python -c "
                        "'import os, signal; os.killpg({0}, signal.SIGKILL)' "
@@ -110,6 +202,7 @@ class remoteBroker(object):
                              + [command],
             ).wait()
 
+        # Output child processes stdout and stderr to console
         sys.stdout.write(self.shell.stdout.read().decode("utf-8"))
         sys.stdout.flush()
 

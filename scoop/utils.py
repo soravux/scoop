@@ -19,7 +19,15 @@ from multiprocessing import cpu_count
 from itertools import groupby
 import os
 import re
+import sys
 import socket
+import logging
+
+if sys.version_info < (2, 7):
+    from scoop.backports.dictconfig import dictConfig
+else:
+    from logging.config import dictConfig
+
 
 loopbackReferences = [
     "127.0.0.1",
@@ -37,32 +45,77 @@ localHostnames.extend([
 )
 
 
-def brokerHostname(hosts):
-    """Ensure broker hostname is routable."""
+def initLogging(default_verbosity=0, log=None):
+        """Creates a logger.
+        dictConfig is used to limit interference with user loggers. basicConfig
+        would override user code."""
+        verbose_levels = {
+            -2: "CRITICAL",
+            -1: "ERROR",
+            0: "WARNING",
+            1: "INFO",
+            2: "DEBUG",
+            3: "NOSET",
+        }
+        log_handlers = {
+            "console":
+            {
+                "class": "logging.StreamHandler",
+                "formatter": "SCOOPFormatter",
+                "stream": "ext://sys.stdout",
+            },
+        }
+        dict_log_config = {
+            "version": 1,
+            "handlers": log_handlers,
+            "loggers":
+            {
+                "SCOOPLogger":
+                {
+                    "handlers": ["console"],
+                    "level": verbose_levels[default_verbosity],
+                },
+            },
+            "formatters":
+            {
+                "SCOOPFormatter":
+                {
+                    "format": "[%(asctime)-15s] %(module)-9s (unconnected) "
+                              "%(levelname)-7s %(message)s",
+                },
+            },
+        }
+        dictConfig(dict_log_config)
+        return logging.getLogger("SCOOPLogger")
+
+
+def externalHostname(hosts):
+    """Ensure external hostname is routable."""
     hostname = hosts[0][0]
     if hostname in localHostnames and len(hosts) > 1:
         hostname = socket.getfqdn().split(".")[0]
         try:
             socket.getaddrinfo(hostname, None)
         except socket.gaierror:
-            raise Exception("\nThe first host (broker) is not routable.\n"
-                            "Make sure the address is correct.")
+            raise Exception("\nThe first host (containing a broker) is not"
+                            " routable.\nMake sure the address is correct.")
     return hostname
 
 
-def groupTogether(inList):
+def groupTogether(in_list):
     # TODO: This algorithm is not efficient, use itertools.groupby()
-    retVal = []
-    alreadyDone = []
-    for index, element in enumerate(inList):
-        if element not in alreadyDone:
-            howMuch = inList[index + 1:].count(element)
-            retVal += [element]*(howMuch + 1)
-            alreadyDone.append(element)
-    return retVal
+    return_value = []
+    already_done = []
+    for index, element in enumerate(in_list):
+        if element not in already_done:
+            how_much = in_list[index + 1:].count(element)
+            return_value += [element]*(how_much + 1)
+            already_done.append(element)
+    return return_value
 
 
 def getCPUcount():
+    """Try to get the number of cpu on the current host."""
     try:
         return cpu_count()
     except NotImplementedError:
@@ -70,6 +123,7 @@ def getCPUcount():
 
 
 def getEnv():
+    """Return the launching environnement"""
     if "PBS_ENVIRONMENT" in os.environ:
         return "PBS"
     elif "PE_HOSTFILE" in os.environ:
@@ -79,6 +133,7 @@ def getEnv():
 
 
 def getHosts(filename=None, hostlist=None):
+    """Return a list of host depending on the environment"""
     if filename:
         return getHostsFromFile(filename)
     elif hostlist:
@@ -92,17 +147,18 @@ def getHosts(filename=None, hostlist=None):
 
 
 def getHostsFromFile(filename):
-    ValidHostname = r"^[^ /\t=\n]+"
+    """Parse a file to return a list of hosts."""
+    valid_hostname = r"^[^ /\t=\n]+"
     workers = r"\d+"
-    hn = re.compile(ValidHostname)
-    w = re.compile(workers)
+    hostname_re = re.compile(valid_hostname)
+    worker_re = re.compile(workers)
     hosts = []
     with open(filename) as f:
         for line in f:
-            host = hn.search(line.strip())
+            host = hostname_re.search(line.strip())
             if host:
                 hostname = host.group()
-                n = w.search(line[host.end():])
+                n = worker_re.search(line[host.end():])
                 if n:
                     n = n.group()
                 else:
@@ -112,6 +168,7 @@ def getHostsFromFile(filename):
 
 
 def getHostsFromList(hostlist):
+    """Return the hosts from the command line"""
     # Counter would be more efficient but:
     # 1. Won't be Python 2.6 compatible
     # 2. Won't be ordered
@@ -123,6 +180,7 @@ def getHostsFromList(hostlist):
 
 
 def getHostsFromPBS():
+    """Return a host list in a PBS environment"""
     # See above comment about Counter
     with open(os.environ["PBS_NODEFILE"], 'r') as hosts:
         hostlist = groupTogether(hosts.read().split())
@@ -133,11 +191,13 @@ def getHostsFromPBS():
 
 
 def getHostsFromSGE():
+    """Return a host list in a SGE environment"""
     with open(os.environ["PE_HOSTFILE"], 'r') as hosts:
         return [(host.split()[0], int(host.split()[1])) for host in hosts]
 
 
 def getWorkerQte(hosts):
+    """Return the number of workers to launch depending on the environment"""
     if "PBS_NP" in os.environ:
         return int(os.environ["PBS_NP"])
     elif "NSLOTS" in os.environ:
@@ -147,17 +207,20 @@ def getWorkerQte(hosts):
 
 
 def KeyboardInterruptHandler(signum, frame):
+    """This is use in the interruption handler"""
     raise KeyboardInterrupt("Shutting down!")
 
 
 def getDefaultHosts():
+    """This is the default host for a simple SCOOP launch"""
     return [('127.0.0.1', getCPUcount())]
+
 
 try:
     # Python 2.X  fallback
     basestring  # attempt to evaluate basestring
-    def isStr(s):
-        return isinstance(s, basestring)
+    def isStr(string):
+        return isinstance(string, basestring)
 except NameError:
-    def isStr(s):
-        return isinstance(s, str)
+    def isStr(string):
+        return isinstance(string, str)

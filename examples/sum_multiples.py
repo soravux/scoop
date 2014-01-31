@@ -14,18 +14,28 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-__author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
-              "Yannick Hold-Geoffroy", "Felix-Antoine Fortin",
-              "Francois-Michel de Rainville")
-__version__ = "0.7.0"
-__revision__ = "release"
+"""
+Sums the mutliples of 3 and 5 below 1000000
+"""
+from time import time
+from scoop import futures
+from operator import add
 
-import logging
+def multiples(n):
+    return set(range(0, 1000000, n))
 
 
-# In case SCOOP was not initialized correctly
-CONFIGURATION = {}
-DEBUG = False
-IS_RUNNING = False
-logger = logging.getLogger()
-SHUTDOWN_REQUESTED = False
+if __name__ == '__main__':
+    bt = time()
+    serial_result = sum(set.union(*map(multiples, [3, 5])))
+    serial_time = time() - bt
+
+    bt = time()
+    parallel_result = sum(futures.mapReduce(multiples, set.union, [3, 5]))
+    parallel_reduce_time = time() - bt
+
+    assert serial_result == parallel_result
+
+    print("Serial time: {0:.4f} s\nParallel time: {1:.4f} s"
+          "".format(serial_time, parallel_reduce_time)
+    )

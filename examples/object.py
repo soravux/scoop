@@ -15,24 +15,30 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-Example of object manipulation.
+Example of dynamic parallel object manipulation.
 """
 from scoop import futures
 
 
 class myClass(object):
+    """An object with an instance variable."""
     def __init__(self):
         self.myVar = 5
 
+
 def modifyClass(myInstance):
+    """Function modifying an instance variable."""
     myInstance.myVar += 1
     return myInstance
 
 
 def main():
+    # Create object instances
     myInstances = [myClass() for _ in range(20)]
+    # Modify them parallely
     myAnswers = list(futures.map(modifyClass, myInstances))
 
+    # Each result is a new object with the modifications applied
     print(myAnswers)
     print([a.myVar for a in myAnswers])
 

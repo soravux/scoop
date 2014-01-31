@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # Generate indexes to pass to futures
     indexes = range(0,
                     len(leftSignal),
-                    PARALLEL_SIZE
+                    PARALLEL_SIZE,
                     )
     # Execute the RSS computation parallely
     presult = futures.mapReduce(RSS,

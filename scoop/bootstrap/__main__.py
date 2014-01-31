@@ -21,6 +21,12 @@ import functools
 import argparse
 import logging
 
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+
 if sys.version_info < (3, 3):
     from imp import load_source as importFunction
     FileNotFoundError = IOError
@@ -30,13 +36,12 @@ else:
 
 
 import scoop
-from .. import discovery
+from ..broker.broker import BrokerInfo
+from .. import discovery, utils
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
-    from scoop.backports.dictconfig import dictConfig
 else:
     import runpy
-    from logging.config import dictConfig
 
 
 class Bootstrap(object):
@@ -53,13 +58,17 @@ class Bootstrap(object):
         if self.args is None:
             self.parse()
 
-        self.init_logging()
+        self.log = utils.initLogging(self.verbose)
 
-        if not self.args.brokerAddress:
+        # Change to the desired directory
+        if self.args.workingDirectory:
+            os.chdir(self.args.workingDirectory)
+
+        if not self.args.brokerHostname:
             self.log.info("Discovering SCOOP Brokers on network...")
             pools = discovery.Seek()
             if not pools:
-                self.log.error("Could not find a SCOOP Broker broadcast.\n")
+                self.log.error("Could not find a SCOOP Broker broadcast.")
                 sys.exit(-1)
             self.log.info("Found a broker named {name} on {host} port "
                           "{ports}".format(
@@ -67,71 +76,20 @@ class Bootstrap(object):
                 host=pools[0].host,
                 ports=pools[0].ports,
             ))
-            self.args.brokerAddress = "tcp://{host}:{port}".format(
-                host=pools[0].host,
-                port=pools[0].ports[0],
-            )
-            self.args.metaAddress = "tcp://{host}:{port}".format(
-                host=pools[0].host,
-                port=pools[0].ports[1],
-            )
+            self.args.brokerHostname = pools[0].host
+            self.args.taskPort = pools[0].ports[0]
+            self.args.metaPort = pools[0].ports[0]
             self.log.debug("Using following addresses:\n{brokerAddress}\n"
                            "{metaAddress}".format(
                                 brokerAddress=self.args.brokerAddress,
                                 metaAddress=self.args.metaAddress,
                             ))
-            # Make the workerName random
-            import uuid
-            self.args.workerName = str(uuid.uuid4())
-            self.log.info("Using worker name {workerName}.".format(
-                workerName=self.args.workerName,
-            ))
 
             self.args.origin = True
 
         self.setScoop()
 
         self.run()
-
-    def init_logging(self, log=None):
-        verbose_levels = {
-            -2: "CRITICAL",
-            -1: "ERROR",
-            0: "WARNING",
-            1: "INFO",
-            2: "DEBUG",
-            3: "NOSET",
-        }
-        log_handlers = {
-            "console":
-            {
-
-                "class": "logging.StreamHandler",
-                "formatter": "SCOOPFormatter",
-                "stream": "ext://sys.stdout",
-            },
-        }
-        dict_log_config = {
-            "version": 1,
-            "handlers": log_handlers,
-            "loggers":
-            {
-                "SCOOPLogger":
-                {
-                    "handlers": ["console"],
-                    "level": verbose_levels[self.verbose],
-                },
-            },
-            "formatters":
-            {
-                "SCOOPFormatter":
-                {
-                    "format":"[%(asctime)-15s] %(levelname)-7s %(message)s",
-                },
-            },
-        }
-        dictConfig(dict_log_config)
-        self.log = logging.getLogger("SCOOPLogger")
 
     def makeParser(self):
         """Generate the argparse parser object containing the bootloader
@@ -144,22 +102,27 @@ class Bootstrap(object):
         self.parser.add_argument('--origin',
                                  help="To specify that the worker is the origin",
                                  action='store_true')
-        self.parser.add_argument('--workerName', help="The name of the worker",
-                                 default="0")
-        self.parser.add_argument('--brokerName', help="The name of the broker",
-                                 default="broker")
-        self.parser.add_argument('--brokerAddress',
-                                 help="The tcp address of the broker written "
-                                    "tcp://address:port",
+        self.parser.add_argument('--brokerHostname',
+                                 help="The routable hostname of a broker",
                                  default="")
-        self.parser.add_argument('--metaAddress',
-                                 help="The tcp address of the info written "
-                                    "tcp://address:port",
+        self.parser.add_argument('--externalBrokerHostname',
+                                 help="Externally routable hostname of local "
+                                      "worker",
                                  default="")
+        self.parser.add_argument('--taskPort',
+                                 help="The port of the broker task socket",
+                                 type=int)
+        self.parser.add_argument('--metaPort',
+                                 help="The port of the broker meta socket",
+                                 type=int)
         self.parser.add_argument('--size',
                                  help="The size of the worker pool",
                                  type=int,
                                  default=1)
+        self.parser.add_argument('--nice',
+                                 help="Adjust the niceness of the process",
+                                 type=int,
+                                 default=0)
         self.parser.add_argument('--debug',
                                  help="Activate the debug",
                                  action='store_true')
@@ -169,6 +132,10 @@ class Bootstrap(object):
         self.parser.add_argument('--echoGroup',
                                  help="Echo the process Group ID before launch",
                                  action='store_true')
+        self.parser.add_argument('--workingDirectory',
+                                 help="Set the working directory for the "
+                                      "execution",
+                                 default=None)
         self.parser.add_argument('executable',
                                  nargs='?',
                                  help='The executable to start with scoop')
@@ -176,29 +143,45 @@ class Bootstrap(object):
                                  nargs=argparse.REMAINDER,
                                  help='The arguments to pass to the executable',
                                  default=[])
+        self.parser.add_argument('--verbose', '-v', action='count',
+                                 help=("Verbosity level of this launch script"
+                                      "(-vv for "
+                                      "more)"), default=1)
+        self.parser.add_argument('--quiet', '-q', action='store_true',
+                                 help="Suppress the output")
 
     def parse(self):
         """Generate a argparse parser and parse the command-line arguments"""
         if self.parser is None:
             self.makeParser()
         self.args = self.parser.parse_args()
+        self.verbose = self.args.verbose if not self.args.quiet else 0
 
     def setScoop(self):
         """Setup the SCOOP constants."""
-        scoop.is_running = True
+        scoop.IS_RUNNING = True
         scoop.IS_ORIGIN = self.args.origin
-        scoop.WORKER_NAME = self.args.workerName.encode()
-        scoop.BROKER_NAME = self.args.brokerName.encode()
-        scoop.BROKER_ADDRESS = self.args.brokerAddress.encode()
-        scoop.META_ADDRESS = self.args.metaAddress.encode()
+        scoop.BROKER = BrokerInfo(
+            self.args.brokerHostname,
+            self.args.taskPort,
+            self.args.metaPort,
+            self.args.externalBrokerHostname
+                if self.args.externalBrokerHostname
+                else self.args.brokerHostname,
+        )
         scoop.SIZE = self.args.size
         scoop.DEBUG = self.args.debug
-        scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
         scoop.MAIN_MODULE = self.args.executable
         scoop.CONFIGURATION = {
           'headless': not bool(self.args.executable),
         }
         scoop.logger = self.log
+        if self.args.nice:
+            if not psutil:
+                scoop.logger.error("psutil not installed.")
+                raise ImportError("psutil is needed for nice functionnality.")
+            p = psutil.Process(os.getpid())
+            p.set_nice(self.args.nice)
 
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
@@ -223,9 +206,10 @@ class Bootstrap(object):
             )
         except FileNotFoundError as e:
             # Could not find file
-            sys.stderr.write('{0}\nIn path: {1}\n'.format(
-                str(e),
-                sys.path[-1],
+            sys.stderr.write('{0}\nFile: {1}\nIn path: {2}\n'.format(
+                    str(e),
+                    scoop.MAIN_MODULE,
+                    sys.path[-1],
                 )
             )
             sys.stderr.flush()
@@ -247,6 +231,9 @@ class Bootstrap(object):
         """Import user module and start __main__
            passing globals() is required when subclassing in another module
         """
+        # Without this, the underneath import clashes with the top-level one
+        global scoop
+
         if globs is None:
             globs = globals()
 
@@ -263,6 +250,9 @@ class Bootstrap(object):
         from scoop import futures
 
         def futures_startup():
+            """Execute the user code.
+            Wraps futures._startup (SCOOP initialisation) over the user module.
+            Needs """
             return futures._startup(
                 functools.partial(
                     runpy.run_path,
@@ -283,11 +273,19 @@ class Bootstrap(object):
                 "futures_startup()",
                 globs,
                 locals(),
-                "./profile/{0}.prof".format("-".join(scoop.DEBUG_IDENTIFIER))
+                "./profile/{0}.prof".format(os.getpid())
             )
         else:
-            futures_startup()
+            try:
+                futures_startup()
+            finally:
+                # Must reimport (potentially not there after bootstrap)
+                import scoop
 
+                # Ensure a communication queue exists (may happend when a
+                # connection wasn't established such as cloud-mode wait).
+                if scoop._control.execQueue:
+                    scoop._control.execQueue.shutdown()
 
 if __name__ == "__main__":
     b = Bootstrap()

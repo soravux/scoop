@@ -15,6 +15,12 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
+import os
+try:
+    import psutil
+except:
+    psutil = None
+
 from scoop.broker.broker import Broker
 from signal import signal, SIGTERM, SIGINT
 import argparse
@@ -29,6 +35,10 @@ if __name__ == "__main__":
     parser.add_argument('--mPort',
                         help="The port of the info socket",
                         default="*")
+    parser.add_argument('--nice',
+                        help="Adjust the process niceness",
+                        type=int,
+                        default=0)
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
@@ -37,6 +47,9 @@ if __name__ == "__main__":
                         action='store_true')
     parser.add_argument('--echoGroup',
                         help="Echo the process Group ID before launch",
+                        action='store_true')
+    parser.add_argument('--echoPorts',
+                        help="Echo the listening ports",
                         action='store_true')
     args = parser.parse_args()
 
@@ -56,6 +69,27 @@ if __name__ == "__main__":
            lambda signum, stack_frame: thisBroker.shutdown())
     signal(SIGINT,
            lambda signum, stack_frame: thisBroker.shutdown())
+
+    # Handle nicing functionnality
+    if args.nice:
+        if not psutil:
+            scoop.logger.error("psutil not installed.")
+            raise ImportError("psutil is needed for nice functionality.")
+        p = psutil.Process(os.getpid())
+        p.set_nice(args.nice)
+
+    if args.echoPorts:
+        import os
+        import sys
+        sys.stdout.write("{0},{1}\n".format(
+            thisBroker.tSockPort,
+            thisBroker.infoSockPort,
+        ))
+        sys.stdout.flush()
+
+        thisBroker.logger.info("Using name {workerName}".format(
+            workerName=thisBroker.getName(),
+        ))
 
     try:
         thisBroker.run()

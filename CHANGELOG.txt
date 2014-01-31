@@ -1,3 +1,33 @@
+0.7.0 (2013/?/?)
+------------------
+
++ Improved: Garbage collection of Futures.
+
+0.7.0-RC2 (2013/11/13)
+----------------------
+
++ Fixed: Bug sharing lambda function (referenced elements could not unpickle)
++ Fixed: Bug sharing method (elements would falsely be treated as methods)
+
+0.7.0-RC1 (2013/08/02)
+----------------------
+
++ Fixed: Local launches could generate zombie processes
++ Added: map_as_completed() in the futures API interface
++ Added: Benchmark utilities
++ Added: Support for multi-brokers
++ Improved: Documentation
++ Improved: mapReduce() now won't communicate intermediary results
++ Improved: Future results are now sent back directly to its destination
++ Improved: Reduction has now a tree communication scheme (logarithmic reduce)
++ Improved: Various socket optimizations
+
+0.6.2 (2013/07/02)
+------------------
+
++ Fixed: Process cleanup on csh/tsh shell variants
++ Fixed: Using partials could crash - switched Future callable identification from __name__ to its hash()
+
 0.6.1 (2013/03/04)
 ------------------
 

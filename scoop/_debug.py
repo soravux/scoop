@@ -14,26 +14,17 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-import scoop
 import os
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
-
-def getWorkerName(workerNum, width=5, prefix='worker'):
-    """Return the name of the worker
-        width: 5 (100k workers)
-    """
-    return "{prefix}{workerNum}".format(prefix=prefix,
-                                        workerNum=workerNum.zfill(width),
-                                        )
-
-
-scoop.DEBUG_IDENTIFIER = (getWorkerName(scoop.WORKER_NAME.decode("utf-8")),
-                          scoop.BROKER_NAME.decode("utf-8"))
+import scoop
 
 
 def getDebugIdentifier():
-    return "-".join(scoop.DEBUG_IDENTIFIER)
+    return scoop.worker.decode().replace(":", "_")
 
 
 def writeWorkerDebug(debugStats, queueLength):
@@ -42,8 +33,8 @@ def writeWorkerDebug(debugStats, queueLength):
         os.makedirs("debug")
     except:
         pass
-    with open("debug/{0}".format(getDebugIdentifier()), 'wb') as f:
+    with open("debug/worker-{0}-STATS".format(getDebugIdentifier()), 'wb') as f:
         pickle.dump(debugStats, f)
-    with open("debug/{0}-QUEUE".format(getDebugIdentifier()), 'wb') as f:
+    with open("debug/worker-{0}-QUEUE".format(getDebugIdentifier()), 'wb') as f:
         pickle.dump(queueLength, f)
 

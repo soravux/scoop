@@ -18,8 +18,12 @@ import marshal
 import tempfile
 import types
 import os
-import pickle
+from inspect import ismodule
 from functools import partial
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 try:
     import copyreg
@@ -31,12 +35,21 @@ except ImportError:
     from StringIO import StringIO as FileLikeIO
     from types import FileType as FileType
 
+import scoop
 
-def functionFactory(inCode):
+
+def functionFactory(in_code, name, defaults, globals_, imports):
     """Creates a function at runtime using binary compiled inCode"""
     def generatedFunction():
         pass
-    generatedFunction.__code__ = marshal.loads(inCode)
+    generatedFunction.__code__ = marshal.loads(in_code)
+    generatedFunction.__name__ = name
+    generatedFunction.__defaults = defaults
+    generatedFunction.__globals__.update(pickle.loads(globals_))
+    for key, value in imports.items():
+        imported_module = __import__(value)
+        scoop.logger.debug("Dynamically loaded module {0}".format(value))
+        generatedFunction.__globals__.update({key: imported_module})
     return generatedFunction
 
 
@@ -45,32 +58,48 @@ class FunctionEncapsulation(object):
 
     This is used by the sharing module (setConst).
     Used for lambda functions and defined on-the-fly (interactive shell)"""
-    def __init__(self, inFunc, name):
+    def __init__(self, in_func, name):
         """Creates a serializable (picklable) object of a function"""
-        self.code = marshal.dumps(inFunc.__code__)
+        self.code = marshal.dumps(in_func.__code__)
         self.name = name
-        # TODO: __defaults__, docstrings
+        self.defaults = in_func.__defaults__
+        # Pickle references to functions used in the function
+        used_globals = {} # name: function
+        used_modules = {} # used name: origin module name
+        for key, value in in_func.__globals__.items():
+            if key in in_func.__code__.co_names:
+                if ismodule(value):
+                    used_modules[key] = value.__name__
+                else:
+                    used_globals[key] = value
+        self.globals = pickle.dumps(used_globals, pickle.HIGHEST_PROTOCOL)
+        self.imports = used_modules
 
     def __call__(self, *args, **kwargs):
         """Called by local worker (which doesn't _communicate this class)"""
-        return functionFactory(self.code)(*args, **kwargs)
+        return self.getFunction()(*args, **kwargs)
 
     def __name__(self):
         return self.name
 
     def getFunction(self):
         """Called by remote workers. Useful to populate main module globals()
-        for interactive shells"""
-        """Retrieve the serialized function"""
-        return functionFactory(self.code)
+        for interactive shells. Retrieves the serialized function."""
+        return functionFactory(
+            self.code,
+            self.name,
+            self.defaults,
+            self.globals,
+            self.imports,
+        )
 
 
 class ExternalEncapsulation(object):
     """Encapsulates an arbitrary file in a serializable way"""
-    def __init__(self, inFilePath):
+    def __init__(self, in_filepath):
         """Creates a serializable (picklable) object of inFilePath"""
-        self.filename = os.path.basename(inFilePath)
-        with open(inFilePath, "rb") as fhdl:
+        self.filename = os.path.basename(in_filepath)
+        with open(in_filepath, "rb") as fhdl:
             self.data = pickle.dumps(fhdl, pickle.HIGHEST_PROTOCOL)
 
     def writeFile(self, directory=None):
@@ -83,11 +112,11 @@ class ExternalEncapsulation(object):
             return full_path
 
         # if no directory was specified, create a temporary file
-        thisFile = tempfile.NamedTemporaryFile(delete=False)
-        thisFile.write(pickle.loads(self.data).read())
-        thisFile.close()
+        this_file = tempfile.NamedTemporaryFile(delete=False)
+        this_file.write(pickle.loads(self.data).read())
+        this_file.close()
 
-        return thisFile.name
+        return this_file.name
 
 
 # The following block handles callables pickling and unpickling
@@ -110,14 +139,15 @@ pickle_lambda = partial(pickleCallable, unpickle_func=unpickleLambda)
 pickle_method = partial(pickleCallable, unpickle_func=unpickleMethodType)
 
 
-def makeLambdaPicklable(l):
+def makeLambdaPicklable(lambda_function):
     """Take input lambda function l and makes it picklable."""
-    if isinstance(l, type(lambda: None)) and l.__name__ == '<lambda>':
+    if isinstance(lambda_function,
+                  type(lambda: None)) and lambda_function.__name__ == '<lambda>':
         def __reduce_ex__(proto):
             # TODO: argdefs, closure
-            return unpickleLambda, (marshal.dumps(l.__code__), )
-        l.__reduce_ex__ = __reduce_ex__
-    return l
+            return unpickleLambda, (marshal.dumps(lambda_function.__code__), )
+        lambda_function.__reduce_ex__ = __reduce_ex__
+    return lambda_function
 
 
 # The following block handles file-like objects pickling and unpickling

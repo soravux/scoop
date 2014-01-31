@@ -30,7 +30,7 @@ else:
 
 
 class CallbackType:
-    """Enum des types de groupes."""
+    """Type of groups enumeration."""
     standard = "standard"
     universal = "universal"
 
@@ -97,6 +97,7 @@ class Future(object):
         self.greenlet = None  # cooperative thread for running future
         self.resultValue = None  # future result
         self.exceptionValue = None  # exception raised by callable
+        self.sendResultBack = True
         self.isDone = False
         self.callback = []  # set callback
         self.children = {}  # set children list of the callable (dict for speedier delete)
@@ -123,13 +124,15 @@ class Future(object):
     def _switch(self, future):
         """Switch greenlet."""
         scoop._control.current = self
-        assert self.greenlet is not None, "No greenlet to switch to:\n%s" % self.__dict__
+        assert self.greenlet is not None, ("No greenlet to switch to:"
+                                           "\n{0}".format(self.__dict__))
         return self.greenlet.switch(future)
 
     def cancel(self):
-        """If the call is currently being executed then it cannot
-           be cancelled and the method will return False, otherwise
-           the call will be cancelled and the method will return True."""
+        """If the call is currently being executed or sent for remote
+           execution, then it cannot be cancelled and the method will return
+           False, otherwise the call will be cancelled and the method will
+           return True."""
         if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
             scoop._control.futureDict[self.id]._delete()
@@ -138,23 +141,42 @@ class Future(object):
         return False
 
     def cancelled(self):
-        """True if the call was successfully cancelled, False otherwise."""
+        """Returns True if the call was successfully cancelled, False
+        otherwise."""
         return isinstance(self.exceptionValue, CancelledError)
 
     def running(self):
-        """True if the call is currently being executed and cannot be
+        """Returns True if the call is currently being executed and cannot be
            cancelled."""
-        return not self.done() and self not in scoop._control.execQueue
+        return not self._ended() and self not in scoop._control.execQueue
 
     def done(self):
+        """Returns True if the call was successfully cancelled or finished
+           running, False otherwise. This function updates the executionQueue
+           so it receives all the awaiting message."""
+        # Flush the current future in the local buffer (potential deadlock
+        # otherwise)
+        try:
+            scoop._control.execQueue.remove(self)
+            scoop._control.execQueue.socket.sendFuture(self)
+        except ValueError as e:
+            # Future was not in the local queue, everything is fine
+            pass
+        # Process buffers
+        scoop._control.execQueue.updateQueue()
+        return self._ended()
+
+
+    def _ended(self):
         """True if the call was successfully cancelled or finished running,
-           False otherwise."""
-        return self.resultValue is not None or self.exceptionValue is not None or self.isDone
+           False otherwise. This function does not update the queue."""
+        # TODO: Replace every call to _ended() to .isDone
+        return self.isDone
 
     def result(self, timeout=None):
         """Return the value returned by the call. If the call hasn't yet
-        completed then this method will wait up to ''timeout'' seconds [To be
-        done in future version of SCOOP]. If the call hasn't completed in
+        completed then this method will wait up to ''timeout'' seconds. More
+        information in the :doc:`usage` page. If the call hasn't completed in
         timeout seconds then a TimeoutError will be raised. If timeout is not
         specified or None then there is no limit to the wait time.
 
@@ -164,8 +186,8 @@ class Future(object):
         If the call raised an exception then this method will raise the same
         exception.
 
-        :returns: The value returned by the call."""
-        if not self.done():
+        :returns: The value returned by the callable object."""
+        if not self._ended():
             return scoop.futures._join(self)
         if self.exceptionValue is not None:
             raise self.exceptionValue
@@ -173,10 +195,10 @@ class Future(object):
 
     def exception(self, timeout=None):
         """Return the exception raised by the call. If the call hasn't yet
-        completed then this method will wait up to timeout seconds [To be done
-        in future version of SCOOP]. If the call hasn't completed in timeout
-        seconds then a TimeoutError will be raised. If timeout is not specified
-        or None then there is no limit to the wait time.
+        completed then this method will wait up to timeout seconds. More
+        information in the :doc:`usage` page. If the call hasn't completed in
+        timeout seconds then a TimeoutError will be raised. If timeout is not
+        specified or None then there is no limit to the wait time.
 
         If the future is cancelled before completing then CancelledError will be
         raised.
@@ -186,7 +208,8 @@ class Future(object):
         :returns: The exception raised by the call."""
         return self.exceptionValue
 
-    def add_done_callback(self, callable, inCallbackType=CallbackType.standard,
+    def add_done_callback(self, callable_,
+                          inCallbackType=CallbackType.standard,
                           inCallbackGroup=None):
         """Attach a callable to the future that will be called when the future
         is cancelled or finishes running. Callable will be called with the
@@ -199,10 +222,26 @@ class Future(object):
 
         If the future has already completed or been cancelled then callable will
         be called immediately."""
-        self.callback.append(callbackEntry(callable, inCallbackType, inCallbackGroup))
+        self.callback.append(callbackEntry(callable_,
+                                           inCallbackType,
+                                           inCallbackGroup))
+
+        # If already completed or cancelled, execute it immediately
+        if self._ended():
+            self.callback[-1].func(self)
+
+    def _execute_callbacks(self, callbackType=CallbackType.standard):
+        for callback in self.callback:
+            isUniRun = (self.parentId.worker == scoop.worker 
+                        and callbackType == CallbackType.universal)
+            if isUniRun or callback.callbackType == callbackType:
+                try:
+                    callback.func(self)
+                except:
+                    pass
 
     def _delete(self):
-        # Do we need this?
+        # TODO: Do we need this?
         if self.id in scoop._control.execQueue.inprogress:
             del scoop._control.execQueue.inprogress[self.id]
         for child in self.children:
@@ -244,9 +283,9 @@ class FutureQueue(object):
 
     def append(self, future):
         """Append a future to the queue."""
-        if future.done() and future.index is None:
+        if future._ended() and future.index is None:
             self.inprogress[future.id] = future
-        elif future.done() and future.index is not None:
+        elif future._ended() and future.index is not None:
             self.ready.append(future)
         elif future.greenlet is not None:
             self.inprogress.append(future)
@@ -286,12 +325,46 @@ class FutureQueue(object):
             elif len(self.movable) != 0:
                 return self.movable.pop()
 
+    def flush(self):
+        """Empty the local queue and send its elements to be executed remotely.
+        """
+        for elem in self:
+            if elem.id.worker != scoop.worker:
+                elem._delete()
+            self.socket.sendFuture(elem)
+        self.ready.clear()
+        self.movable.clear()
+
     def requestFuture(self):
         """Request futures from the broker"""
         self.socket.sendRequest()
 
     def updateQueue(self):
-        """Updates the local queue with elements from the broker."""
+        """Process inbound communication buffer.
+        Updates the local queue with elements from the broker."""
+        for future in self.socket.recvFuture():
+            if future._ended():
+                # If the answer is coming back, update its entry
+                try:
+                    thisFuture = scoop._control.futureDict[future.id]
+                except KeyError:
+                    # Already received?
+                    scoop.logger.warn('{0}: Received an unexpected future: '
+                                      '{1}'.format(scoop.worker, future.id))
+                    continue
+                thisFuture.resultValue = future.resultValue
+                thisFuture.exceptionValue = future.exceptionValue
+                thisFuture.executor = future.executor
+                thisFuture.isDone = future.isDone
+                # Execute standard callbacks here (on parent)
+                thisFuture._execute_callbacks(CallbackType.standard)
+                self.append(thisFuture)
+                future._delete()
+            elif future.id not in scoop._control.futureDict:
+                scoop._control.futureDict[future.id] = future
+                self.append(scoop._control.futureDict[future.id])
+            else:
+                self.append(scoop._control.futureDict[future.id])
         to_remove = []
         for future in self.inprogress.values():
             if future.index is not None:
@@ -299,41 +372,17 @@ class FutureQueue(object):
                 to_remove.append(future)
         for future in to_remove:
             del self.inprogress[future.id]
-        for future in self.socket.recvFuture():
-            if future.done():
-                scoop._control.futureDict[future.id].resultValue = future.resultValue
-                scoop._control.futureDict[future.id].exceptionValue = future.exceptionValue
-                scoop._control.futureDict[future.id].executor = future.executor
-                scoop._control.futureDict[future.id].isDone = future.isDone
-                for callback in scoop._control.futureDict[future.id].callback:
-                    if callback.callbackType != CallbackType.universal:
-                        try:
-                            callback(scoop._control.futureDict[future.id])
-                        except:
-                            pass
-                self.append(scoop._control.futureDict[future.id])
-                future._delete()
-            elif future.id not in scoop._control.futureDict:
-                scoop._control.futureDict[future.id] = future
-                self.append(scoop._control.futureDict[future.id])
-            else:
-                self.append(scoop._control.futureDict[future.id])
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
-        this method will raised a ValueError."""
+        this method will raise a ValueError."""
         self.movable.remove(future)
-
-    def select(self, duration):
-        """Return a list of movable futures that have an estimated total runtime
-        of at most "duration" seconds."""
-        pass
 
     def sendResult(self, future):
         """Send back results to broker for distribution to parent task."""
         # Greenlets cannot be pickled
         future.greenlet = None
-        assert future.done(), "The results are not valid"
+        assert future._ended(), "The results are not valid"
         self.socket.sendResult(future)
 
     def shutdown(self):

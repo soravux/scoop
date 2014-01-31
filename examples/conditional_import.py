@@ -14,18 +14,23 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-__author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
-              "Yannick Hold-Geoffroy", "Felix-Antoine Fortin",
-              "Francois-Michel de Rainville")
-__version__ = "0.7.0"
-__revision__ = "release"
+"""
+Shows how to develop a program working with or without scoop launched
+providing serial map fallback. This example works even if SCOOP isn't
+installed.
+"""
+try:
+    import scoop
+    if scoop.IS_RUNNING:
+        from scoop.futures import map as map_
+    else:
+        raise ImportError()
+except ImportError:
+    map_ = map
 
-import logging
+def helloWorld(value):
+    return "Hello World from Future #{0}".format(value)
 
-
-# In case SCOOP was not initialized correctly
-CONFIGURATION = {}
-DEBUG = False
-IS_RUNNING = False
-logger = logging.getLogger()
-SHUTDOWN_REQUESTED = False
+if __name__ == "__main__":
+    returnValues = list(map_(helloWorld, range(16)))
+    print("\n".join(returnValues))

@@ -14,18 +14,30 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-__author__ = ("Marc Parizeau", "Olivier Gagnon", "Marc-Andre Gardner",
-              "Yannick Hold-Geoffroy", "Felix-Antoine Fortin",
-              "Francois-Michel de Rainville")
-__version__ = "0.7.0"
-__revision__ = "release"
+"""
+Example of Future callback usage.
+"""
+from scoop import futures
+import time
 
-import logging
+def myFunc(n):
+    time.sleep(n)
+    return n
+
+def doneElement(inFuture):
+    print("Done: {0}".format(inFuture.result()))
+
+def main():
+    # Create launches
+    launches = [futures.submit(myFunc, i + 1) for i in range(5)]
+
+    # Add a callback on every launches
+    for launch in launches:
+        launch.add_done_callback(doneElement)
+
+    # Wait for the launches to complete.
+    [completed for completed in futures.as_completed(launches)]
 
 
-# In case SCOOP was not initialized correctly
-CONFIGURATION = {}
-DEBUG = False
-IS_RUNNING = False
-logger = logging.getLogger()
-SHUTDOWN_REQUESTED = False
+if __name__ == "__main__":
+    main()

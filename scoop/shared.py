@@ -17,19 +17,23 @@
 #
 
 import itertools
-from inspect import ismethod, isbuiltin
+from inspect import ismethod
 from functools import reduce
-from . import encapsulation, utils
 import time
 
-elements = None
+from . import encapsulation, utils
+import scoop
 
+
+elements = None
 
 def _ensureAtomicity(fn):
     """Ensure atomicity of passed elements on the whole worker pool"""
     def wrapper(*args, **kwargs):
         """setConst(**kwargs)
         Set a constant that will be shared to every workers.
+        This call blocks until the constant has propagated to at least one
+        worker.
 
         :param \*\*kwargs: One or more combination(s) key=value. Key being the
             variable name and value the object to share.
@@ -42,24 +46,34 @@ def _ensureAtomicity(fn):
         # This is because of the documentation framework (sphinx).
 
         from . import _control
+        from scoop._types import NotStartedProperly
 
         # Enforce retrieval of currently awaiting constants
-        _control.execQueue.socket.pumpInfoSocket()
+        try:
+            _control.execQueue.socket.pumpInfoSocket()
+        except AttributeError:
+            raise NotStartedProperly("SCOOP was not started properly.\n"
+                                     "Be sure to start your program with the "
+                                     "'-m scoop' parameter. You can find "
+                                     "further information in the "
+                                     "documentation.")
 
         for key, value in kwargs.items():
             # Object name existence check
             if key in itertools.chain(*(elem.keys() for elem in elements.values())):
                 raise TypeError("This constant already exists: {0}.".format(key))
-            
-        # Call the function
-        fn(*args, **kwargs)
 
-        # Wait for element propagation
-        import time
-        import scoop
+        # Retry element propagation until it is returned
         while all(key in elements.get(scoop.worker, []) for key in kwargs.keys()) is not True:
+            scoop.logger.debug("Sending global variables {0}...".format(
+                list(kwargs.keys())
+            ))
+            # Call the function
+            fn(*args, **kwargs)
+
             # Enforce retrieval of currently awaiting constants
             _control.execQueue.socket.pumpInfoSocket()
+
             # TODO: Make previous blocking instead of sleep
             time.sleep(0.1)
 
@@ -96,12 +110,13 @@ def setConst(**kwargs):
         else:
             sendVariable(key, value)
 
+
 def getConst(name, timeout=0.1):
-    """Get a constant that was shared beforehand.
+    """Get a shared constant.
 
     :param name: The name of the shared variable to retrieve.
     :param timeout: The maximum time to wait in seconds for the propagation of
-        the variable.
+        the constant.
 
     :returns: The shared object.
 
@@ -116,9 +131,11 @@ def getConst(name, timeout=0.1):
         _control.execQueue.socket.pumpInfoSocket()
 
         # Constants concatenation
-        constants = dict(reduce(lambda x, y: x + list(y.items()),
-                                elements.values(),
-                                []))
+        constants = dict(reduce(
+            lambda x, y: x + list(y.items()),
+            elements.values(),
+            []
+        ))
         timeoutHappened = time.time() - timeStamp > timeout
         if constants.get(name) is not None or timeoutHappened:
             return constants.get(name)
@@ -140,18 +157,15 @@ class SharedElementEncapsulation(object):
         else:
             # Element to share
             # Determine if function is a method. Methods derived from external
-            # languages such as C++ aren't detected by ismethod and must be checked
-            # using isbuiltin and checked for a __self__.
-            funcIsMethod = ismethod(element) or isbuiltin(element)
-            if funcIsMethod and hasattr(element, '__self__'):
+            # languages such as C++ aren't detected by ismethod.
+            if ismethod(element):
                 # Must share whole object before ability to use its method
                 self.isMethod = True
                 self.methodName = element.__name__
                 element = element.__self__
 
             # Lambda-like or unshared code to share
-            # TODO: Replace by a CRC for uniqueness of element on pool
-            uniqueID = str(id(element))
+            uniqueID = str(scoop.worker) + str(id(element)) + str(hash(element))
             self.uniqueID = uniqueID
             if getConst(uniqueID, timeout=0) == None:
                 funcRef = {uniqueID: element}
@@ -162,8 +176,10 @@ class SharedElementEncapsulation(object):
 
     def __call__(self, *args, **kwargs):
         if self.isMethod:
-            wholeObj = getConst(self.__repr__(),
-                                timeout=float("inf"))
+            wholeObj = getConst(
+                self.__repr__(),
+                timeout=float("inf"),
+            )
             return getattr(wholeObj, self.methodName)(*args, **kwargs)
         else:
             return getConst(self.__repr__(),
