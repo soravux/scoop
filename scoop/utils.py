@@ -124,7 +124,9 @@ def getCPUcount():
 
 def getEnv():
     """Return the launching environnement"""
-    if "PBS_ENVIRONMENT" in os.environ:
+    if "SLURM_NODELIST" in os.environ:
+        return "SLURM"
+    elif "PBS_ENVIRONMENT" in os.environ:
         return "PBS"
     elif "PE_HOSTFILE" in os.environ:
         return "SGE"
@@ -138,6 +140,8 @@ def getHosts(filename=None, hostlist=None):
         return getHostsFromFile(filename)
     elif hostlist:
         return getHostsFromList(hostlist)
+    elif "SLURM_NODELIST" in os.environ:
+        return getHostsFromSLURM()
     elif "PBS_ENVIRONMENT" in os.environ:
         return getHostsFromPBS()
     elif "PE_HOSTFILE" in os.environ:
@@ -155,20 +159,30 @@ def getHostsFromFile(filename):
     hosts = []
     with open(filename) as f:
         for line in f:
-            host = hostname_re.search(line.strip())
-            if host:
-                hostname = host.group()
-                n = worker_re.search(line[host.end():])
-                if n:
-                    n = n.group()
-                else:
-                    n = 1
-                hosts.append((hostname, int(n)))
+            # check to see if it is a SLURM grouping instead of a
+            # regular list of hosts
+            if re.search('[\[\]]',line):
+                hosts = hosts + parseSLURM(line.strip())
+            else:
+                host = hostname_re.search(line.strip())
+                if host:
+                    hostname = host.group()
+                    n = worker_re.search(line[host.end():])
+                    if n:
+                        n = n.group()
+                    else:
+                        n = 1
+                    hosts.append((hostname, int(n)))
     return hosts
 
 
 def getHostsFromList(hostlist):
     """Return the hosts from the command line"""
+    # check to see if it is a SLURM grouping instead of a
+    # regular list of hosts
+    if re.search('[\[\]]',str(hostlist)):
+        return parseSLURM(str(hostlist))
+
     # Counter would be more efficient but:
     # 1. Won't be Python 2.6 compatible
     # 2. Won't be ordered
@@ -177,6 +191,33 @@ def getHostsFromList(hostlist):
     for key, group in groupby(hostlist):
         retVal.append((key, len(list(group))))
     return retVal
+
+
+def parseSLURM(string):
+    """Return a host list from a SLURM string"""
+    bunchedlist = re.findall('([^ /\t=\n\[,]+)(?=\[)(.*?)(?<=\])', string)
+
+    hosts = []
+
+    # parse out the name followd by range (ex. borgb[001-002,004-006]
+    for h,n in bunchedlist:
+
+        block = re.findall('([^\[\],]+)', n)
+        for rng in block:
+
+            bmin,bmax = rng.split('-')
+            fill_width = max(len(bmin),len(bmax))
+            for i in range(int(bmin),int(bmax)+1):
+                hostname = str(h)+str(i).zfill(fill_width)
+                hosts.append((hostname, int(1)))
+
+
+    return hosts
+
+
+def getHostsFromSLURM():
+    """Return a host list from a SLURM environment"""
+    return parseSLURM(os.environ["SLURM_NODELIST"])
 
 
 def getHostsFromPBS():
@@ -198,7 +239,9 @@ def getHostsFromSGE():
 
 def getWorkerQte(hosts):
     """Return the number of workers to launch depending on the environment"""
-    if "PBS_NP" in os.environ:
+    if "SLURM_NTASKS" in os.environ:
+        return int(os.environ["SLURM_NTASKS"])
+    elif "PBS_NP" in os.environ:
         return int(os.environ["PBS_NP"])
     elif "NSLOTS" in os.environ:
         return int(os.environ["NSLOTS"])
