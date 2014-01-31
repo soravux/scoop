@@ -23,6 +23,7 @@ from functools import partial, reduce
 import itertools
 import copy
 import time
+import warnings
 
 import scoop
 from ._types import Future, NotStartedProperly, CallbackType
@@ -38,6 +39,26 @@ _AS_COMPLETED = '_AS_COMPLETED'
 # This is the greenlet for running the controller logic.
 _controller = None
 callbackGroupID = itertools.count()
+
+
+def ensureScoopStartedProperlyMapFallback(func):
+    def wrapper(*args, **kwargs):
+        if not _controller:
+            if not hasattr(ensureScoopStartedProperlyMapFallback, "already"):
+                warnings.warn(
+                    "SCOOP was not started properly.\n"
+                    "Be sure to start your program with the "
+                    "'-m scoop' parameter. You can find "
+                    "further information in the "
+                    "documentation.\n"
+                    "Your map call has been replaced by the builtin "
+                    "serial Python map().",
+                    RuntimeWarning
+                )
+                ensureScoopStartedProperlyMapFallback.already = True
+            return __builtins__['map'](*args, **kwargs)
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def ensureScoopStartedProperly(func):
@@ -107,6 +128,7 @@ def _mapFuture(callable_, *iterables):
     return childrenList
 
 
+@ensureScoopStartedProperlyMapFallback
 def map(func, *iterables, **kwargs):
     """Equivalent to
     `map(func, \*iterables, ...)
