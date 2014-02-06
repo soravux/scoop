@@ -1,4 +1,9 @@
-0.7.0 (2013/?/?)
+0.7.1 (2014/01/30)
+------------------
+
++ Added: Support for SLURM (Thanks EBo!)
+
+0.7.0 (2014/01/30)
 ------------------
 
 + Improved: Garbage collection of Futures.
