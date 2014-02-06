@@ -185,7 +185,8 @@ Its functionnalities are summarised in this example::
 
 
 .. note::
-    A constant can only be defined once on the entire pool of workers.
+    A constant can only be defined once on the entire pool of workers. More
+    information in the :ref:`api-shared-module` reference.
 
 Logging
 ~~~~~~~

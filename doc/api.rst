@@ -33,12 +33,15 @@ This instance possesses the following methods.
 .. autoclass:: scoop._types.Future
    :members:
 
+.. _api-shared-module:
+
 Shared module
 -------------
 
 This module provides the :meth:`~scoop.shared.setConst` and 
 :meth:`~scoop.shared.getConst` functions allowing arbitrary object sharing
-between futures.
+between futures. These objects can only be defined once and cannot be modified
+once shared, hence the name constant.
 
 .. automodule:: scoop.shared
    :members:
