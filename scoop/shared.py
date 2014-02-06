@@ -23,12 +23,15 @@ import time
 
 from . import encapsulation, utils
 import scoop
+from .fallbacks import ensureScoopStartedProperly, NotStartedProperly
 
 
 elements = None
 
+
 def _ensureAtomicity(fn):
     """Ensure atomicity of passed elements on the whole worker pool"""
+    @ensureScoopStartedProperly
     def wrapper(*args, **kwargs):
         """setConst(**kwargs)
         Set a constant that will be shared to every workers.
@@ -43,20 +46,12 @@ def _ensureAtomicity(fn):
         Usage: setConst(name=value)
         """
         # Note that the docstring is the one of setConst.
-        # This is because of the documentation framework (sphinx).
+        # This is because of the documentation framework (sphinx) limitations.
 
         from . import _control
-        from scoop._types import NotStartedProperly
 
         # Enforce retrieval of currently awaiting constants
-        try:
-            _control.execQueue.socket.pumpInfoSocket()
-        except AttributeError:
-            raise NotStartedProperly("SCOOP was not started properly.\n"
-                                     "Be sure to start your program with the "
-                                     "'-m scoop' parameter. You can find "
-                                     "further information in the "
-                                     "documentation.")
+        _control.execQueue.socket.pumpInfoSocket()
 
         for key, value in kwargs.items():
             # Object name existence check

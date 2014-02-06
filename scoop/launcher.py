@@ -85,7 +85,7 @@ class ScoopApp(object):
             )
         )
 
-        if env in ["PBS", "SGE"]:
+        if env in ["SLURM","PBS", "SGE"]:
             self.log.info("Detected {0} environment.".format(env))
         self.log.info("Deploying {0} worker(s) over {1} "
                       "host(s).".format(
