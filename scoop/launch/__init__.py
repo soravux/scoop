@@ -16,4 +16,4 @@
 #
 
 from .workerLaunch import Host
-from .brokerLaunch import localBroker, remoteBroker>>>>>>> other
+from .brokerLaunch import localBroker, remoteBroker
