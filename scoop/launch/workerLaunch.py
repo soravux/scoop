@@ -211,15 +211,28 @@ class Host(object):
                 )
             )
             # Get group id from remote connections
+            receivedLine = self.subprocesses[-1].stdout.readline()
             try:
-                textGID = self.subprocesses[-1].stdout.readline().strip()
+                textGID = receivedLine.decode().strip()
                 self.remoteProcessGID = int(textGID)
             except ValueError:
-                self.log.info("Could not get process information for host "
-                              "{0}. Host discarded from pool.".format(
-                                self.hostname,
-                                )
-                             )
+                # Following line for Python 2.6 compatibility (instead of [as e])
+                e = sys.exc_info()[1]
+
+                # Terminate the process, otherwide reading from stderr may wait
+                # undefinitely
+                self.subprocesses[-1].terminate()
+
+                stderr = self.subprocesses[-1].stderr.read()
+                hostname = self.hostname
+                self.log.warning("Could not successfully launch the remote "
+                                 "worker on {hostname}.\n"
+                                 "Requested remote group process id, "
+                                 "received:\n{receivedLine}\n"
+                                 "Group id decoding error:\n{e}\n"
+                                 "SSH process stderr:\n{stderr}"
+                                 "".format(**locals()))
+
         return self.subprocesses
 
     def close(self):
