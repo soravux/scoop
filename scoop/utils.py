@@ -180,7 +180,7 @@ def getHostsFromList(hostlist):
     """Return the hosts from the command line"""
     # check to see if it is a SLURM grouping instead of a
     # regular list of hosts
-    if re.search('[\[\]]',str(hostlist)):
+    if any(re.search('[\[\]]', x) for x in hostlist):
         return parseSLURM(str(hostlist))
 
     # Counter would be more efficient but:
