@@ -191,9 +191,9 @@ Its functionnalities are summarised in this example::
 Logging
 ~~~~~~~
 
-You can use the `scoop.logger` logger to output useful information alongside
-your logs such as the time, the worker name which emitted the log and the
-module in which the log was emitted.
+You can use the `scoop.logger` to output useful information alongside your log
+messages such as the time, the worker name which emitted the message and the
+module in which the message was emitted.
 
 Here is a sample usage::
 
@@ -202,36 +202,49 @@ Here is a sample usage::
     scoop.logger.warn("This is a warning!")
 
 
-Examples
---------
-
-Examples are available in the |exampleDirectory|_ directory of SCOOP.
-
-.. |exampleDirectory| replace:: :file:`examples/`
-.. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
-
-Please refer to the :doc:`examples` page where detailed explanations are
-available.
-
-
 How to launch SCOOP programs
 ----------------------------
 
-The scoop module spawns the needed broker and workers on a given list of 
-computers, including remote ones via :program:`ssh`.
+Programs using SCOOP, such as the ones in the |exampleDirectory|_ directory,
+need to be launched with the :option:`-m scoop` parameter passed to Python, as
+such::
 
-Programs using SCOOP need to be launched with the :option:`-m scoop` parameter 
-passed to Python, as such::
-    
     cd scoop/examples/
     python -m scoop fullTree.py
+
+.. |exampleDirectory| replace:: :file:`examples/`
+.. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
 
 .. note::
   When using a Python version prior to 2.7, you must start SCOOP using 
   `-m scoop.__main__` .
 
   You should also consider using an up-to-date version of Python.
-    
+
+
+Launch in details
+~~~~~~~~~~~~~~~~~
+
+The SCOOP module spawns the needed broker(s) and worker(s) on the given list
+of computers, including remote ones via :program:`ssh`.
+
+Every worker imports your program with a `__name__` variable different than
+`__main__` then awaits orders given by the root node to execute available
+functions. This is necessary to have references over your functions and
+variables in the global scope.
+
+This means that everything (definitions, assignments, operations, etc.) in the
+global scope of your program will be executed by every worker. To ensure a
+section of your code is only executed once, you must place a conditional
+barrier such as this one:
+
+.. code-block:: python
+
+    if __name__ == '__main__':
+
+Option list
+~~~~~~~~~~~
+
 Here is a list of the parameters that can be passed to SCOOP::
 
     $ python -m scoop --help
@@ -334,53 +347,40 @@ The number of workers started should be equal to the number of cores you have
 on each machine. If you wish to start more or less workers than specified in your
 hostfile or in your hostlist, you can use the :option:`-n` parameter.
 
+Be aware that tinkering with this parameter may hinder performances.
+
 .. note::
     The :option:`-n` parameter overrides any previously specified worker 
     amount.
 
     If :option:`-n` is less than the sum of workers specified in the hostfile
     or hostlist, the workers are launched in batch by host until the parameter
-    is reached.
-    This behavior may ignore latters hosts.
+    is reached. This behavior may ignore latters hosts.
 
     If :option:`-n` is more than the sum of workers specified in the hostfile
     or hostlist, the remaining workers are distributed using a Round-Robin
     algorithm. Each host will increment its worker amount until the parameter
     is reached.
 
-Be aware that tinkering with this parameter may hinder performances.
-The default value choosen by SCOOP (one worker by physical core) is generaly a
-good value.
 
+Use with a scheduler
+--------------------
 
-Startup scripts (cluster or grid)
----------------------------------
-
-You must provide a startup script on systems using a scheduler. Here are some
-example startup scripts using different grid task managers. They
-are available in the |submit_files_path|_ directory.
+You must provide a startup script on systems using a scheduler such as
+supercomputers or laboratory grids. Here are some example startup scripts
+using different grid task managers. Some example startup scripts are available
+in the |submit_files_path|_ directory.
 
 .. |submit_files_path| replace:: :file:`examples/submit_files`
 .. _submit_files_path: https://code.google.com/p/scoop/source/browse/examples/submit_files/
 
+SCOOP natively supports Sun Grid Engine (SGE), Torque (PBS-compatible, Moab,
+Maui) and SLURM. That means that a minimum launch file is needed while the
+framework recognizes automatically the nodes assigned to your task.
+
 .. note::
-    **Please note that these are only examples**. Refer to the documentation of 
-    your scheduler for the list of arguments needed to run the task on your 
-    grid or cluster.
-
-Torque (Moab & Maui)
-~~~~~~~~~~~~~~~~~~~~
-
-Here is an example of a submit file for Torque:
-
-.. literalinclude:: ../examples/submit_files/Torque.sh
-
-Sun Grid Engine (SGE)
-~~~~~~~~~~~~~~~~~~~~~
-
-Here is an example of a submit file for SGE:
-
-.. literalinclude:: ../examples/submit_files/SGE.sh
+    **These are only examples**. Refer to the documentation of your scheduler
+    for the list of arguments needed to run the task on your grid or cluster.
 
 .. TODO Condor, Amazon EC2 using Boto & others
 
@@ -398,14 +398,20 @@ wrap the executable part of your program using:
 
     if __name__ == '__main__':
 
-This is mandatory when using parallel frameworks such as multiprocessing or 
-SCOOP. Every worker execute your main module with a `__name__` variable
-different than `__main__` then awaits orders given by the root node to execute
-available functions.
+This is mandatory when using parallel frameworks such as multiprocessing or
+SCOOP. For an explanation why, read the `Launch in details`_ section.
 
-Also, only functions or classes declared at the top level of your program are
-picklables. This is a limitation of Python's pickle module.
-Here are some examples of non-working map invocations:
+If your program lacks this conditional barrier, your whole program will be
+executed as many times as there are workers, meaning duplicate work is being
+done.
+
+Unpicklable Future
+~~~~~~~~~~~~~~~~~~
+
+Only functions or classes declared at the top level of your program are
+picklables. This is a limitation of `Python's pickle module
+<http://docs.python.org/3/library/pickle.html>`_. Here are some examples of
+non-working map invocations:
 
 .. code-block:: python
 
@@ -427,30 +433,33 @@ Here are some examples of non-working map invocations:
         wrongCall1 = futures.map(myClass.myFunction, [1, 2, 3, 4, 5])
         wrongCall2 = futures.map(mySecondFunction, [1, 2, 3, 4, 5])
 
-   
-Evaluation laziness
-~~~~~~~~~~~~~~~~~~~
+Launching a faulty program will result in this error being displayed::
+
+    [...] This element could not be pickled: [...]
+
+
+Lazy-like evaluation
+~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~scoop.futures.map` and :meth:`~scoop.futures.submit` will
-distribute their Futures both locally and remotely.
-Futures executed locally will be computed upon access (iteration for the 
-:meth:`~scoop.futures.map` and :meth:`~scoop._types.Future.result` for 
-:meth:`~scoop.futures.submit`). Futures distributed remotely will be executed
-right away.
+distribute their Futures both locally and remotely. Futures executed locally
+will be computed upon access (iteration for the  :meth:`~scoop.futures.map`
+and :meth:`~scoop._types.Future.result` for  :meth:`~scoop.futures.submit`).
+Futures distributed remotely will be executed right away.
 
 Large datasets
 ~~~~~~~~~~~~~~
 
-Every parameter sent to a function by a :meth:`~scoop.futures.map` or 
-:meth:`~scoop.futures.submit` gets serialized and sent within the Future to its
-worker. It results in slow speeds and network overload when sending large
-elements as a parameter to your function(s).
+Every parameter sent to a function by a :meth:`~scoop.futures.map` or
+:meth:`~scoop.futures.submit` gets serialized and sent within the Future to
+its worker. Sending large elements as parameter(s) to your function(s) results
+in slow speeds and network overload.
 
 You should consider using a global variable in your module scope for passing
-large elements; it will then be loaded on launch by every worker and won't
+large elements. It will then be loaded on launch by every worker and won't
 overload your network.
 
-Incorrect::
+Unefficient::
 
     from scoop import futures
 
@@ -463,7 +472,7 @@ Incorrect::
         data = [[i for i in range(x, x + 1000)] for x in range(0, 8001, 1000)]
         results = list(futures.map(mySum, data))
 
-Better::
+Better efficiency::
 
     from scoop import futures
 
@@ -476,11 +485,12 @@ Better::
     
     if __name__ == '__main__':
         results = list(futures.map(mySum, range(len(data))))
-   
+
+
 SCOOP and greenlets
 ~~~~~~~~~~~~~~~~~~~
 
 .. warning::
-    Since SCOOP uses greenlets to schedule and run futures. Programs that use 
+    Since SCOOP uses greenlets to schedule and run futures, programs that use
     their own greenlets won't work with SCOOP. However, you should consider
     replacing the greenlets in your code by SCOOP functions.
