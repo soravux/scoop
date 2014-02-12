@@ -20,11 +20,7 @@ providing serial map fallback. This example works even if SCOOP isn't
 installed.
 """
 try:
-    import scoop
-    if scoop.IS_RUNNING:
-        from scoop.futures import map as map_
-    else:
-        raise ImportError()
+    from scoop.futures import map as map_
 except ImportError:
     map_ = map
 
