@@ -384,6 +384,10 @@ framework recognizes automatically the nodes assigned to your task.
 
 .. TODO Condor, Amazon EC2 using Boto & others
 
+Use on cloud services
+---------------------
+
+
 
 Pitfalls
 --------
@@ -437,6 +441,13 @@ Launching a faulty program will result in this error being displayed::
 
     [...] This element could not be pickled: [...]
 
+Mutable arguments
+~~~~~~~~~~~~~~~~~
+
+In standard programs, modifying a mutable function argument also modifies it
+in the caller scope because objects are passed by reference. This side-effect
+is not simulated in SCOOP. Function arguments are not serialized back along
+its answer.
 
 Lazy-like evaluation
 ~~~~~~~~~~~~~~~~~~~~

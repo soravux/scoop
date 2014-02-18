@@ -317,8 +317,8 @@ class ZMQCommunicator(object):
         future = copy.copy(future)
 
         # Remove the (now) extraneous elements from future class
-        future.callable = future.args = future.greenlet =  None
-        
+        future.callable = future.args = future.kargs = future.greenlet = None
+
         if not future.sendResultBack:
             # Don't reply back the result if it isn't asked
             future.resultValue = None

@@ -1,7 +1,10 @@
-0.7.1 (2014/01/30)
+0.7.1 (2014/xx/xx)
 ------------------
 
 + Added: Support for SLURM (Thanks EBo!)
++ Added: Fallback to standard map when application launched without -m scoop
++ Improved: Debugging information on launching process
++ Improved: Documentation
 
 0.7.0 (2014/01/30)
 ------------------
