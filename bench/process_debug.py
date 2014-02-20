@@ -3,6 +3,7 @@ import sys
 from collections import OrderedDict, namedtuple, defaultdict
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from matplotlib.dates import DateFormatter, MinuteLocator, SecondLocator
 import numpy as np
 import itertools
 import time
@@ -10,6 +11,7 @@ import os
 from datetime import datetime
 import argparse
 import pickle
+
 
 DENSITY_MAP_TIME_AXIS_LENGTH = 800
 
@@ -20,7 +22,8 @@ parser = argparse.ArgumentParser(description='Analyse the debug info')
 parser.add_argument("--inputdir", help='The directory containing the debug info',
         default="debug")
 
-parser.add_argument("--prog", choices=["all", "broker", "density", "queue"],
+parser.add_argument("--prog", choices=["all", "broker", "density", "queue",
+                                       "time", "task", "timeline"],
         default="all", help="The output graph")
 
 parser.add_argument("--output", help="The filename for the output graphs",
@@ -142,7 +145,7 @@ def plotBrokerQueue(dataTask, filename):
     for fichier, vals in dataTask.items():
         if type(vals) == list:
             # Data is from broker
-            plt.plot(list(zip(*vals))[0], list(zip(*vals))[2], linewidth=1.0, marker='o', label=fichier)   
+            plt.plot(list(zip(*vals))[0], list(zip(*vals))[2], linewidth=1.0, marker='o', label=fichier)
     plt.title('Queue length in time')
     plt.ylabel('Tasks')
 
@@ -168,7 +171,7 @@ def plotWorkerQueue(dataQueue, filename):
     fig.savefig(filename)
 
 def getWorkerInfo(dataTask):
-    # total work time by worker
+    """Returns the total execution time and task quantity by worker"""
     workertime = []
     workertasks = []
     for fichier, vals in dataTask.items():
@@ -210,22 +213,77 @@ def plotWorkerTask(workertask, worker_names, filename):
 
     fig.savefig(filename)
 
+
+def timelines(fig, y, xstart, xstop, color='b'):
+    """Plot timelines at y from xstart to xstop with given color."""
+    fig.hlines(y, xstart, xstop, color, lw=4)
+    fig.vlines(xstart, y+0.03, y-0.03, color, lw=2)
+    fig.vlines(xstop, y+0.03, y-0.03, color, lw=2)
+
+
+def plotTimeline(dataTask, filename):
+    """Build a timeline"""
+
+    fig = plt.figure()
+    ax = fig.gca()
+
+    worker_names = [x for x in dataTask.keys() if "broker" not in x]
+
+    times = []
+    for worker, vals in dataTask.items():
+        if hasattr(vals, 'values'):
+            for future in vals.values():
+                times.append(future['start_time'][0])
+    min_time = min(times)
+    ystep = 1. / (len(worker_names) + 1)
+
+    y = 0
+    for worker, vals in dataTask.items():
+        if "broker" in worker:
+            continue
+        y += ystep
+        if hasattr(vals, 'values'):
+            for future in vals.values():
+                start_time = [future['start_time'][0] - min_time]
+                end_time = [future['end_time'][0] - min_time]
+                timelines(ax, y, start_time, end_time)
+
+
+    #ax.xaxis_date()
+    #myFmt = DateFormatter('%H:%M:%S')
+    #ax.xaxis.set_major_formatter(myFmt)
+    #ax.xaxis.set_major_locator(SecondLocator(0, interval=20))
+
+    #delta = (stop.max() - start.min())/10
+    ax.set_yticks(np.arange(ystep, 1, ystep))
+    ax.set_yticklabels(worker_names)
+    ax.set_ylim(0, 1)
+    #fig.xlim()
+    ax.set_xlabel('Time')
+    fig.savefig(filename)
+
+
 if __name__ == "__main__":
     dataTask, dataQueue = importData(args.inputdir)
 
-    if args.prog == "density" or args.prog == "all":
+    if args.prog in ["density", "all"]:
         plotDensity(dataTask, "density_" + args.output)
 
-    if args.prog == "broker" or args.prog == "all":
+    if args.prog in ["broker", "all"]:
         plotBrokerQueue(dataTask, "broker_" + args.output)
 
-    if args.prog == "queue" or args.prog == "all":
+    if args.prog in ["queue", "all"]:
         plotWorkerQueue(dataQueue, "queue_" + args.output)
 
-    if args.prog == "time" or args.prog == "all":
+    if args.prog in ["time", "all"]:
         workerTime, workerTasks = getWorkerInfo(dataTask)
         plotWorkerTime(workerTime, getWorkersName(dataTask), "time_" + args.output)
 
-    if args.prog == "task" or args.prog == "all":
+    if args.prog in ["task", "all"]:
         workerTime, workerTasks = getWorkerInfo(dataTask)
         plotWorkerTask(workerTasks, getWorkersName(dataTask), "task_" + args.output)
+
+    if args.prog in ["timeline", "all"]:
+        #print(list(dataTask.keys())[0])
+        #print(list(dataTask.values())[0].values())
+        plotTimeline(dataTask, "timeline_" + args.output)
