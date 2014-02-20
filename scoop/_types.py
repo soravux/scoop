@@ -285,12 +285,15 @@ class FutureQueue(object):
         elif future.greenlet is not None:
             self.inprogress.append(future)
         else:
-            if self.timelen(self.movable) > self.highwatermark:
-                if future.id.worker != scoop.worker:
-                    future._delete()
-                self.socket.sendFuture(future)
-            else:
-                self.movable.append(future)
+            self.movable.append(future)
+
+            # Send the oldest future in the movable deque until under the hwm
+            over_hwm = self.timelen(self.movable) > self.highwatermark
+            while over_hwm and len(self.movable) > 1:
+                sending_future = self.movable.popleft()
+                if sending_future.id.worker != scoop.worker:
+                    sending_future._delete()
+                self.socket.sendFuture(sending_future)
 
     def pop(self):
         """Pop the next future from the queue;
@@ -304,11 +307,11 @@ class FutureQueue(object):
 
         # If an unmovable Future is ready to be executed, return it
         if len(self.ready) != 0:
-            return self.ready.pop()
+            return self.ready.popleft()
 
         # Then, use Futures in the movable queue
         elif len(self.movable) != 0:
-            return self.movable.pop()
+            return self.movable.popleft()
         else:
             # Otherwise, block until a new task arrives
             while len(self) == 0:
@@ -316,9 +319,9 @@ class FutureQueue(object):
                 self.socket._poll(-1)
                 self.updateQueue()
             if len(self.ready) != 0:
-                return self.ready.pop()
+                return self.ready.popleft()
             elif len(self.movable) != 0:
-                return self.movable.pop()
+                return self.movable.popleft()
 
     def flush(self):
         """Empty the local queue and send its elements to be executed remotely.
