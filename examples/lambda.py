@@ -22,15 +22,6 @@ from math import cos
 import operator
 
 
-# Lambda function using a call to a function that is not in the globals()
-def nonGlobalDefinition():
-    """Defining a symbol in a function (ouside the global scope) triggers a
-    different encapsulation scheme for the lambda."""
-    my_mul = operator.mul
-    myFunc4 = lambda x : operator.mul(x, x)
-    print(list(futures.map(myFunc4, range(10))))
-
-
 if __name__ == "__main__":
     # Standard lambda function
     myFunc = lambda x: x * 2
@@ -43,4 +34,4 @@ if __name__ == "__main__":
     print(list(futures.map(myFunc, range(10))))
     print(list(futures.map(myFunc2, range(10))))
     print(list(futures.map(myFunc3, range(10))))
-    nonGlobalDefinition()
+
