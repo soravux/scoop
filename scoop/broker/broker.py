@@ -34,7 +34,6 @@ from .. import discovery, utils
 INIT = b"INIT"
 REQUEST = b"REQUEST"
 TASK = b"TASK"
-WORK = b"WORK"
 REPLY = b"REPLY"
 SHUTDOWN = b"SHUTDOWN"
 VARIABLE = b"VARIABLE"
@@ -204,11 +203,6 @@ class Broker(object):
                     self.availableWorkers.append(address)
                 else:
                     self.taskSocket.send_multipart([address, TASK, task])
-
-            elif msg_type == WORK:
-                address = msg[0]
-                groupID = pickle.loads(msg[2])
-                self.groupTasks[groupID].append(address)
 
             # Answer needing delivery
             elif msg_type == REPLY:
