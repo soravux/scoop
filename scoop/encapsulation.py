@@ -57,7 +57,8 @@ class FunctionEncapsulation(object):
     """Encapsulates a function in a serializable way.
 
     This is used by the sharing module (setConst).
-    Used for lambda functions and defined on-the-fly (interactive shell)"""
+    Used for lambda functions and function defined on-the-fly (interactive
+    shell)"""
     def __init__(self, in_func, name):
         """Creates a serializable (picklable) object of a function"""
         self.code = marshal.dumps(in_func.__code__)
