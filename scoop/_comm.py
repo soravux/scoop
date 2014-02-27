@@ -138,7 +138,7 @@ class ZMQCommunicator(object):
             b"INIT",
             pickle.dumps(scoop.CONFIGURATION)
         ])
-        scoop.CONFIGURATION = pickle.loads(self.socket.recv())
+        scoop.CONFIGURATION.update(pickle.loads(self.socket.recv()))
         inboundVariables = pickle.loads(self.socket.recv())
         shared.elements = dict([
             (pickle.loads(key),
