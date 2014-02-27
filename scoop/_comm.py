@@ -274,9 +274,6 @@ class ZMQCommunicator(object):
             result = varValue.getFunction()
 
             # Update the global scope of the function to match the current module
-            # TODO: Rework this not to be dependent on runpy / bootstrap call 
-            # stack
-            # TODO: Builtins doesn't work
             mainModule = sys.modules["__main__"]
             result.__name__ = varName
             result.__globals__.update(mainModule.__dict__)
