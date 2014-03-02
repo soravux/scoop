@@ -1,6 +1,18 @@
 Install
 =======
 
+Dependencies
+------------
+
+The software requirements for SCOOP are as follows:
+
+* `Python <http://www.python.org/>`_ >= 2.6 or >= 3.2
+* `Distribute <http://packages.python.org/distribute/>`_ >= 0.6.2 or `setuptools <https://pypi.python.org/pypi/setuptools>`_ >= 0.7
+* `Greenlet <http://pypi.python.org/pypi/greenlet>`_ >= 0.3.4
+* `pyzmq <http://www.zeromq.org/bindings:python>`_  >= 13.1.0 and 
+  `libzmq <http://www.zeromq.org/>`_ >= 3.2.0
+* :program:`ssh` for remote execution
+
 Prerequisites
 -------------
 
@@ -46,17 +58,25 @@ installer.org/en/latest/index.html>`_ as such::
 
     pip install scoop
 
-Dependencies
-------------
+POSIX Operating systems
+~~~~~~~~~~~~~~~~~~~~~~~
 
-The software requirements for SCOOP are as follows:
+Connection to remote hosts is done using SSH. An implementation of SSH must
+be installed in order to be able to use this feature.
 
-* `Python <http://www.python.org/>`_ >= 2.6 or >= 3.2
-* `Distribute <http://packages.python.org/distribute/>`_ >= 0.6.2 or `setuptools <https://pypi.python.org/pypi/setuptools>`_ >= 0.7
-* `Greenlet <http://pypi.python.org/pypi/greenlet>`_ >= 0.3.4
-* `pyzmq <http://www.zeromq.org/bindings:python>`_  >= 13.1.0 and 
-  `libzmq <http://www.zeromq.org/>`_ >= 3.2.0
-* :program:`ssh` for remote execution
+
+Windows Operating System
+~~~~~~~~~~~~~~~~~~~~~~~~
+    
+On Windows, this will try to compile libzmq. You can skip this compilation by
+installing pyzmq using the installer available at their
+`download page <https://github.com/zeromq/pyzmq/downloads>`_.
+This installer installs libzmq alongside pyzmq.
+
+Furthermore, to be able to use the multi-system capabilities of SCOOP, a SSH
+implementation must be available. This may be done either by using
+`Cygwin <http://www.cygwin.com/>`_ or
+`OpenSSH for Windows <http://sshwindows.sourceforge.net/download/>`_.
 
 Remote usage
 ------------
