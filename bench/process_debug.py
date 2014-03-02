@@ -163,7 +163,18 @@ def plotWorkerQueue(dataQueue, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    for fichier, vals in dataQueue.items():
+    x = []
+    for a, b in dataQueue.items():
+        nb = []
+        for bb in b:
+            if bb == float('inf'):
+                nb.append(1)
+            else:
+                nb.append(b)
+        x.append([a, nb])
+    dataQueue = x
+
+    for fichier, vals in dataQueue:
         print("Plotting {}".format(fichier))
         ax.plot(*zip(*vals), label=fichier)
     plt.xlabel('time(s)'); plt.ylabel('Queue Length')
