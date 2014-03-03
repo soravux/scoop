@@ -29,6 +29,7 @@ except ImportError:
 
 import scoop
 from .. import discovery, utils
+from .structs import BrokerInfo
 
 # Worker requests
 INIT = b"INIT"
@@ -40,11 +41,6 @@ VARIABLE = b"VARIABLE"
 BROKER_INFO = b"BROKER_INFO"
 # Broker interconnection
 CONNECT = b"CONNECT"
-
-BrokerInfo = namedtuple('BrokerInfo', ['hostname',
-                                       'task_port',
-                                       'info_port',
-                                       'externalHostname'])
 
 
 class LaunchingError(Exception): pass

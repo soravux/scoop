@@ -36,7 +36,7 @@ else:
 
 
 import scoop
-from ..broker.broker import BrokerInfo
+from ..broker.structs import BrokerInfo
 from .. import discovery, utils
 if sys.version_info < (2, 7):
     import scoop.backports.runpy as runpy
@@ -136,6 +136,10 @@ class Bootstrap(object):
                                  help="Set the working directory for the "
                                       "execution",
                                  default=None)
+        self.parser.add_argument('--backend',
+                                 help="Choice of communication backend",
+                                 choices=['ZMQ', 'TCP'],
+                                 default='ZMQ')
         self.parser.add_argument('executable',
                                  nargs='?',
                                  help='The executable to start with scoop')
@@ -174,6 +178,7 @@ class Bootstrap(object):
         scoop.MAIN_MODULE = self.args.executable
         scoop.CONFIGURATION = {
           'headless': not bool(self.args.executable),
+          'backend': self.args.backend,
         }
         scoop.logger = self.log
         if self.args.nice:
