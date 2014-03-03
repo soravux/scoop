@@ -18,9 +18,6 @@
 import scoop
 scoop.DEBUG = False
 
-from scoop import futures, _control, utils, shared
-from scoop._types import FutureQueue
-from scoop.broker.broker import BrokerInfo
 import unittest
 import subprocess
 import time
@@ -33,6 +30,11 @@ import math
 from tests_parser import TestUtils
 from tests_stat import TestStat
 from tests_stopwatch import TestStopWatch
+
+from scoop import futures, _control, utils, shared
+from scoop._types import FutureQueue
+from scoop.broker.structs import BrokerInfo
+
 
 subprocesses = []
 def cleanSubprocesses():
