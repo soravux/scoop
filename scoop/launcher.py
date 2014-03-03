@@ -30,7 +30,7 @@ import signal
 from scoop import utils
 from scoop.launch import Host
 from scoop.launch.brokerLaunch import localBroker, remoteBroker
-from .broker.broker import BrokerInfo
+from .broker.structs import BrokerInfo
 import scoop
 
 try:
@@ -46,7 +46,7 @@ class ScoopApp(object):
 
     def __init__(self, hosts, n, b, verbose, python_executable,
             externalHostname, executable, arguments, tunnel, log, path, debug,
-            nice, env, profile, pythonPath, prolog):
+            nice, env, profile, pythonPath, prolog, backend):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
                                                "specify one host.")
@@ -67,6 +67,7 @@ class ScoopApp(object):
         self.debug = debug
         self.nice = nice
         self.profile = profile
+        self.backend = backend
         self.errors = None
 
         # Logging configuration
@@ -217,6 +218,7 @@ class ScoopApp(object):
             'profiling': self.profile,
             'executable': self.executable,
             'verbose': self.verbose,
+            'backend': self.backend,
             'args': self.args,
         }
         return args, kwargs
@@ -246,12 +248,14 @@ class ScoopApp(object):
                     self.brokers.append(localBroker(
                         debug=self.debug,
                         nice=self.nice,
+                        backend=self.backend,
                     ))
                 else:
                     self.brokers.append(remoteBroker(
-                        hostname,
-                        self.python_executable,
-                        self.nice,
+                        hostname=hostname,
+                        pythonExecutable=self.python_executable,
+                        nice=self.nice,
+                        backend=self.backend,
                     ))
 
         # Share connection information between brokers
@@ -426,6 +430,10 @@ def makeParser():
                         " will produce files in directory profile/ named "
                         "workerX where X is the number of the worker."),
                         action='store_true')
+    parser.add_argument('--backend',
+                        help="Choice of communication backend",
+                        choices=['ZMQ', 'TCP'],
+                        default='ZMQ')
     parser.add_argument('executable',
                         nargs='?',
                         help='The executable to start with SCOOP')
@@ -463,7 +471,7 @@ def main():
                         args.executable, args.args, args.tunnel,
                         args.log, args.path, args.debug, args.nice,
                         utils.getEnv(), args.profile, args.pythonpath[0],
-                        args.prolog[0])
+                        args.prolog[0], args.backend)
 
     rootTaskExitCode = False
     try:

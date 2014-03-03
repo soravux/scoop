@@ -20,7 +20,7 @@ import time
 import sys
 import greenlet
 import scoop
-from scoop._comm import ZMQCommunicator, Shutdown
+from scoop._comm import Communicator, Shutdown
 
 # Backporting collection features
 if sys.version_info < (2, 7):
@@ -253,7 +253,7 @@ class FutureQueue(object):
         self.movable = deque()
         self.ready = deque()
         self.inprogress = {}
-        self.socket = ZMQCommunicator()
+        self.socket = Communicator()
         if scoop.SIZE == 1 and not scoop.CONFIGURATION.get('headless', False):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")

@@ -34,7 +34,7 @@ class Host(object):
         [
             'pythonPath', 'path', 'nice', 'pythonExecutable', 'size', 'origin',
             'brokerHostname', 'brokerPorts', 'debug', 'profiling', 'executable',
-            'verbose', 'args', 'prolog'
+            'verbose', 'args', 'prolog', 'backend'
         ]
     )
 
@@ -120,6 +120,8 @@ class Host(object):
             c.append('--debug')
         if worker.profiling:
             c.append('--profile')
+        if worker.backend:
+            c.append('--backend={0}'.format(worker.backend))
         if worker.verbose == 0:
             c.append('-q')
         elif worker.verbose >= 2:

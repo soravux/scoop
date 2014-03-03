@@ -18,13 +18,13 @@
 from threading import Thread
 import subprocess
 import shlex
-import scoop
 import sys
 import os
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
 import scoop
 try:
     import psutil
@@ -33,9 +33,13 @@ except ImportError:
 
 
 class localBroker(object):
-    def __init__(self, debug, nice=0):
+    def __init__(self, debug, nice=0, backend='ZMQ'):
         """Starts a broker on random unoccupied ports"""
-        from scoop.broker import Broker
+        self.backend = backend
+        if backend == 'ZMQ':
+            from ..broker.brokerzmq import Broker
+        else:
+            from ..broker.brokertcp import Broker
         if nice:
             if not psutil:
                 scoop.logger.error("'nice' used while psutil not installed.")
@@ -54,18 +58,22 @@ class localBroker(object):
         """Send a CONNECT command to the broker
             :param data: List of other broker main socket URL"""
         # Imported dynamically - Not used if only one broker
-        import zmq
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.DEALER)
-        self.socket.setsockopt(zmq.IDENTITY, b'launcher')
-        self.socket.connect(
-            "tcp://127.0.0.1:{port}".format(
-                port=self.brokerPort,
+        if self.backend == 'ZMQ':
+            import zmq
+            self.context = zmq.Context()
+            self.socket = self.context.socket(zmq.DEALER)
+            self.socket.setsockopt(zmq.IDENTITY, b'launcher')
+            self.socket.connect(
+                "tcp://127.0.0.1:{port}".format(
+                    port=self.brokerPort,
+                )
             )
-        )
-        self.socket.send_multipart([b"CONNECT",
-                                    pickle.dumps(data,
-                                                 pickle.HIGHEST_PROTOCOL)])
+            self.socket.send_multipart([b"CONNECT",
+                                        pickle.dumps(data,
+                                                     pickle.HIGHEST_PROTOCOL)])
+        else:
+            # TODO
+            pass
 
     def getHost(self):
         return "127.0.0.1"
@@ -80,11 +88,13 @@ class localBroker(object):
 class remoteBroker(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
 
-    def __init__(self, hostname, pythonExecutable, nice=0):
+    def __init__(self, hostname, pythonExecutable, nice=0, backend='ZMQ'):
         """Starts a broker on the specified hostname on unoccupied ports"""
+        self.backend = backend
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
                         "--echoGroup "
-                        "--echoPorts ")
+                        "--echoPorts "
+                        "--backend {backend} ".format(backend=backend))
         if nice:
             brokerString += "--nice {nice} ".format(nice=nice)
         self.hostname = hostname
@@ -145,22 +155,26 @@ class remoteBroker(object):
         """Send a CONNECT command to the broker
             :param data: List of other broker main socket URL"""
         # Imported dynamically - Not used if only one broker
-        import zmq
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.DEALER)
-        if sys.version_info < (3,):
-            self.socket.setsockopt_string(zmq.IDENTITY, unicode('launcher'))
-        else:
-            self.socket.setsockopt_string(zmq.IDENTITY, 'launcher')
-        self.socket.connect(
-            "tcp://{hostname}:{port}".format(
-                port=self.brokerPort,
-                hostname = self.hostname
+        if self.backend == 'ZMQ':
+            import zmq
+            self.context = zmq.Context()
+            self.socket = self.context.socket(zmq.DEALER)
+            if sys.version_info < (3,):
+                self.socket.setsockopt_string(zmq.IDENTITY, unicode('launcher'))
+            else:
+                self.socket.setsockopt_string(zmq.IDENTITY, 'launcher')
+            self.socket.connect(
+                "tcp://{hostname}:{port}".format(
+                    port=self.brokerPort,
+                    hostname = self.hostname
+                )
             )
-        )
-        self.socket.send_multipart([b"CONNECT",
-                                    pickle.dumps(data,
-                                                 pickle.HIGHEST_PROTOCOL)])
+            self.socket.send_multipart([b"CONNECT",
+                                        pickle.dumps(data,
+                                                     pickle.HIGHEST_PROTOCOL)])
+        else:
+            # TODO
+            pass
 
 
     def getHost(self):

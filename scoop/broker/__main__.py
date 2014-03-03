@@ -16,14 +16,13 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import os
+from signal import signal, SIGTERM, SIGINT
+import argparse
+
 try:
     import psutil
 except:
     psutil = None
-
-from scoop.broker.broker import Broker
-from signal import signal, SIGTERM, SIGINT
-import argparse
 
 
 if __name__ == "__main__":
@@ -42,6 +41,10 @@ if __name__ == "__main__":
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
+    parser.add_argument('--backend',
+                        help="Choice of communication backend",
+                        choices=['ZMQ', 'TCP'],
+                        default='ZMQ')
     parser.add_argument('--headless',
                         help="Enforce headless (cloud-style) operation",
                         action='store_true')
@@ -59,6 +62,11 @@ if __name__ == "__main__":
         sys.stdout.write(str(os.getpgrp()) + "\n")
         sys.stdout.flush()
 
+    if args.backend == 'ZMQ':
+        from ..broker.brokerzmq import Broker
+    else:
+        from ..broker.brokertcp import Broker
+
     thisBroker = Broker("tcp://*:" + args.tPort,
                         "tcp://*:" + args.mPort,
                         debug=args.debug,
@@ -73,7 +81,7 @@ if __name__ == "__main__":
     # Handle nicing functionnality
     if args.nice:
         if not psutil:
-            scoop.logger.error("psutil not installed.")
+            scoop.logger.error("Tried to nice but psutil is not installed.")
             raise ImportError("psutil is needed for nice functionality.")
         p = psutil.Process(os.getpid())
         p.set_nice(args.nice)
