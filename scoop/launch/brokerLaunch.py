@@ -94,7 +94,11 @@ class remoteBroker(object):
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
                         "--echoGroup "
                         "--echoPorts "
-                        "--backend {backend} ".format(backend=backend))
+                        "--backend {backend} ".format(
+                            pythonExec=pythonExecutable,
+                            backend=backend,
+                            )
+                        )
         if nice:
             brokerString += "--nice {nice} ".format(nice=nice)
         self.hostname = hostname
