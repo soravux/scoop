@@ -49,7 +49,7 @@ def importData(directory):
     dataQueue = OrderedDict()
     for fichier in os.listdir(directory):
         with open("{directory}/{fichier}".format(**locals()), 'rb') as f:
-            fileName, fileType = fichier.rsplit('-', maxsplit=1)
+            fileName, fileType = fichier.rsplit('-', 1)
             if fileType == "QUEUE":
                 dataQueue[fileName] = pickle.load(f)
             else:
@@ -170,7 +170,7 @@ def plotWorkerQueue(dataQueue, filename):
             if bb == float('inf'):
                 nb.append(1)
             else:
-                nb.append(b)
+                nb.append(bb)
         x.append([a, nb])
     dataQueue = x
 
