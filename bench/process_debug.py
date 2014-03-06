@@ -1,16 +1,20 @@
 from __future__ import print_function
 import sys
 from collections import OrderedDict, namedtuple, defaultdict
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-from matplotlib.dates import DateFormatter, MinuteLocator, SecondLocator
-import numpy as np
 import itertools
 import time
 import os
 from datetime import datetime
 import argparse
 import pickle
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from matplotlib.dates import DateFormatter, MinuteLocator, SecondLocator
+import numpy as np
+
 
 
 DENSITY_MAP_TIME_AXIS_LENGTH = 800
@@ -176,7 +180,7 @@ def plotWorkerQueue(dataQueue, filename):
 
     for fichier, vals in dataQueue:
         print("Plotting {}".format(fichier))
-        ax.plot(*zip(*vals), label=fichier)
+        ax.plot(list(*zip(*vals))[:1], label=fichier)
     plt.xlabel('time(s)'); plt.ylabel('Queue Length')
     plt.title('Queue length through time')
     fig.savefig(filename)
@@ -204,7 +208,7 @@ def plotWorkerTime(workertime, worker_names, filename):
     rects = ax.bar(ind, workertime, width)
     ax.set_ylabel('WorkedTime')
     ax.set_title('Worked time for each worker')
-    ax.set_xticks(ind)
+    ax.set_xticks([x+(width/2.0) for x in ind])
     ax.set_xticklabels(worker_names)
 
     fig.savefig(filename)
@@ -219,7 +223,7 @@ def plotWorkerTask(workertask, worker_names, filename):
     rects = ax.bar(ind, workertask, width)
     ax.set_ylabel('Tasks')
     ax.set_title('Number of tasks executed by each worker')
-    #ax.set_xticks([x+width for x in ind])
+    ax.set_xticks([x+(width/2.0) for x in ind])
     ax.set_xticklabels(worker_names)
 
     fig.savefig(filename)
@@ -245,7 +249,10 @@ def plotTimeline(dataTask, filename):
         if hasattr(vals, 'values'):
             for future in vals.values():
                 times.append(future['start_time'][0])
-    min_time = min(times)
+    try:
+        min_time = min(times)
+    except:
+        min_time = 0
     ystep = 1. / (len(worker_names) + 1)
 
     y = 0
@@ -295,6 +302,4 @@ if __name__ == "__main__":
         plotWorkerTask(workerTasks, getWorkersName(dataTask), "task_" + args.output)
 
     if args.prog in ["timeline", "all"]:
-        #print(list(dataTask.keys())[0])
-        #print(list(dataTask.values())[0].values())
         plotTimeline(dataTask, "timeline_" + args.output)
