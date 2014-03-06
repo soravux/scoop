@@ -154,7 +154,7 @@ def runFuture(future):
                 else 'No name',
            'parent': future.parentId
         })
-        QueueLength.append((t, execQueue.timelen(execQueue)))
+        QueueLength.append((t, len(execQueue), execQueue.timelen(execQueue)))
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     future._execute_callbacks(CallbackType.universal)
