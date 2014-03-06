@@ -97,6 +97,11 @@ def _mapFuture(callable_, *iterables):
         childrenList.append(submit(callable_, *args))
     return childrenList
 
+def _mapGenerator(futures):
+    """Generator function that iterates through the results in-order."""
+    for future in _waitAll(*futures):
+        yield future.resultValue
+
 
 @ensureScoopStartedProperlyMapFallback
 def map(func, *iterables, **kwargs):
@@ -123,8 +128,8 @@ def map(func, *iterables, **kwargs):
     :returns: A generator of map results, each corresponding to one map
         iteration."""
     # TODO: Handle timeout
-    for future in _waitAll(*_mapFuture(func, *iterables)):
-        yield future.resultValue
+    futures = _mapFuture(func, *iterables)
+    return _mapGenerator(futures)
 
 
 def map_as_completed(func, *iterables, **kwargs):
