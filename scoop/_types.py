@@ -20,7 +20,7 @@ import time
 import sys
 import greenlet
 import scoop
-from ._comm import Communicator, Shutdown
+from scoop._comm import Communicator, Shutdown
 
 # Backporting collection features
 if sys.version_info < (2, 7):
