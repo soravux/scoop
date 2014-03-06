@@ -194,7 +194,7 @@ class Broker(object):
             elif msg_type == REQUEST:
                 address = msg[0]
                 try:
-                    task = self.unassignedTasks.pop()
+                    task = self.unassignedTasks.popleft()
                 except IndexError:
                     self.availableWorkers.append(address)
                 else:
