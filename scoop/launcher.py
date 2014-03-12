@@ -25,6 +25,7 @@ import time
 import logging
 import traceback
 import signal
+from threading import Thread
 
 # Local imports
 from scoop import utils
@@ -464,24 +465,28 @@ def main():
         args.external_hostname = [utils.externalHostname(hosts)]
 
     # Launch SCOOP
-    scoopApp = ScoopApp(hosts, n, args.b,
-                        args.verbose if not args.quiet else 0,
-                        args.python_interpreter,
-                        args.external_hostname[0],
-                        args.executable, args.args, args.tunnel,
-                        args.log, args.path, args.debug, args.nice,
-                        utils.getEnv(), args.profile, args.pythonpath[0],
-                        args.prolog[0], args.backend)
+    thisScoopApp = ScoopApp(hosts, n, args.b,
+                            args.verbose if not args.quiet else 0,
+                            args.python_interpreter,
+                            args.external_hostname[0],
+                            args.executable, args.args, args.tunnel,
+                            args.log, args.path, args.debug, args.nice,
+                            utils.getEnv(), args.profile, args.pythonpath[0],
+                            args.prolog[0], args.backend)
 
     rootTaskExitCode = False
     try:
-        rootTaskExitCode = scoopApp.run()
+        rootTaskExitCode = thisScoopApp.run()
     except Exception as e:
         logging.error('Error while launching SCOOP subprocesses:')
         logging.error(traceback.format_exc())
         rootTaskExitCode = -1
     finally:
-        scoopApp.close()
+        # This should not be interrupted (ie. by a KeyboadInterrupt)
+        # The only cross-platform way to do it I found was by using a thread.
+        interruptPreventer = Thread(target=thisScoopApp.close)
+        interruptPreventer.start()
+        interruptPreventer.join()
 
     # Exit with the proper exit code
     if rootTaskExitCode:
