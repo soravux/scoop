@@ -18,6 +18,7 @@
 started properly."""
 import sys
 import warnings
+from functools import wraps
 
 
 class NotStartedProperly(Exception):
@@ -26,6 +27,7 @@ class NotStartedProperly(Exception):
 
 
 def ensureScoopStartedProperlyMapFallback(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         futures_not_loaded = 'scoop.futures' not in sys.modules
         controller_not_started = not (
