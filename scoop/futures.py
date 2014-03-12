@@ -105,7 +105,8 @@ def _mapGenerator(futures):
 
 @ensureScoopStartedProperlyMapFallback
 def map(func, *iterables, **kwargs):
-    """Equivalent to
+    """map(func, *iterables)
+    Equivalent to
     `map(func, \*iterables, ...)
     <http://docs.python.org/library/functions.html#map>`_
     but *func* is executed asynchronously
@@ -133,7 +134,8 @@ def map(func, *iterables, **kwargs):
 
 
 def map_as_completed(func, *iterables, **kwargs):
-    """Equivalent to map, but the results are returned as soon as they are made
+    """map_as_completed(func, *iterables)
+    Equivalent to map, but the results are returned as soon as they are made
     available.
 
     :param func: Any picklable callable object (function or class object with
