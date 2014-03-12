@@ -419,8 +419,9 @@ def makeParser():
                         default=[os.environ.get('PYTHONPATH', '')])
     parser.add_argument('--prolog',
                         nargs=1,
-                        help="Path to a shell script or executable that will "
-                             "be executed at the launch of every worker",
+                        help="Absolute Path to a shell script or executable "
+                             "that will be executed at the launch of every "
+                             "worker",
                         default=[None])
     parser.add_argument('--debug',
                         help=argparse.SUPPRESS,
