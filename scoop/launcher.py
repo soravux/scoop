@@ -475,6 +475,7 @@ def main():
                             args.prolog[0], args.backend)
 
     rootTaskExitCode = False
+    interruptPreventer = Thread(target=thisScoopApp.close)
     try:
         rootTaskExitCode = thisScoopApp.run()
     except Exception as e:
@@ -484,7 +485,6 @@ def main():
     finally:
         # This should not be interrupted (ie. by a KeyboadInterrupt)
         # The only cross-platform way to do it I found was by using a thread.
-        interruptPreventer = Thread(target=thisScoopApp.close)
         interruptPreventer.start()
         interruptPreventer.join()
 
