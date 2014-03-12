@@ -80,9 +80,15 @@ class Host(object):
                 "&&",
             ])
         if worker.pythonPath:
+            # Tried to make it compliant to all shell variants.
             c.extend([
                 "export",
                 "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath),
+                ">&/dev/null",
+                "||",
+                "setenv",
+                "PYTHONPATH",
+                "{0}:$PYTHONPATH".format(worker.pythonPath),
                 "&&",
             ])
         return c
