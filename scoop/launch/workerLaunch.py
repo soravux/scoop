@@ -194,26 +194,18 @@ class Host(object):
                 # Launch one per subprocess
                 c = self._getWorkerCommandList(workerID)
                 self.subprocesses.append(
-                    subprocess.Popen(
-                        c,
-                        # stdin=subprocess.PIPE if stdPipe else None,
-                        stdout=subprocess.PIPE if stdPipe else None,
-                        stderr=subprocess.PIPE if stdPipe else None,
-                    )
+                    subprocess.Popen(c)
                 )
         else:
             # Launching remotely
-            sshCommand = self.BASE_SSH
+            sshCmd = self.BASE_SSH
             if tunnelPorts is not None:
-                sshCommand += [
+                sshCmd += [
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[1]),
                 ]
             self.subprocesses.append(
-                subprocess.Popen(sshCommand
-                                 + [self.hostname]
-                                 + [self.getCommand()],
-                                 # stdin=subprocess.PIPE if stdPipe else None,
+                subprocess.Popen(sshCmd + [self.hostname, self.getCommand()],
                                  stdout=subprocess.PIPE if stdPipe else None,
                                  stderr=subprocess.PIPE if stdPipe else None,
                 )

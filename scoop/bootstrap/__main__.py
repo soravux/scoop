@@ -247,10 +247,10 @@ class Bootstrap(object):
             sys.stdout.write(str(os.getpgrp()) + "\n")
             sys.stdout.flush()
 
-        scoop.logger.info("Worker launched using {0}\n".format(
-                os.environ['SHELL'],
+            scoop.logger.info("Worker(s) launched using {0}".format(
+                    os.environ['SHELL'],
+                )
             )
-        )
 
         # import the user module
         if scoop.MAIN_MODULE:
