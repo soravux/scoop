@@ -78,7 +78,7 @@ class Broker(object):
         self.name = "{0}:{1}".format(hostname, self.tSockPort)
 
         # Initialize broker logging
-        self.logger = utils.initLogging(2 if debug else 0)
+        self.logger = utils.initLogging(2 if debug else 0, name=self.name)
         self.logger.handlers[0].setFormatter(
             logging.Formatter(
                 "[%(asctime)-15s] %(module)-9s ({0}) %(levelname)-7s "

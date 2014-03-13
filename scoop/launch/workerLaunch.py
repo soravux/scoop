@@ -21,6 +21,7 @@ import sys
 import subprocess
 
 # Local
+import scoop
 from scoop import utils
 
 
@@ -39,7 +40,6 @@ class Host(object):
     )
 
     def __init__(self, hostname="localhost"):
-        self.log = logging.getLogger(self.__class__.__name__)
         self.workersArguments = []
         self.hostname = hostname
         self.subprocesses = []
@@ -63,7 +63,7 @@ class Host(object):
         try:
             la = self.LAUNCHING_ARGUMENTS(*args, **kwargs)
         except TypeError as e:
-            self.log.error(("addWorker failed to convert args %s and kwargs %s "
+            scoop.logger.error(("addWorker failed to convert args %s and kwargs %s "
                             "to namedtuple (requires %s arguments (names %s)") %
                             (args, kwargs, len(self.LAUNCHING_ARGUMENTS._fields),
                              self.LAUNCHING_ARGUMENTS._fields))
@@ -233,7 +233,7 @@ class Host(object):
 
                 stderr = self.subprocesses[-1].stderr.read()
                 hostname = self.hostname
-                self.log.warning("Could not successfully launch the remote "
+                scoop.logger.warning("Could not successfully launch the remote "
                                  "worker on {hostname}.\n"
                                  "Requested remote group process id, "
                                  "received:\n{receivedLine}\n"
@@ -246,8 +246,7 @@ class Host(object):
     def close(self):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
-
-        self.log.debug('Closing workers on {0}.'.format(self))
+        scoop.logger.debug('Closing workers on {0}.'.format(self))
 
         # Output child processes stdout and stderr to console
         for process in self.subprocesses:
@@ -268,7 +267,7 @@ class Host(object):
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
-                self.log.warn("Zombie process(es) possibly left on "
+                scoop.logger.warn("Zombie process(es) possibly left on "
                              "host {0}!".format(self.hostname))
         elif not self.isLocal():
             command = ("python -c "
