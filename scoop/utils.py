@@ -44,11 +44,12 @@ localHostnames.extend([
         if not ip.startswith("127.")][:1]
 )
 
+loggingConfig = {}
 
-def initLogging(default_verbosity=0, log=None):
-        """Creates a logger.
-        dictConfig is used to limit interference with user loggers. basicConfig
-        would override user code."""
+def initLogging(verbosity=0, name="SCOOP"):
+        """Creates a logger."""
+        global loggingConfig
+
         verbose_levels = {
             -2: "CRITICAL",
             -1: "ERROR",
@@ -61,32 +62,32 @@ def initLogging(default_verbosity=0, log=None):
             "console":
             {
                 "class": "logging.StreamHandler",
-                "formatter": "SCOOPFormatter",
+                "formatter": "{name}Formatter".format(name=name),
                 "stream": "ext://sys.stdout",
             },
         }
+        loggingConfig.update({
+            "{name}Logger".format(name=name):
+            {
+                "handlers": ["console"],
+                "level": verbose_levels[verbosity],
+            },
+        })
         dict_log_config = {
             "version": 1,
             "handlers": log_handlers,
-            "loggers":
-            {
-                "SCOOPLogger":
-                {
-                    "handlers": ["console"],
-                    "level": verbose_levels[default_verbosity],
-                },
-            },
+            "loggers": loggingConfig,
             "formatters":
             {
-                "SCOOPFormatter":
+                "{name}Formatter".format(name=name):
                 {
-                    "format": "[%(asctime)-15s] %(module)-9s (unconnected) "
+                    "format": "[%(asctime)-15s] %(module)-9s "
                               "%(levelname)-7s %(message)s",
                 },
             },
         }
         dictConfig(dict_log_config)
-        return logging.getLogger("SCOOPLogger")
+        return logging.getLogger("{name}Logger".format(name=name))
 
 
 def externalHostname(hosts):

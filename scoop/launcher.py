@@ -46,7 +46,7 @@ class ScoopApp(object):
     LAUNCH_HOST_CLASS = Host
 
     def __init__(self, hosts, n, b, verbose, python_executable,
-            externalHostname, executable, arguments, tunnel, log, path, debug,
+            externalHostname, executable, arguments, tunnel, path, debug,
             nice, env, profile, pythonPath, prolog, backend):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
@@ -75,10 +75,13 @@ class ScoopApp(object):
         if self.verbose > 2:
             self.verbose = 2
 
-        self.log = self.init_logging(log)
+        scoop.logger = utils.initLogging(
+            verbosity=self.verbose,
+            name="launcher",
+        )
 
         # Show runtime information (useful for debugging)
-        self.log.info("SCOOP {0} {1} on {2} using Python {3}, API: {4}".format(
+        scoop.logger.info("SCOOP {0} {1} on {2} using Python {3}, API: {4}".format(
                 scoop.__version__,
                 scoop.__revision__,
                 sys.platform,
@@ -88,8 +91,8 @@ class ScoopApp(object):
         )
 
         if env in ["SLURM","PBS", "SGE"]:
-            self.log.info("Detected {0} environment.".format(env))
-        self.log.info("Deploying {0} worker(s) over {1} "
+            scoop.logger.info("Detected {0} environment.".format(env))
+        scoop.logger.info("Deploying {0} worker(s) over {1} "
                       "host(s).".format(
                           n,
                           len(hosts)
@@ -98,9 +101,9 @@ class ScoopApp(object):
 
         # Handling External Hostname
         self.externalHostname = '127.0.0.1' if self.tunnel else externalHostname
-        self.log.debug('Using hostname/ip: "{0}" as external broker '
+        scoop.logger.debug('Using hostname/ip: "{0}" as external broker '
                       'reference.'.format(self.externalHostname))
-        self.log.debug('The python executable to execute the program with is: '
+        scoop.logger.debug('The python executable to execute the program with is: '
                      '{0}.'.format(self.python_executable))
 
         # Create launch lists
@@ -110,13 +113,13 @@ class ScoopApp(object):
         # Logging of worker distribution warnings
         maximumWorkers = sum(host[1] for host in hosts)
         if self.n > maximumWorkers:
-            self.log.debug("The -n flag is set at {0} workers, which is higher "
+            scoop.logger.debug("The -n flag is set at {0} workers, which is higher "
                            "than the maximum number of workers ({1}) specified "
                            "by the hostfile.\nThis behavior may degrade the "
                            "performances of scoop for cpu-bound operations."
                            "".format(qty, maximumWorkers))
         elif self.n < maximumWorkers:
-            self.log.debug("The -n flag is set at {0} workers, which is lower "
+            scoop.logger.debug("The -n flag is set at {0} workers, which is lower "
                            "than the maximum number of workers ({1}) specified "
                            "by the hostfile."
                            "".format(qty, maximumWorkers))
@@ -127,17 +130,14 @@ class ScoopApp(object):
         self.workers = []
         self.brokers = []
 
-
-    def init_logging(self, log):
+    def initLogging(self):
         """Configures the logger."""
-        # TODO: Why is this different from scoop.logger?
         verbose_levels = {
             0: logging.WARNING,
             1: logging.INFO,
             2: logging.DEBUG,
         }
         logging.basicConfig(
-            filename=log,
             level=verbose_levels[self.verbose],
             format="[%(asctime)-15s] %(module)-9s %(levelname)-7s %(message)s"
         )
@@ -183,10 +183,10 @@ class ScoopApp(object):
 
     def showHostDivision(self, headless):
         """Show the worker distribution over the hosts"""
-        self.log.info('Worker distribution: ')
+        scoop.logger.info('Worker distribution: ')
         for worker, number in reversed(self.worker_hosts):
             first_worker = (worker == self.worker_hosts[-1][0])
-            self.log.info('   {0}:\t{1} {2}'.format(
+            scoop.logger.info('   {0}:\t{1} {2}'.format(
                 worker,
                 number - 1 if first_worker or headless else str(number),
                 "+ origin" if first_worker or headless else "",
@@ -228,7 +228,7 @@ class ScoopApp(object):
         """Adds a worker to current host"""
         hostname = workerinfo['hostname']
 
-        self.log.debug('Initialising {0}{1} worker {2} [{3}].'.format(
+        scoop.logger.debug('Initialising {0}{1} worker {2} [{3}].'.format(
             "local" if hostname in utils.localHostnames else "remote",
             " origin" if self.workersLeft == 1 else "",
             self.workersLeft,
@@ -279,15 +279,16 @@ class ScoopApp(object):
             self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
             total_workers_host = min(nb_workers, self.workersLeft)
             for worker_idx_host in range(total_workers_host):
-                workerinfo = {'hostname':hostname,
-                              'total_workers_host':total_workers_host,
-                              'worker_idx_host':worker_idx_host
-                              }
+                workerinfo = {
+                    'hostname': hostname,
+                    'total_workers_host': total_workers_host,
+                    'worker_idx_host': worker_idx_host,
+                }
                 self.addWorkerToHost(workerinfo)
                 self.workersLeft -= 1
 
             # Launch every workers at the same time
-            self.log.debug(
+            scoop.logger.debug(
                 "{0}: Launching '{1}'".format(
                     hostname,
                     self.workers[-1].getCommand(),
@@ -318,7 +319,7 @@ class ScoopApp(object):
                     outStream.flush()
                     data = inStream.read(1)
             self.errors = rootProcess.wait()
-        self.log.info('Root process is done.')
+        scoop.logger.info('Root process is done.')
         return self.errors
 
     def close(self):
@@ -339,7 +340,7 @@ class ScoopApp(object):
                 # Broker was not started (probably mislaunched)
                 pass
 
-        self.log.info('Finished cleaning spawned subprocesses.')
+        scoop.logger.info('Finished cleaning spawned subprocesses.')
 
 
 def makeParser():
@@ -374,10 +375,6 @@ def makeParser():
                         default=1)
     parser.add_argument('--quiet', '-q',
                         action='store_true')
-    parser.add_argument('--log',
-                        help="The file to log the output. (default is stdout)",
-                        default=None,
-                        metavar="FileName")
     parser.add_argument('-n',
                         help="Total number of workers to launch on the hosts. "
                              "Workers are spawned sequentially over the hosts. "
@@ -471,7 +468,7 @@ def main():
                             args.python_interpreter,
                             args.external_hostname[0],
                             args.executable, args.args, args.tunnel,
-                            args.log, args.path, args.debug, args.nice,
+                            args.path, args.debug, args.nice,
                             utils.getEnv(), args.profile, args.pythonpath[0],
                             args.prolog[0], args.backend)
 
