@@ -1,8 +1,13 @@
-0.7.1 (2014/xx/xx)
+0.7.1 (2014/03/14)
 ------------------
 
 + Added: Support for SLURM (Thanks EBo!)
 + Added: Fallback to standard map when application launched without -m scoop
++ Fixed: Distribution ordering issue that translated in loss of performance when multiple maps were used
++ Fixed: Multiple SIGINT would cancel remote process cleanup and result in zombie workers
++ Fixed: Support for csh and its variants
++ Improved: SCOOP's logger
++ Improved: Queues (Broker and Worker) are now all FIFOs
 + Improved: Debugging information on launching process
 + Improved: Documentation
 
