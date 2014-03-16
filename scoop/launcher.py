@@ -255,6 +255,7 @@ class ScoopApp(object):
                     self.brokers.append(remoteBroker(
                         hostname=hostname,
                         pythonExecutable=self.python_executable,
+                        debug=self.debug,
                         nice=self.nice,
                         backend=self.backend,
                     ))

@@ -88,7 +88,8 @@ class localBroker(object):
 class remoteBroker(object):
     BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
 
-    def __init__(self, hostname, pythonExecutable, nice=0, backend='ZMQ'):
+    def __init__(self, hostname, pythonExecutable, debug=False, nice=0,
+                 backend='ZMQ'):
         """Starts a broker on the specified hostname on unoccupied ports"""
         self.backend = backend
         brokerString = ("{pythonExec} -m scoop.broker.__main__ "
@@ -101,6 +102,8 @@ class remoteBroker(object):
                         )
         if nice:
             brokerString += "--nice {nice} ".format(nice=nice)
+        if debug:
+            brokerString += "--debug "
         self.hostname = hostname
         for i in range(5000, 10000, 2):
             self.shell = subprocess.Popen(self.BASE_SSH
