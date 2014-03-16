@@ -106,13 +106,16 @@ class remoteBroker(object):
             brokerString += "--debug "
         self.hostname = hostname
         for i in range(5000, 10000, 2):
-            self.shell = subprocess.Popen(self.BASE_SSH
-                + [hostname]
-                + [brokerString.format(brokerPort=i,
-                                       infoPort=i + 1,
-                                       pythonExec=pythonExecutable,
-                                      )],
-                # stdin=subprocess.PIPE,
+            cmd = self.BASE_SSH + [
+                hostname,
+                brokerString.format(brokerPort=i,
+                                    infoPort=i + 1,
+                                    pythonExec=pythonExecutable,
+                                    )
+            ]
+            scoop.logger.debug("Launching remote broker: {cmd}"
+                               "".format(cmd=" ".join(cmd)))
+            self.shell = subprocess.Popen(cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
