@@ -180,7 +180,7 @@ def plotWorkerQueue(dataQueue, filename):
 
     for fichier, vals in dataQueue:
         print("Plotting {}".format(fichier))
-        ax.plot(*(list(zip(*vals))[:1]), label=fichier)
+        ax.plot(*(list(zip(*vals))[:2]), label=fichier)
     plt.xlabel('time(s)'); plt.ylabel('Queue Length')
     plt.title('Queue length through time')
     fig.savefig(filename)
