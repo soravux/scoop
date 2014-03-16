@@ -29,3 +29,6 @@ DEBUG = False
 IS_RUNNING = False
 logger = logging.getLogger()
 SHUTDOWN_REQUESTED = False
+
+TIME_BETWEEN_PARTIALDEBUG = 10
+

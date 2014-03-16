@@ -209,7 +209,19 @@ def runController(callable_, *args, **kargs):
     future.greenlet = greenlet.greenlet(runFuture)
     future = future._switch(future)
 
+    if scoop.DEBUG:
+        lastDebugTs = time.time()
+
     while not scoop.IS_ORIGIN or future.parentId != rootId or not future._ended():
+        if scoop.DEBUG and time.time() - lastDebugTs < scoop.TIME_BETWEEN_PARTIALDEBUG:
+            from scoop import _debug
+            _debug.writeWorkerDebug(
+                debug_stats,
+                QueueLength,
+                "debug/partial-{0}".format(
+                    round(time.time(), -1)
+                )
+            )
         # process future
         if future._ended():
             # future is finished

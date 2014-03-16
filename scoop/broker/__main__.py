@@ -41,6 +41,9 @@ if __name__ == "__main__":
     parser.add_argument('--debug',
                         help="Activate the debug",
                         action='store_true')
+    parser.add_argument('--path',
+                        help="Path to run the broker",
+                        default="")
     parser.add_argument('--backend',
                         help="Choice of communication backend",
                         choices=['ZMQ', 'TCP'],
@@ -61,6 +64,14 @@ if __name__ == "__main__":
         import sys
         sys.stdout.write(str(os.getpgrp()) + "\n")
         sys.stdout.flush()
+
+    if args.path:
+        import os
+        try:
+            os.chdir(args.path)
+        except OSError:
+            sys.stderr.write('Could not chdir in {0}.'.format(args.path))
+            sys.stderr.flush()
 
     if args.backend == 'ZMQ':
         from ..broker.brokerzmq import Broker

@@ -28,8 +28,10 @@ except ImportError:
     import pickle
 
 import scoop
+from scoop import TIME_BETWEEN_PARTIALDEBUG
 from .. import discovery, utils
 from .structs import BrokerInfo
+
 
 # Worker requests
 INIT = b"INIT"
@@ -114,6 +116,7 @@ class Broker(object):
         # Init statistics
         if self.debug:
             self.stats = []
+            self.lastDebugTs = time.time()
 
         # Two cases are important and must be optimised:
         # - The search of unassigned task
@@ -179,6 +182,11 @@ class Broker(object):
                                    msg_type,
                                    len(self.unassignedTasks),
                                    len(self.availableWorkers)))
+                if time.time() - self.lastDebugTs > TIME_BETWEEN_PARTIALDEBUG:
+                    self.writeDebug("debug/partial-{0}".format(
+                        round(time.time(), -1)
+                    ))
+                    self.lastDebugTs = time.time()
 
             # New task inbound
             if msg_type in TASK:
@@ -283,12 +291,18 @@ class Broker(object):
 
         # Write down statistics about this run if asked
         if self.debug:
-            import os
-            import pickle
-            try:
-                os.mkdir('debug')
-            except:
-                pass
-            name = self.name.replace(":", "_")
-            with open("debug/broker-{name}".format(**locals()), 'wb') as f:
-                pickle.dump(self.stats, f)
+            self.writeDebug()
+
+    def writeDebug(self, path="debug"):
+        import os
+        import pickle
+        try:
+            os.makedirs(path)
+        except:
+            pass
+        name = self.name.replace(":", "_")
+        with open(os.path.join(
+                path,
+                "broker-{name}".format(**locals())), 'wb') as f:
+            pickle.dump(self.stats, f)
+

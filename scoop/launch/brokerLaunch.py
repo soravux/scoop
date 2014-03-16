@@ -103,7 +103,9 @@ class remoteBroker(object):
         if nice:
             brokerString += "--nice {nice} ".format(nice=nice)
         if debug:
-            brokerString += "--debug "
+            brokerString += "--debug --path {path} ".format(
+                path=os.getcwd()
+            )
         self.hostname = hostname
         for i in range(5000, 10000, 2):
             cmd = self.BASE_SSH + [
