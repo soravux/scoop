@@ -27,14 +27,22 @@ def getDebugIdentifier():
     return scoop.worker.decode().replace(":", "_")
 
 
-def writeWorkerDebug(debugStats, queueLength):
+def writeWorkerDebug(debugStats, queueLength, path="debug"):
     import os
     try:
-        os.makedirs("debug")
+        os.makedirs(path)
     except:
         pass
-    with open("debug/worker-{0}-STATS".format(getDebugIdentifier()), 'wb') as f:
+    statsFilename = os.path.join(
+        path,
+        "worker-{0}-STATS".format(getDebugIdentifier())
+    )
+    lengthFilename = os.path.join(
+        path,
+        "worker-{0}-QUEUE".format(getDebugIdentifier())
+    )
+    with open(statsFilename, 'wb') as f:
         pickle.dump(debugStats, f)
-    with open("debug/worker-{0}-QUEUE".format(getDebugIdentifier()), 'wb') as f:
+    with open(lengthFilename, 'wb') as f:
         pickle.dump(queueLength, f)
 

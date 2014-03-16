@@ -52,12 +52,15 @@ def importData(directory):
     dataTask = OrderedDict()
     dataQueue = OrderedDict()
     for fichier in os.listdir(directory):
-        with open("{directory}/{fichier}".format(**locals()), 'rb') as f:
-            fileName, fileType = fichier.rsplit('-', 1)
-            if fileType == "QUEUE":
-                dataQueue[fileName] = pickle.load(f)
-            else:
-                dataTask[fileName] = pickle.load(f)
+        try:
+            with open("{directory}/{fichier}".format(**locals()), 'rb') as f:
+                fileName, fileType = fichier.rsplit('-', 1)
+                if fileType == "QUEUE":
+                    dataQueue[fileName] = pickle.load(f)
+                else:
+                    dataTask[fileName] = pickle.load(f)
+        except IOError:
+            pass # was a directory
     return dataTask, dataQueue
 
 def stepSize(startTime, endTime, points):
