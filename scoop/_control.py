@@ -21,6 +21,7 @@ import tempfile
 import sys
 import math
 from functools import partial
+import traceback
 
 import greenlet
 
@@ -126,14 +127,14 @@ def runFuture(future):
     try:
         future.resultValue = future.callable(*future.args, **future.kargs)
     except BaseException as err:
-        import traceback
+        future.exceptionValue = err
+        future.exceptionTraceback = str(traceback.format_exc())
         scoop.logger.debug(
-            "The following error occurend on a worker:\n{err}\n{tb}".format(
+            "The following error occured on a worker:\n{err}\n{tb}".format(
                 err=err,
                 tb=traceback.format_exc(),
             )
         )
-        future.exceptionValue = err
     future.executionTime = future.stopWatch.get()
     future.isDone = True
 
@@ -250,7 +251,8 @@ def runController(callable_, *args, **kargs):
 
     execQueue.shutdown()
     if future.exceptionValue:
-        raise future.exceptionValue
+        print(future.exceptionTraceback)
+        sys.exit(-1)
     return future.resultValue
 
 
