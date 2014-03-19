@@ -214,7 +214,7 @@ def runController(callable_, *args, **kargs):
         lastDebugTs = time.time()
 
     while not scoop.IS_ORIGIN or future.parentId != rootId or not future._ended():
-        if scoop.DEBUG and time.time() - lastDebugTs < scoop.TIME_BETWEEN_PARTIALDEBUG:
+        if scoop.DEBUG and time.time() - lastDebugTs > scoop.TIME_BETWEEN_PARTIALDEBUG:
             from scoop import _debug
             _debug.writeWorkerDebug(
                 debug_stats,
@@ -223,6 +223,7 @@ def runController(callable_, *args, **kargs):
                     round(time.time(), -1)
                 )
             )
+            lastDebugTs = time.time()
         # process future
         if future._ended():
             # future is finished
