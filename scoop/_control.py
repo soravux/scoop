@@ -252,7 +252,7 @@ def runController(callable_, *args, **kargs):
     execQueue.shutdown()
     if future.exceptionValue:
         print(future.exceptionTraceback)
-        sys.exit(-1)
+        sys.exit(1)
     return future.resultValue
 
 
