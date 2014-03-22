@@ -32,31 +32,20 @@ from .. import shared, encapsulation, utils
 from ..shared import SharedElementEncapsulation
 from .scoopexceptions import Shutdown, ReferenceBroken
 
-ZMQcontext = zmq.Context()
+
 LINGER_TIME = 1000
-
-def CreateZMQSocket(sock_type):
-    """Create a socket of the given sock_type and deactivate message dropping"""
-    sock = ZMQcontext.socket(sock_type)
-    sock.setsockopt(zmq.LINGER, LINGER_TIME)
-
-    # Remove message dropping
-    sock.setsockopt(zmq.SNDHWM, 0)
-    sock.setsockopt(zmq.RCVHWM, 0)
-
-    # Don't accept unroutable messages
-    if sock_type == zmq.ROUTER:
-        sock.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
-    return sock
 
 
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
 
     def __init__(self):
+        self.ZMQcontext = zmq.Context()
+
         # TODO number of broker
         self.number_of_broker = float('inf')
         self.broker_set = set()
+
 
         # Get the current address of the interface facing the broker
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -69,7 +58,7 @@ class ZMQCommunicator(object):
 
         # Create an inter-worker socket
         self.direct_socket_peers = []
-        self.direct_socket = CreateZMQSocket(zmq.ROUTER)
+        self.direct_socket = self.createZMQSocket(zmq.ROUTER)
         # TODO: This doesn't seems to be respected in the ROUTER socket
         self.direct_socket.setsockopt(zmq.SNDTIMEO, 0)
         # Code stolen from pyzmq's bind_to_random_port() from sugar/socket.py
@@ -111,11 +100,11 @@ class ZMQCommunicator(object):
             )
 
         # socket for the futures, replies and request
-        self.socket = CreateZMQSocket(zmq.DEALER)
+        self.socket = self.createZMQSocket(zmq.DEALER)
         self.socket.setsockopt(zmq.IDENTITY, scoop.worker)
 
         # socket for the shutdown signal
-        self.infoSocket = CreateZMQSocket(zmq.SUB)
+        self.infoSocket = self.createZMQSocket(zmq.SUB)
         
         # Set poller
         self.poller = zmq.Poller()
@@ -148,6 +137,20 @@ class ZMQCommunicator(object):
             self._addBroker(broker)
 
         self.OPEN = True
+
+    def createZMQSocket(self, sock_type):
+        """Create a socket of the given sock_type and deactivate message dropping"""
+        sock = self.ZMQcontext.socket(sock_type)
+        sock.setsockopt(zmq.LINGER, LINGER_TIME)
+
+        # Remove message dropping
+        sock.setsockopt(zmq.SNDHWM, 0)
+        sock.setsockopt(zmq.RCVHWM, 0)
+
+        # Don't accept unroutable messages
+        if sock_type == zmq.ROUTER:
+            sock.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
+        return sock
 
     def addPeer(self, peer):
         if peer not in self.direct_socket_peers:
@@ -381,4 +384,4 @@ class ZMQCommunicator(object):
             self.socket.send(b"SHUTDOWN")
             self.socket.close()
             self.infoSocket.close()
-            ZMQcontext.destroy(LINGER_TIME)
+            self.ZMQcontext.destroy()
