@@ -285,9 +285,7 @@ class Broker(object):
                 break
         time.sleep(0.1)
 
-        self.taskSocket.close()
-        self.infoSocket.close()
-        #self.context.term()
+        self.context.destroy(1000)
 
         # Write down statistics about this run if asked
         if self.debug:
