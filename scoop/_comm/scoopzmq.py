@@ -32,11 +32,13 @@ from .. import shared, encapsulation, utils
 from ..shared import SharedElementEncapsulation
 from .scoopexceptions import Shutdown, ReferenceBroken
 
+ZMQcontext = zmq.Context()
+LINGER_TIME = 1000
 
 def CreateZMQSocket(sock_type):
     """Create a socket of the given sock_type and deactivate message dropping"""
-    sock = ZMQCommunicator.context.socket(sock_type)
-    sock.setsockopt(zmq.LINGER, 1000)
+    sock = ZMQcontext.socket(sock_type)
+    sock.setsockopt(zmq.LINGER, LINGER_TIME)
 
     # Remove message dropping
     sock.setsockopt(zmq.SNDHWM, 0)
@@ -50,7 +52,6 @@ def CreateZMQSocket(sock_type):
 
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
-    context = zmq.Context()
 
     def __init__(self):
         # TODO number of broker
@@ -380,4 +381,4 @@ class ZMQCommunicator(object):
             self.socket.send(b"SHUTDOWN")
             self.socket.close()
             self.infoSocket.close()
-            time.sleep(0.3)
+            ZMQcontext.destroy(LINGER_TIME)
