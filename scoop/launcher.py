@@ -176,9 +176,7 @@ class ScoopApp(object):
                             "broker: Unresolvable hostname or IP address.\n "
                             "Please specify your externally routable hostname "
                             "or IP using the --external-hostname parameter or "
-                            " use the --tunnel flag.")
-
-        hosts.reverse()
+                            "use the --tunnel flag.")
         return hosts
 
     def showHostDivision(self, headless):
@@ -211,7 +209,7 @@ class ScoopApp(object):
             'nice': self.nice,
             'pythonExecutable': self.python_executable,
             'size': self.n,
-            'origin': self.workersLeft == 1,
+            'origin': self.workersLeft == self.n,
             'brokerHostname': self.externalHostname,
             'brokerPorts': (self.brokers[0].brokerPort,
                             self.brokers[0].infoPort),
@@ -230,7 +228,7 @@ class ScoopApp(object):
 
         scoop.logger.debug('Initialising {0}{1} worker {2} [{3}].'.format(
             "local" if hostname in utils.localHostnames else "remote",
-            " origin" if self.workersLeft == 1 else "",
+            " origin" if self.workersLeft == self.n else "",
             self.workersLeft,
             hostname,
             )
@@ -276,6 +274,7 @@ class ScoopApp(object):
                 broker.sendConnect(connect_data)
 
         # Launch the workers
+        shells = []
         for hostname, nb_workers in self.worker_hosts:
             self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
             total_workers_host = min(nb_workers, self.workersLeft)
@@ -295,20 +294,20 @@ class ScoopApp(object):
                     self.workers[-1].getCommand(),
                 )
             )
-            shells = self.workers[-1].launch(
+            shells.append(self.workers[-1].launch(
                 (self.brokers[0].brokerPort,
                  self.brokers[0].infoPort)
                     if self.tunnel else None,
                 stdPipe=not self.workers[-1].isLocal(),
-            )
+            ))
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
-                rootProcess = shells[-1]
+                rootProcess = shells[0][0]
                 break
 
         # Wait for the root program
-        if self.workers[-1].isLocal():
-            self.errors = self.workers[-1].subprocesses[-1].wait()
+        if self.workers[0].isLocal():
+            self.errors = self.workers[0].subprocesses[0].wait()
         else:
             # Process stdout first, then the whole stderr at the end
             for outStream, inStream in [(sys.stdout, rootProcess.stdout),
