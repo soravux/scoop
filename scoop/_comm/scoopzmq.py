@@ -382,6 +382,4 @@ class ZMQCommunicator(object):
             self.OPEN = False
             scoop.SHUTDOWN_REQUESTED = True
             self.socket.send(b"SHUTDOWN")
-            self.socket.close()
-            self.infoSocket.close()
             self.ZMQcontext.destroy()
