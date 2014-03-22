@@ -240,6 +240,13 @@ class Host(object):
         # Ensure everything is cleaned up on exit
         scoop.logger.debug('Closing workers on {0}.'.format(self))
 
+        # Terminate subprocesses
+        for process in self.subprocesses:
+            try:
+                process.terminate()
+            except OSError:
+                pass
+
         # Output child processes stdout and stderr to console
         for process in self.subprocesses:
             if process.stdout is not None:
@@ -250,12 +257,6 @@ class Host(object):
                 sys.stderr.write(process.stderr.read().decode("utf-8"))
                 sys.stderr.flush()
 
-        # Terminate subprocesses
-        for process in self.subprocesses:
-            try:
-                process.terminate()
-            except OSError:
-                pass
 
         # Send termination signal to remaining workers
         if not self.isLocal() and self.remoteProcessGID is None:
