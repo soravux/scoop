@@ -165,7 +165,6 @@ def funcMapScan(l):
     resultat = futures.mapScan(func4,
                                operator.add,
                                l)
-    time.sleep(0.3)
     _control.execQueue.socket.pumpInfoSocket()
     return resultat
 
@@ -174,7 +173,6 @@ def funcMapReduce(l):
     resultat = futures.mapReduce(func4,
                                  operator.add,
                                  l)
-    time.sleep(0.3)
     _control.execQueue.socket.pumpInfoSocket()
     return resultat
 
@@ -185,7 +183,6 @@ def funcDoubleMapReduce(l):
     resultat2 = futures.mapReduce(func4,
                                  operator.add,
                                  l)
-    time.sleep(0.3)
     _control.execQueue.socket.pumpInfoSocket()
     return resultat == resultat2
 
@@ -261,20 +258,20 @@ def submit_get_queues_size(n):
     task = futures.submit(func4, n)
     result = task.result()
     return [
-        len(scoop._control.execQueue.inprogress),
-        len(scoop._control.execQueue.ready),
-        len(scoop._control.execQueue.movable),
-        len(scoop._control.futureDict) - 1, # - 1 because the current function is a future too
+        len(_control.execQueue.inprogress),
+        len(_control.execQueue.ready),
+        len(_control.execQueue.movable),
+        len(_control.futureDict) - 1, # - 1 because the current function is a future too
     ]
 
 
 def map_get_queues_size(n):
     result = list(map(func4, [n for n in range(n)]))
     return [
-        len(scoop._control.execQueue.inprogress),
-        len(scoop._control.execQueue.ready),
-        len(scoop._control.execQueue.movable),
-        len(scoop._control.futureDict) - 1, # - 1 because the current function is a future too
+        len(_control.execQueue.inprogress),
+        len(_control.execQueue.ready),
+        len(_control.execQueue.movable),
+        len(_control.futureDict) - 1, # - 1 because the current function is a future too
     ]
 
 
@@ -329,11 +326,13 @@ class TestScoopCommon(unittest.TestCase):
         scoop.VALID = True
         scoop.DEBUG = False
         scoop.SIZE = 2
-        scoop._control.execQueue = FutureQueue()
+        _control.execQueue = FutureQueue()
 
     def tearDown(self):
         global subprocesses
-        scoop._control.futureDict.clear()
+        _control.execQueue.shutdown()
+        del _control.execQueue
+        _control.futureDict.clear()
         try: self.w.kill()
         except: pass
         # Destroy the server
@@ -342,8 +341,6 @@ class TestScoopCommon(unittest.TestCase):
             except: pass
         # Stabilise zmq after a deleted socket
         del subprocesses[:]
-        time.sleep(0.1)
-
 
 class TestMultiFunction(TestScoopCommon):
     def __init__(self, *args, **kwargs):
@@ -415,17 +412,17 @@ class TestMultiFunction(TestScoopCommon):
     def test_execQueue_multiworker(self):
         self.w = self.multiworker_set()
         result = futures._startup(func0, 6)
-        self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
-        self.assertEqual(len(scoop._control.execQueue.ready), 0)
-        self.assertEqual(len(scoop._control.execQueue.movable), 0)
-        self.assertEqual(len(scoop._control.futureDict), 0)
+        self.assertEqual(len(_control.execQueue.inprogress), 0)
+        self.assertEqual(len(_control.execQueue.ready), 0)
+        self.assertEqual(len(_control.execQueue.movable), 0)
+        self.assertEqual(len(_control.futureDict), 0)
 
     def test_execQueue_uniworker(self):
         result = futures._startup(func0, 6)
-        self.assertEqual(len(scoop._control.execQueue.inprogress), 0)
-        self.assertEqual(len(scoop._control.execQueue.ready), 0)
-        self.assertEqual(len(scoop._control.execQueue.movable), 0)
-        self.assertEqual(len(scoop._control.futureDict), 0)
+        self.assertEqual(len(_control.execQueue.inprogress), 0)
+        self.assertEqual(len(_control.execQueue.ready), 0)
+        self.assertEqual(len(_control.execQueue.movable), 0)
+        self.assertEqual(len(_control.futureDict), 0)
 
     def test_execQueue_submit_uniworker(self):
         result = futures._startup(submit_get_queues_size, 6)
