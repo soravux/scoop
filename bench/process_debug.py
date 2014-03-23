@@ -59,8 +59,9 @@ def importData(directory):
                     dataQueue[fileName] = pickle.load(f)
                 else:
                     dataTask[fileName] = pickle.load(f)
-        except IOError:
-            pass # was a directory
+        except:
+            # Can be a directory
+            pass
     return dataTask, dataQueue
 
 def stepSize(startTime, endTime, points):
@@ -145,22 +146,25 @@ def plotDensity(dataTask, filename):
         fig.savefig(filename)
 
 def plotBrokerQueue(dataTask, filename):
-    # Broker queue length graph
+    """Generates the broker queue length graphic."""
     print("Plotting broker queue length for {0}.".format(filename))
     plt.figure()
     plt.subplot(211)
     for fichier, vals in dataTask.items():
         if type(vals) == list:
+            timestamps = list(map(datetime.fromtimestamp, map(int, list(zip(*vals))[0])))
             # Data is from broker
-            plt.plot(list(zip(*vals))[0], list(zip(*vals))[2], linewidth=1.0, marker='o', label=fichier)
-    plt.title('Queue length in time')
+            plt.plot_date(timestamps, list(zip(*vals))[2], linewidth=1.0, marker='o', label=fichier)
+    plt.title('Broker queue length')
     plt.ylabel('Tasks')
 
     plt.subplot(212)
     for fichier, vals in dataTask.items():
         if type(vals) == list:
+            timestamps = list(map(datetime.fromtimestamp, map(int, list(zip(*vals))[0])))
             # Data is from broker
-            plt.plot(list(zip(*vals))[0], list(zip(*vals))[3], linewidth=1.0, marker='o', label=fichier)
+            plt.plot_date(timestamps, list(zip(*vals))[3], linewidth=1.0, marker='o', label=fichier)
+    plt.title('Broker pending requests')
     plt.xlabel('time (s)')
     plt.ylabel('Requests')
     plt.savefig(filename)
