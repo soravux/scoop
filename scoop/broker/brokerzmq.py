@@ -15,11 +15,10 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from collections import deque, defaultdict, namedtuple
+from collections import deque, defaultdict
 import time
 import zmq
 import sys
-import threading
 import copy
 import logging
 try:
