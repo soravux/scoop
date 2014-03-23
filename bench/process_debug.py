@@ -113,11 +113,11 @@ def WorkersDensity(dataTasks):
 def plotDensity(dataTask, filename):
     """Plot the worker density graph"""
 
-    def format_worker(x, pos=None):
-        """Formats the worker name"""
-        #workers = filter (lambda a: a[:6] != "broker", dataTask.keys())
-        workers = [a for a in dataTask.keys() if a[:6] != "broker"]
-        return workers[x]
+    #def format_worker(x, pos=None):
+    #    """Formats the worker name"""
+    #    #workers = filter (lambda a: a[:6] != "broker", dataTask.keys())
+    #    workers = [a for a in dataTask.keys() if a[:6] != "broker"]
+    #    return workers[x]
 
     def format_time(x, pos=None):
         """Formats the time"""
@@ -132,11 +132,12 @@ def plotDensity(dataTask, filename):
         ax = fig.add_subplot(111)
         box = ax.get_position()
         ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
-        cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
+        #cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
+        cax = ax.imshow(graphdata, interpolation='lanczos', aspect='auto')
         ax.grid(True, linewidth=2, color="w")
-        plt.xlabel('time'); plt.ylabel('Queue Length'); ax.set_title('Work density')
+        plt.xlabel('time (s)'); plt.ylabel('Worker'); ax.set_title('Work density')
         ax.yaxis.set_ticks(range(len(graphdata)))
-        ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
+        #ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
         interval_size = DENSITY_MAP_TIME_AXIS_LENGTH // 4
         ax.xaxis.set_ticks(range(0,
                                  DENSITY_MAP_TIME_AXIS_LENGTH + interval_size,
@@ -149,24 +150,36 @@ def plotBrokerQueue(dataTask, filename):
     """Generates the broker queue length graphic."""
     print("Plotting broker queue length for {0}.".format(filename))
     plt.figure()
+
+    # Queue length
     plt.subplot(211)
     for fichier, vals in dataTask.items():
         if type(vals) == list:
             timestamps = list(map(datetime.fromtimestamp, map(int, list(zip(*vals))[0])))
             # Data is from broker
-            plt.plot_date(timestamps, list(zip(*vals))[2], linewidth=1.0, marker='o', label=fichier)
+            plt.plot_date(timestamps, list(zip(*vals))[2],
+                          linewidth=1.0,
+                          marker='o',
+                          markersize=2,
+                          label=fichier)
     plt.title('Broker queue length')
     plt.ylabel('Tasks')
 
+    # Requests received
     plt.subplot(212)
     for fichier, vals in dataTask.items():
         if type(vals) == list:
             timestamps = list(map(datetime.fromtimestamp, map(int, list(zip(*vals))[0])))
             # Data is from broker
-            plt.plot_date(timestamps, list(zip(*vals))[3], linewidth=1.0, marker='o', label=fichier)
+            plt.plot_date(timestamps, list(zip(*vals))[3],
+                          linewidth=1.0,
+                          marker='o',
+                          markersize=2,
+                          label=fichier)
     plt.title('Broker pending requests')
     plt.xlabel('time (s)')
     plt.ylabel('Requests')
+
     plt.savefig(filename)
 
 def plotWorkerQueue(dataQueue, filename):
@@ -213,10 +226,12 @@ def plotWorkerTime(workertime, worker_names, filename):
     width = 0.35
 
     rects = ax.bar(ind, workertime, width)
-    ax.set_ylabel('WorkedTime')
-    ax.set_title('Worked time for each worker')
+    ax.set_ylabel('Time (s)')
+    ax.set_title('Effective execution time by worker')
     ax.set_xticks([x+(width/2.0) for x in ind])
-    ax.set_xticklabels(worker_names)
+    ax.set_xlabel('Worker')
+    #ax.set_xticklabels(worker_names)
+    ax.set_xticklabels(range(len(worker_names)))
 
     fig.savefig(filename)
 
@@ -229,9 +244,10 @@ def plotWorkerTask(workertask, worker_names, filename):
 
     rects = ax.bar(ind, workertask, width)
     ax.set_ylabel('Tasks')
-    ax.set_title('Number of tasks executed by each worker')
+    ax.set_title('Number of tasks executed by worker')
     ax.set_xticks([x+(width/2.0) for x in ind])
-    ax.set_xticklabels(worker_names)
+    ax.set_xlabel('Worker')
+    ax.set_xticklabels(range(len(worker_names)))
 
     fig.savefig(filename)
 
