@@ -18,7 +18,6 @@
 from collections import deque, defaultdict
 import time
 import sys
-import threading
 import array
 import socket
 import copy

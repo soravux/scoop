@@ -19,6 +19,7 @@ from collections import namedtuple
 import logging
 import sys
 import subprocess
+import threading
 
 # Local
 import scoop
@@ -210,35 +211,42 @@ class Host(object):
                                  stderr=subprocess.PIPE if stdPipe else None,
                 )
             )
-            # Get group id from remote connections
-            receivedLine = self.subprocesses[-1].stdout.readline()
-            try:
-                textGID = receivedLine.decode().strip()
-                self.remoteProcessGID = int(textGID)
-            except ValueError:
-                # Following line for Python 2.6 compatibility (instead of [as e])
-                e = sys.exc_info()[1]
-
-                # Terminate the process, otherwide reading from stderr may wait
-                # undefinitely
-                self.subprocesses[-1].terminate()
-
-                stderr = self.subprocesses[-1].stderr.read()
-                hostname = self.hostname
-                scoop.logger.warning("Could not successfully launch the remote "
-                                 "worker on {hostname}.\n"
-                                 "Requested remote group process id, "
-                                 "received:\n{receivedLine}\n"
-                                 "Group id decoding error:\n{e}\n"
-                                 "SSH process stderr:\n{stderr}"
-                                 "".format(**locals()))
+            self.getGIDAsyncThread = Thread(target=self.GID)
+            self.getGIDAsyncThread.start()
 
         return self.subprocesses
+
+    def getGID(self):
+        # Get group id from remote connections
+        receivedLine = self.subprocesses[-1].stdout.readline()
+        try:
+            textGID = receivedLine.decode().strip()
+            self.remoteProcessGID = int(textGID)
+        except ValueError:
+            # Following line for Python 2.6 compatibility (instead of [as e])
+            e = sys.exc_info()[1]
+
+            # Terminate the process, otherwide reading from stderr may wait
+            # undefinitely
+            self.subprocesses[-1].terminate()
+
+            stderr = self.subprocesses[-1].stderr.read()
+            hostname = self.hostname
+            scoop.logger.warning("Could not successfully launch the remote "
+                             "worker on {hostname}.\n"
+                             "Requested remote group process id, "
+                             "received:\n{receivedLine}\n"
+                             "Group id decoding error:\n{e}\n"
+                             "SSH process stderr:\n{stderr}"
+                             "".format(**locals()))
 
     def close(self):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
         scoop.logger.debug('Closing workers on {0}.'.format(self))
+
+        if hasattr(self, 'self.getGIDAsyncThread'):
+            self.self.getGIDAsyncThread.join()
 
         # Terminate subprocesses
         for process in self.subprocesses:
