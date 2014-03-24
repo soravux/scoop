@@ -28,7 +28,7 @@ parser.add_argument("--inputdir", help='The directory containing the debug info'
 
 parser.add_argument("--prog", choices=["all", "broker", "density", "queue",
                                        "time", "task", "timeline"],
-        default="all", help="The output graph")
+                    nargs='*', default=["all"], help="The output graph")
 
 parser.add_argument("--output", help="The filename for the output graphs",
         default="debug.png")
@@ -108,6 +108,12 @@ def WorkersDensity(dataTasks):
                 workerdata.append(sum([a['start_time'][0] <= float(graphtime) /
                     1000. <= a['end_time'][0] for a in vals.values()]))
             graphdata.append(workerdata)
+
+            # Normalize [...]
+            #maxval = max(graphdata[-1])
+            #if maxval > 1:
+            #    maxval = maxval - 1
+            #    graphdata[-1] = [x - maxval for x in graphdata[-1]]
     return graphdata
 
 def plotDensity(dataTask, filename):
@@ -133,17 +139,19 @@ def plotDensity(dataTask, filename):
         box = ax.get_position()
         ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
         #cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
-        cax = ax.imshow(graphdata, interpolation='lanczos', aspect='auto')
+        cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto', cmap='RdYlGn')
         ax.grid(True, linewidth=2, color="w")
         plt.xlabel('time (s)'); plt.ylabel('Worker'); ax.set_title('Work density')
         ax.yaxis.set_ticks(range(len(graphdata)))
+        ax.tick_params(axis='y', which='major', labelsize=6)
         #ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
         interval_size = DENSITY_MAP_TIME_AXIS_LENGTH // 4
         ax.xaxis.set_ticks(range(0,
                                  DENSITY_MAP_TIME_AXIS_LENGTH + interval_size,
                                  interval_size))
         ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_time))
-        cbar = fig.colorbar(cax)
+        #cax.set_clim(0, 1)
+        cbar = fig.colorbar(cax)#, ticks=[0, 1])
         fig.savefig(filename)
 
 def plotBrokerQueue(dataTask, filename):
@@ -223,15 +231,18 @@ def plotWorkerTime(workertime, worker_names, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ind = range(len(workertime))
-    width = 0.35
+    width = 1
 
-    rects = ax.bar(ind, workertime, width)
+    rects = ax.bar(ind, workertime, width, edgecolor="black")
     ax.set_ylabel('Time (s)')
     ax.set_title('Effective execution time by worker')
-    ax.set_xticks([x+(width/2.0) for x in ind])
+    #ax.set_xticks([x+(width/2.0) for x in ind])
     ax.set_xlabel('Worker')
+    #ax.tick_params(axis='x', which='major', labelsize=6)
     #ax.set_xticklabels(worker_names)
-    ax.set_xticklabels(range(len(worker_names)))
+    ax.set_xlim([-1, len(worker_names) + 1])
+    ax.set_xticklabels([])
+    
 
     fig.savefig(filename)
 
@@ -240,14 +251,17 @@ def plotWorkerTask(workertask, worker_names, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ind = range(len(workertask))
-    width = 0.35
+    width = 1
 
-    rects = ax.bar(ind, workertask, width)
+    rects = ax.bar(ind, workertask, width, edgecolor="black")
     ax.set_ylabel('Tasks')
     ax.set_title('Number of tasks executed by worker')
-    ax.set_xticks([x+(width/2.0) for x in ind])
+    #ax.set_xticks([x+(width/2.0) for x in ind])
     ax.set_xlabel('Worker')
-    ax.set_xticklabels(range(len(worker_names)))
+    #ax.tick_params(axis='x', which='major', labelsize=6)
+    ax.set_xticklabels([])
+    ax.set_xlim([-1, len(worker_names) + 1])
+    #ax.set_xticklabels(range(len(worker_names)))
 
     fig.savefig(filename)
 
@@ -307,22 +321,22 @@ def plotTimeline(dataTask, filename):
 if __name__ == "__main__":
     dataTask, dataQueue = importData(args.inputdir)
 
-    if args.prog in ["density", "all"]:
+    if any(prog in ["density", "all"] for prog in args.prog):
         plotDensity(dataTask, "density_" + args.output)
 
-    if args.prog in ["broker", "all"]:
+    if any(prog in ["broker", "all"] for prog in args.prog):
         plotBrokerQueue(dataTask, "broker_" + args.output)
 
-    if args.prog in ["queue", "all"]:
+    if any(prog in ["queue", "all"] for prog in args.prog):
         plotWorkerQueue(dataQueue, "queue_" + args.output)
 
-    if args.prog in ["time", "all"]:
+    if any(prog in ["time", "all"] for prog in args.prog):
         workerTime, workerTasks = getWorkerInfo(dataTask)
         plotWorkerTime(workerTime, getWorkersName(dataTask), "time_" + args.output)
 
-    if args.prog in ["task", "all"]:
+    if any(prog in ["task", "all"] for prog in args.prog):
         workerTime, workerTasks = getWorkerInfo(dataTask)
         plotWorkerTask(workerTasks, getWorkersName(dataTask), "task_" + args.output)
 
-    if args.prog in ["timeline", "all"]:
+    if any(prog in ["timeline", "all"] for prog in args.prog):
         plotTimeline(dataTask, "timeline_" + args.output)
