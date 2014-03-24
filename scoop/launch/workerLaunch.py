@@ -19,7 +19,7 @@ from collections import namedtuple
 import logging
 import sys
 import subprocess
-import threading
+from threading import Thread
 
 # Local
 import scoop
@@ -211,7 +211,7 @@ class Host(object):
                                  stderr=subprocess.PIPE if stdPipe else None,
                 )
             )
-            self.getGIDAsyncThread = Thread(target=self.GID)
+            self.getGIDAsyncThread = Thread(target=self.getGID)
             self.getGIDAsyncThread.start()
 
         return self.subprocesses

@@ -33,13 +33,14 @@ def writeWorkerDebug(debugStats, queueLength, path="debug"):
         os.makedirs(path)
     except:
         pass
+    origin_prefix = "origin-" if scoop.IS_ORIGIN else ""
     statsFilename = os.path.join(
         path,
-        "worker-{0}-STATS".format(getDebugIdentifier())
+        "{1}worker-{0}-STATS".format(getDebugIdentifier(), origin_prefix)
     )
     lengthFilename = os.path.join(
         path,
-        "worker-{0}-QUEUE".format(getDebugIdentifier())
+        "{1}worker-{0}-QUEUE".format(getDebugIdentifier(), origin_prefix)
     )
     with open(statsFilename, 'wb') as f:
         pickle.dump(debugStats, f)
