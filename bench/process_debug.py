@@ -51,7 +51,7 @@ def importData(directory):
     """Parse the input files and return two dictionnaries"""
     dataTask = OrderedDict()
     dataQueue = OrderedDict()
-    for fichier in os.listdir(directory):
+    for fichier in sorted(os.listdir(directory)):
         try:
             with open("{directory}/{fichier}".format(**locals()), 'rb') as f:
                 fileName, fileType = fichier.rsplit('-', 1)
@@ -259,14 +259,7 @@ def timelines(fig, y, xstart, xstop, color='b'):
     fig.vlines(xstop, y+0.03, y-0.03, color, lw=2)
 
 
-def plotTimeline(dataTask, filename):
-    """Build a timeline"""
-
-    fig = plt.figure()
-    ax = fig.gca()
-
-    worker_names = [x for x in dataTask.keys() if "broker" not in x]
-
+def getMinimumTime(dataTask):
     times = []
     for worker, vals in dataTask.items():
         if hasattr(vals, 'values'):
@@ -276,6 +269,17 @@ def plotTimeline(dataTask, filename):
         min_time = min(times)
     except:
         min_time = 0
+    return min_time
+
+def plotTimeline(dataTask, filename):
+    """Build a timeline"""
+
+    fig = plt.figure()
+    ax = fig.gca()
+
+    worker_names = [x for x in dataTask.keys() if "broker" not in x]
+
+    min_time = getMinimumTime(dataTask)
     ystep = 1. / (len(worker_names) + 1)
 
     y = 0
