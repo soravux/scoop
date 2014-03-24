@@ -80,6 +80,7 @@ def timeRange(startTime, endTime, points):
 
 def getTimes(dataTasks):
     """Get the start time and the end time of data in milliseconds"""
+    global begin_time
     start_time, end_time = float('inf'), 0
     for fichier, vals in dataTask.items():
         try:
@@ -92,6 +93,7 @@ def getTimes(dataTasks):
                     end_time = tmp_end_time
         except ValueError:
             continue
+    begin_time = 1000 * start_time
     return 1000 * start_time, 1000 * end_time
 
 def WorkersDensity(dataTasks):
@@ -134,10 +136,11 @@ def plotDensity(dataTask, filename):
 
     def format_time(x, pos=None):
         """Formats the time"""
-        start_time, end_time = [a / 1000 for a in getTimes(dataTask)]
-        ts = datetime.fromtimestamp((end_time - start_time) /
-            DENSITY_MAP_TIME_AXIS_LENGTH * x + start_time)
-        return ts.strftime("%H:%M:%S")
+        start_time, end_time = [(a - begin_time) / 1000 for a in getTimes(dataTask)]
+        return int(end_time * x)
+        #ts = datetime.fromtimestamp((end_time - start_time) /
+        #    DENSITY_MAP_TIME_AXIS_LENGTH * x + start_time)
+        #return ts.strftime("%H:%M:%S")
 
     graphdata = WorkersDensity(dataTask)
     if len(graphdata):
@@ -154,7 +157,7 @@ def plotDensity(dataTask, filename):
             cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
         plt.xlabel('time (s)'); plt.ylabel('Worker'); ax.set_title('Work density')
         ax.yaxis.set_ticks(range(len(graphdata)))
-        ax.tick_params(axis='y', which='major', labelsize=6)
+        ax.tick_params(axis='both', which='major', labelsize=6)
         #ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_worker))
         interval_size = DENSITY_MAP_TIME_AXIS_LENGTH // 4
         ax.xaxis.set_ticks(range(0,
