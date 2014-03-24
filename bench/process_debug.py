@@ -135,10 +135,7 @@ def plotDensity(dataTask, filename):
     def format_time(x, pos=None):
         """Formats the time"""
         start_time, end_time = [(a - begin_time) / 1000 for a in getTimes(dataTask)]
-        return int(end_time * x)
-        #ts = datetime.fromtimestamp((end_time - start_time) /
-        #    DENSITY_MAP_TIME_AXIS_LENGTH * x + start_time)
-        #return ts.strftime("%H:%M:%S")
+        return int(end_time * x / DENSITY_MAP_TIME_AXIS_LENGTH)
 
     graphdata = WorkersDensity(dataTask)
     if len(graphdata):
