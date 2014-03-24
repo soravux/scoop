@@ -13,6 +13,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.dates import DateFormatter, MinuteLocator, SecondLocator
+from matplotlib.colors import ListedColormap, BoundaryNorm
 import numpy as np
 
 
@@ -29,6 +30,8 @@ parser.add_argument("--inputdir", help='The directory containing the debug info'
 parser.add_argument("--prog", choices=["all", "broker", "density", "queue",
                                        "time", "task", "timeline"],
                     nargs='*', default=["all"], help="The output graph")
+
+parser.add_argument("--binarydensity", action='store_true', help="2-color density map")
 
 parser.add_argument("--output", help="The filename for the output graphs",
         default="debug.png")
@@ -104,16 +107,20 @@ def WorkersDensity(dataTasks):
             workerdata = []
             print("Plotting density map for {}".format(name))
             # We only have 800 pixels
-            for graphtime in timeRange(start_time, end_time, DENSITY_MAP_TIME_AXIS_LENGTH):
-                workerdata.append(sum([a['start_time'][0] <= float(graphtime) /
-                    1000. <= a['end_time'][0] for a in vals.values()]))
+            try:
+                for graphtime in timeRange(start_time, end_time, DENSITY_MAP_TIME_AXIS_LENGTH):
+                    workerdata.append(sum([a['start_time'][0] <= float(graphtime) /
+                        1000. <= a['end_time'][0] for a in vals.values()]))
+            except OverflowError:
+                print("Error processing {0} or {1}".format(start_time, end_time))
             graphdata.append(workerdata)
 
-            # Normalize [...]
-            #maxval = max(graphdata[-1])
-            #if maxval > 1:
-            #    maxval = maxval - 1
-            #    graphdata[-1] = [x - maxval for x in graphdata[-1]]
+            if args.binarydensity:
+                # Normalize [...]
+                maxval = max(graphdata[-1])
+                if maxval > 1:
+                    maxval = maxval - 1
+                    graphdata[-1] = [x - maxval for x in graphdata[-1]]
     return graphdata
 
 def plotDensity(dataTask, filename):
@@ -139,8 +146,12 @@ def plotDensity(dataTask, filename):
         box = ax.get_position()
         ax.set_position([box.x0 + 0.15 * box.width, box.y0, box.width, box.height])
         #cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
-        cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto', cmap='RdYlGn')
-        ax.grid(True, linewidth=2, color="w")
+        if args.binarydensity:
+            cmap = ListedColormap(['r', 'g'])
+            norm = BoundaryNorm([0, 0.5, 1], cmap.N)
+            cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto', cmap=cmap, norm=norm)
+        else:
+            cax = ax.imshow(graphdata, interpolation='nearest', aspect='auto')
         plt.xlabel('time (s)'); plt.ylabel('Worker'); ax.set_title('Work density')
         ax.yaxis.set_ticks(range(len(graphdata)))
         ax.tick_params(axis='y', which='major', labelsize=6)
@@ -150,8 +161,11 @@ def plotDensity(dataTask, filename):
                                  DENSITY_MAP_TIME_AXIS_LENGTH + interval_size,
                                  interval_size))
         ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_time))
-        #cax.set_clim(0, 1)
-        cbar = fig.colorbar(cax)#, ticks=[0, 1])
+        if args.binarydensity:
+            cax.set_clim(0, 1)
+            cbar = fig.colorbar(cax, ticks=[0, 1])
+        else:
+            cbar = fig.colorbar(cax)
         fig.savefig(filename)
 
 def plotBrokerQueue(dataTask, filename):
