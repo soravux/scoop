@@ -27,9 +27,7 @@ parser = argparse.ArgumentParser(description='Analyse the debug info')
 parser.add_argument("--inputdir", help='The directory containing the debug info',
         default="debug")
 
-parser.add_argument("--prog", choices=["all", "broker", "density", "queue",
-                                       "time", "task", "timeline"],
-                    nargs='*', default=["all"], help="The output graph")
+parser.add_argument("--prog", nargs='*', default=["all"], help="The output graph")
 
 parser.add_argument("--binarydensity", action='store_true', help="2-color density map")
 
@@ -264,6 +262,30 @@ def plotWorkerTime(workertime, worker_names, filename):
     fig.savefig(filename)
 
 
+def plotHistogram(dataTask, filename):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    width = 1
+
+    times = []
+    for worker, vals in dataTask.items():
+        if hasattr(vals, 'values'):
+            for future in vals.values():
+                times.append(future['end_time'][0] - future['start_time'][0])
+
+    n, bins, patches = ax.hist(times, 10)
+    ax.plot(bins)
+    ax.set_ylabel('Tasks')
+    ax.set_title('Task execution time distribution')
+    #ax.set_xticks([x+(width/2.0) for x in ind])
+    ax.set_xlabel('Time (s)')
+    #ax.tick_params(axis='x', which='major', labelsize=6)
+    #ax.set_xticklabels([])
+    #ax.set_xticklabels(range(len(worker_names)))
+
+    fig.savefig(filename)
+
+
 def plotWorkerTask(workertask, worker_names, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -361,3 +383,6 @@ if __name__ == "__main__":
 
     if any(prog in ["timeline", "all"] for prog in args.prog):
         plotTimeline(dataTask, "timeline_" + args.output)
+
+    if any(prog in ["histogram", "all"] for prog in args.prog):
+        plotHistogram(dataTask, "histogram_" + args.output)
