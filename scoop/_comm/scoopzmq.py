@@ -149,7 +149,7 @@ class ZMQCommunicator(object):
 
         # Don't accept unroutable messages
         if sock_type == zmq.ROUTER:
-            sock.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
+            sock.setsockopt(zmq.ROUTER_MANDATORY, 1)
         return sock
 
     def addPeer(self, peer):
