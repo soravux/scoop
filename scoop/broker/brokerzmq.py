@@ -65,7 +65,7 @@ class Broker(object):
 
         # zmq Socket for the tasks, replies and request.
         self.taskSocket = self.context.socket(zmq.ROUTER)
-        self.taskSocket.setsockopt(zmq.ROUTER_BEHAVIOR, 1)
+        self.taskSocket.setsockopt(zmq.ROUTER_MANDATORY, 1)
         self.taskSocket.setsockopt(zmq.LINGER, 1000)
         self.tSockPort = 0
         if tSock[-2:] == ":*":
