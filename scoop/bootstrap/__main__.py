@@ -205,10 +205,14 @@ class Bootstrap(object):
             sys.argv += self.args.args
 
         try:
-            user_module = importFunction(
-                "SCOOP_WORKER",
-                scoop.MAIN_MODULE,
-            )
+            if scoop.IS_ORIGIN:
+                _ = open(scoop.MAIN_MODULE, 'r')
+                user_module = None
+            else:
+                user_module = importFunction(
+                    "SCOOP_WORKER",
+                    scoop.MAIN_MODULE,
+                )
         except FileNotFoundError as e:
             # Could not find file
             sys.stderr.write('{0}\nFile: {1}\nIn path: {2}\n'.format(
@@ -228,7 +232,9 @@ class Bootstrap(object):
         for attr in attrlist:
             globs[attr] = getattr(user_module, attr)
 
-        if self:
+        if self and scoop.IS_ORIGIN:
+            return {}
+        elif self:
             return globs
         return user_module
 
