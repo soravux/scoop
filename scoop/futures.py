@@ -15,6 +15,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import os
+import sys
 from inspect import ismethod
 from collections import namedtuple, Iterable
 from functools import partial, reduce
@@ -258,15 +259,14 @@ def mapReduce(mapFunc, reductionFunc, *iterables, **kwargs):
         *iterables
     ).result()
 
-
 def _createFuture(func, *args):
     """Helper function to create a future."""
     assert callable(func), (
         "The provided func parameter is not a callable."
     )
 
-    if func.__module__ == "SCOOP_WORKER":
-        func.__module__ = '__main__'
+    if scoop.IS_ORIGIN and "SCOOP_WORKER" not in sys.modules:
+        sys.modules["SCOOP_WORKER"] = sys.modules["__main__"]
 
     # If function is a lambda or class method, share it (or its parent object)
     # beforehand
