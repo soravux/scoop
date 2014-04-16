@@ -265,6 +265,9 @@ def _createFuture(func, *args):
         "The provided func parameter is not a callable."
     )
 
+    if func.__module__ == "SCOOP_WORKER":
+        func.__module__ = '__main__'
+
     # If function is a lambda or class method, share it (or its parent object)
     # beforehand
     lambdaType = type(lambda: None)

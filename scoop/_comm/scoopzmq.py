@@ -190,7 +190,7 @@ class ZMQCommunicator(object):
         
         try:
             thisFuture = pickle.loads(msg[1])
-        except AttributeError as e:
+        except (AttributeError, ImportError) as e:
             scoop.logger.error(
                 "An instance could not find its base reference on a worker. "
                 "Ensure that your objects have their definition available in "
