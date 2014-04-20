@@ -14,23 +14,36 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
+#    This file is part of DEAP.
+#
+#    DEAP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as
+#    published by the Free Software Foundation, either version 3 of
+#    the License, or (at your option) any later version.
+#
+#    DEAP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with DEAP. If not, see <http://www.gnu.org/licenses/>.
+"""
+Code from the deap framework, available at:
+https://code.google.com/p/deap/source/browse/examples/ga/onemax_short.py
+Conversion to its parallel form took two lines:
+from scoop import futures
+toolbox.register("map", futures.map)
+"""
 import array
-import logging
-import random
-import sys
-
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 import random
 
-try:
-    from deap import algorithms
-    from deap import base
-    from deap import creator
-    from deap import tools
-except Exception as e:
-    raise Exception("This test needs DEAP to be installed.")
-    
+import numpy
+
+from deap import algorithms
+from deap import base
+from deap import creator
+from deap import tools
 from scoop import futures
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -49,26 +62,26 @@ def evalOneMax(individual):
     return sum(individual),
 
 toolbox.register("evaluate", evalOneMax)
-toolbox.register("mate", tools.cxTwoPoints)
+toolbox.register("mate", tools.cxTwoPoint)
 toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
 toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("map", futures.map)
 
 def main():
     random.seed(64)
-
+    
     pop = toolbox.population(n=300)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", tools.mean)
-    stats.register("std", tools.std)
-    stats.register("min", min)
-    stats.register("max", max)
+    stats.register("avg", numpy.mean)
+    stats.register("std", numpy.std)
+    stats.register("min", numpy.min)
+    stats.register("max", numpy.max)
     
-    algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=40, stats=stats,
-                        halloffame=hof, verbose=True)
-    logging.info("Best individual is %s, %s", hof[0], hof[0].fitness.values)
-    return 0
+    pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=40, 
+                                   stats=stats, halloffame=hof, verbose=True)
+    
+    return pop, log, hof
 
 if __name__ == "__main__":
     main()
