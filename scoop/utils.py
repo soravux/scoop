@@ -136,16 +136,16 @@ def getEnv():
 
 
 def getHosts(filename=None, hostlist=None):
-    """Return a list of host depending on the environment"""
+    """Return a list of hosts depending on the environment"""
     if filename:
         return getHostsFromFile(filename)
     elif hostlist:
         return getHostsFromList(hostlist)
-    elif "SLURM_NODELIST" in os.environ:
+    elif getEnv() == "SLURM":
         return getHostsFromSLURM()
-    elif "PBS_ENVIRONMENT" in os.environ:
+    elif getEnv() == "PBS":
         return getHostsFromPBS()
-    elif "PE_HOSTFILE" in os.environ:
+    elif getEnv() == "SGE":
         return getHostsFromSGE()
     else:
         return getDefaultHosts()
@@ -162,7 +162,7 @@ def getHostsFromFile(filename):
         for line in f:
             # check to see if it is a SLURM grouping instead of a
             # regular list of hosts
-            if re.search('[\[\]]',line):
+            if re.search('[\[\]]', line):
                 hosts = hosts + parseSLURM(line.strip())
             else:
                 host = hostname_re.search(line.strip())
@@ -200,18 +200,17 @@ def parseSLURM(string):
 
     hosts = []
 
-    # parse out the name followd by range (ex. borgb[001-002,004-006]
+    # parse out the name followed by range (ex. borgb[001-002,004-006]
     for h,n in bunchedlist:
 
         block = re.findall('([^\[\],]+)', n)
         for rng in block:
 
-            bmin,bmax = rng.split('-')
-            fill_width = max(len(bmin),len(bmax))
-            for i in range(int(bmin),int(bmax)+1):
-                hostname = str(h)+str(i).zfill(fill_width)
+            bmin, bmax = rng.split('-')
+            fill_width = max(len(bmin), len(bmax))
+            for i in range(int(bmin), int(bmax) + 1):
+                hostname = str(h) + str(i).zfill(fill_width)
                 hosts.append((hostname, int(1)))
-
 
     return hosts
 
