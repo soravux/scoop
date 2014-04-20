@@ -14,7 +14,16 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
+"""
+Code from the deap framework, available at:
+https://code.google.com/p/deap/source/browse/examples/ga/evosn.py
+Conversion to its parallel form took two lines:
+from scoop import futures
+toolbox.register("map", futures.map)
+"""
 import random
+
+import numpy
 
 from deap import algorithms
 from deap import base
@@ -23,24 +32,8 @@ from deap import tools
 from scoop import futures
 
 from dependency import sortingnetwork as sn
-import logging
-import time
-import argparse
-import sys
 
-parser = argparse.ArgumentParser(description="Deap's evosn example.")
-parser.add_argument('--inputs', type=int, default=6)
-parser.add_argument('--cores', type=int, default=1)
-parser.add_argument('--filename')
-parser.add_argument('--population', type=int, default=300)
-parser.add_argument('--generations', type=int, default=40)
-
-args = parser.parse_args()
-INPUTS = args.inputs
-
-sizes = {11 : (29,39), 12 : (25,45), 13 : (39,51), 14 : (45,56),
-         15 : (51,60), 16 : (56,65), 17 : (60,69), 18 : (65,74),
-         19 : (69,78)}
+INPUTS = 6
 
 def evalEvoSN(individual, dimension):
     network = sn.SortingNetwork(dimension, individual)
@@ -72,60 +65,48 @@ creator.create("Individual", list, fitness=creator.FitnessMin)
 toolbox = base.Toolbox()
 
 # Gene initializer
-toolbox.register("network", genNetwork, dimension=INPUTS,
-        min_size=sizes[INPUTS][0] if INPUTS in sizes else 25,
-        max_size=sizes[INPUTS][1] if INPUTS in sizes else 35)
+toolbox.register("network", genNetwork, dimension=INPUTS, min_size=9, max_size=12)
 
 # Structure initializers
 toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.network)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 toolbox.register("evaluate", evalEvoSN, dimension=INPUTS)
-toolbox.register("mate", tools.cxTwoPoints)
+toolbox.register("mate", tools.cxTwoPoint)
 toolbox.register("mutate", mutWire, dimension=INPUTS, indpb=0.05)
 toolbox.register("addwire", mutAddWire, dimension=INPUTS)
 toolbox.register("delwire", mutDelWire)
-toolbox.register("select", tools.selTournament, tournsize=3)
-toolbox.register("map", futures.map)
-#logging.warning("avant main")
-def main():
-    # test if file is ok before starting the test
-    if args.filename:
-        open(args.filename).close()
-    random.seed(64)
-    
-    beginTime = time.time()
-    evaluationTime = 0
+toolbox.register("select", tools.selNSGA2)
 
-    population = toolbox.population(n=args.population)
+# Enable parallel computing using SCOOP
+toolbox.register("map", futures.map)
+
+def main():
+    random.seed(64)
+
+    population = toolbox.population(n=300)
     hof = tools.ParetoFront()
     
     stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", tools.mean)
-    stats.register("std", tools.std)
-    stats.register("min", min)
-    stats.register("max", max)
+    stats.register("avg", numpy.mean, axis=0)
+    stats.register("std", numpy.std, axis=0)
+    stats.register("min", numpy.min, axis=0)
+    stats.register("max", numpy.max, axis=0)
     
-    logger = tools.EvolutionLogger(["gen", "evals", "time"] + [str(k) for k in
-        stats.functions.keys()])
-    logger.logHeader()
-
-    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, args.generations
+    logbook = tools.Logbook()
+    logbook.header = "gen", "evals", "std", "min", "avg", "max"
     
-    evalBegin = time.time()
+    CXPB, MUTPB, ADDPB, DELPB, NGEN = 0.5, 0.2, 0.01, 0.01, 40
+    
     # Evaluate every individuals
     fitnesses = toolbox.map(toolbox.evaluate, population)
-
-    
     for ind, fit in zip(population, fitnesses):
         ind.fitness.values = fit
-
-    evaluationTime += (time.time() - evalBegin)
     
     hof.update(population)
-    stats.update(population)
-    
-    logger.logGeneration(gen=0, evals=len(population), stats=stats, time=evaluationTime)
+    record = stats.compile(population)
+    logbook.record(gen=0, evals=len(population), **record)
+    print(logbook.stream)
     
     # Begin the evolution
     for g in range(1, NGEN):
@@ -153,30 +134,23 @@ def main():
                 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        evalBegin = time.time()
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
-        evaluationTime += (time.time() - evalBegin)
         
         population = toolbox.select(population+offspring, len(offspring))
         hof.update(population)
-        stats.update(population)
-        logger.logGeneration(gen=g, evals=len(invalid_ind), stats=stats, time=evaluationTime)
+        record = stats.compile(population)
+        logbook.record(gen=g, evals=len(invalid_ind), **record)
+        print(logbook.stream)
 
     best_network = sn.SortingNetwork(INPUTS, hof[0])
+    print(stats)
     print(best_network)
     print(best_network.draw())
     print("%i errors, length %i, depth %i" % hof[0].fitness.values)
-    totalTime = time.time() - beginTime
     
-    print("Total time: {0}\nEvaluation time: {1}".format(totalTime, evaluationTime))
-    if args.filename:
-        f = open(args.filename, "a")
-        f.write("{0};{1};{2};{3}\n".format(args.cores, INPUTS, totalTime, evaluationTime))
-        f.close()
-        
-    return population, stats, hof
+    return population, logbook, hof
 
 if __name__ == "__main__":
     main()
