@@ -1,7 +1,25 @@
-from scoop import utils
-
+#!/usr/bin/env python
+#
+#    This file is part of Scalable COncurrent Operations in Python (SCOOP).
+#
+#    SCOOP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as
+#    published by the Free Software Foundation, either version 3 of
+#    the License, or (at your option) any later version.
+#
+#    SCOOP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
+#
 import unittest
 import os
+from itertools import repeat
+
+from scoop import utils
 
 # This is a subset of a SGE environment for testing
 SGE_ENV = {'NHOSTS':'2', 'PE_HOSTFILE':"sgehostssim.txt",
@@ -21,15 +39,14 @@ class TestUtils(unittest.TestCase):
 
     def setUp(self):
         self.backup = os.environ.copy()
-        
 
     def tearDown(self):
         os.environ = self.backup
 
     def test_getCpuCount(self):
-        # Since we don't know how many cores has the computer on which these
-        # tests will be run, we check that at least, getCPUcount() returns an
-        # int larger than 0.
+        """Since we don't know how many cores has the computer on which these
+        tests will be run, we check that at least, getCPUcount() returns an
+        int larger than 0."""
         self.assertIsInstance(utils.getCPUcount(), int)
         self.assertTrue(utils.getCPUcount() > 0)
 
@@ -54,6 +71,27 @@ class TestUtils(unittest.TestCase):
         # We used the set because the order of the hosts is not important.
         self.assertEqual(set(utils.getHosts()), set(hosts))
 
+    def test_getHostsFromSLURM(self):
+        pass
+
+    def test_parseSLURM_dashOneDecimal(self):
+        hosts = utils.parseSLURM("n[1-4]")
+        result = zip(("n{0}".format(x) for x in range(1, 5)), repeat(1))
+        self.assertEqual(set(hosts), set(result))
+
+    def test_parseSLURM_dashTwoDecimals(self):
+        hosts = utils.parseSLURM("n[5-10]")
+        result = zip(("n{0:02d}".format(x) for x in range(5, 11)), repeat(1))
+        self.assertEqual(set(hosts), set(result))
+
+    def test_parseSLURM_dashTwonames(self):
+        hosts = utils.parseSLURM("x[1-2]y[1-2]")
+        result = []
+        for num in range(1, 3):
+            for prefix in ["x", "y"]:
+                result.append(("{prefix}{num}".format(**locals()), 1))
+        self.assertEqual(set(hosts), set(result))
+
     def test_getHostsFile(self):
         self.assertEqual(set(utils.getHosts("hostfilesim.txt")), set(hosts))
 
@@ -67,9 +105,6 @@ class TestUtils(unittest.TestCase):
 
     def test_getWorkerQteFile(self):
         self.assertEqual(utils.getWorkerQte(utils.getHosts("hostfilesim.txt")), 16)
-
-
-
 
 
 if __name__ == "__main__":

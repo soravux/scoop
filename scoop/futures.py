@@ -259,6 +259,7 @@ def mapReduce(mapFunc, reductionFunc, *iterables, **kwargs):
         *iterables
     ).result()
 
+
 def _createFuture(func, *args):
     """Helper function to create a future."""
     assert callable(func), (
