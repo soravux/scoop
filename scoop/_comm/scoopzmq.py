@@ -146,6 +146,7 @@ class ZMQCommunicator(object):
         # Remove message dropping
         sock.setsockopt(zmq.SNDHWM, 0)
         sock.setsockopt(zmq.RCVHWM, 0)
+        sock.setsockopt(zmq.IMMEDIATE, 1)
 
         # Don't accept unroutable messages
         if sock_type == zmq.ROUTER:
