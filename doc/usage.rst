@@ -242,61 +242,6 @@ barrier such as this one:
 
     if __name__ == '__main__':
 
-Option list
-~~~~~~~~~~~
-
-Here is a list of the parameters that can be passed to SCOOP::
-
-    $ python -m scoop --help
-    usage: python -m scoop [-h] [--hosts [Address [Address ...]] |
-                                    --hostfile FileName] [--path PATH]
-                                    [--nice NiceLevel] [--verbose] [--quiet]
-                                    [--log FileName] [-n NumberOfWorkers]
-                                    [--tunnel] [--broker-hostname Address]
-                                    [--python-interpreter Path]
-                                    [--pythonpath PYTHONPATH] [--profile]
-                                    [executable] ...
-
-    Starts a parallel program using SCOOP.
-
-    positional arguments:
-      executable            The executable to start with SCOOP
-      args                  The arguments to pass to the executable
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      --hosts [Address [Address ...]], --host [Address [Address ...]]
-                            The list of hosts. The first host will execute the
-                            origin. (default is 127.0.0.1)
-      --hostfile FileName   The hostfile name
-      --path PATH, -p PATH  The path to the executable on remote hosts (default is
-                            local directory)
-      --nice NiceLevel      *nix niceness level (-20 to 19) to run the executable
-      --verbose, -v         Verbosity level of this launch script (-vv for more)
-      --quiet, -q
-      --log FileName        The file to log the output. (default is stdout)
-      -n NumberOfWorkers    Total number of workers to launch on the hosts.
-                            Workers are spawned sequentially over the hosts. (ie.
-                            -n 3 with 2 hosts will spawn 2 workers on the first
-                            host and 1 on the second.) (default: Number of CPUs on
-                            current machine)
-      --tunnel              Activate ssh tunnels to route toward the broker
-                            sockets over remote connections (may eliminate routing
-                            problems and activate encryption but slows down
-                            communications)
-      --broker-hostname Address
-                            The externally routable broker hostname / ip (defaults
-                            to the local hostname)
-      --python-interpreter Path
-                            The python interpreter executable with which to
-                            execute the script
-      --pythonpath PYTHONPATH
-                            The PYTHONPATH environment variable (default is
-                            current PYTHONPATH)
-      --profile             Turn on the profiling. SCOOP will call cProfile.run on
-                            the executable for every worker and will produce files
-                            in directory profile/ named workerX where X is the
-                            number of the worker.
 
 A remote workers example may be as follow::
 
