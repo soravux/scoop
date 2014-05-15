@@ -109,8 +109,14 @@ def WorkersDensity(dataTasks):
             # We only have 800 pixels
             try:
                 for graphtime in timeRange(start_time, end_time, DENSITY_MAP_TIME_AXIS_LENGTH):
+                    for a in vals.values():
+                        if not all((a['start_time'], a['end_time'])):
+                            print("Invalid data:", a['start_time'], a['end_time'])
+                        #print(a['start_time'], a['end_time'])
                     workerdata.append(sum([a['start_time'][0] <= float(graphtime) /
-                        1000. <= a['end_time'][0] for a in vals.values()]))
+                        1000. <= a['end_time'][0] for a in vals.values()
+                            if a['start_time'] and a['end_time']])
+                    )
             except OverflowError:
                 print("Error processing {0} or {1}".format(start_time, end_time))
             graphdata.append(workerdata)

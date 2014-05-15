@@ -108,6 +108,7 @@ class Broker(object):
             
         self.clusterSocket.setsockopt(zmq.RCVHWM, 0)
         self.clusterSocket.setsockopt(zmq.SNDHWM, 0)
+        self.clusterSocket.setsockopt(zmq.IMMEDIATE, 1)
 
         self.cluster = []
         self.clusterAvailable = set()
