@@ -191,6 +191,9 @@ class Bootstrap(object):
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
 
+        if scoop.DEBUG:
+            _debug.createDirectory()
+
     @staticmethod
     def setupEnvironment(self=None):
         """Set the environment (argv, sys.path and module import) of

@@ -169,6 +169,7 @@ def runFuture(future):
 def runController(callable_, *args, **kargs):
     """Callable greenlet implementing controller logic."""
     global execQueue
+
     # initialize and run root future
     rootId = FutureId(-1, 0)
 
@@ -177,6 +178,10 @@ def runController(callable_, *args, **kargs):
         execQueue = FutureQueue()
 
         sys.excepthook = advertiseBrokerWorkerDown
+
+        if scoop.DEBUG:
+            from scoop import _debug
+            _debug.redirectSTDOUTtoDebugFile()
 
         # TODO: Make that a function
         # Wait until we received the main module if we are a headless slave
@@ -215,7 +220,6 @@ def runController(callable_, *args, **kargs):
 
     while not scoop.IS_ORIGIN or future.parentId != rootId or not future._ended():
         if scoop.DEBUG and time.time() - lastDebugTs > scoop.TIME_BETWEEN_PARTIALDEBUG:
-            from scoop import _debug
             _debug.writeWorkerDebug(
                 debug_stats,
                 QueueLength,
