@@ -27,12 +27,33 @@ def getDebugIdentifier():
     return scoop.worker.decode().replace(":", "_")
 
 
-def writeWorkerDebug(debugStats, queueLength, path="debug"):
-    import os
+def createDirectory(path="debug"):
+    """Create a directory in a way that multiple concurrent requests won't
+    be problematic."""
     try:
         os.makedirs(path)
     except:
         pass
+
+
+def redirectSTDOUTtoDebugFile():
+    import sys
+    sys.stdout = open(
+        "debug/{0}.stdout".format(getDebugIdentifier()),
+        "w",
+        1, # Buffering by line
+        encoding="utf8",
+    )
+    sys.stderr = open(
+        "debug/{0}.stderr".format(getDebugIdentifier()),
+        "w",
+        1, # Buffering by line
+        encoding="utf8",
+    )
+
+
+def writeWorkerDebug(debugStats, queueLength, path="debug"):
+    createDirectory(path)
     origin_prefix = "origin-" if scoop.IS_ORIGIN else ""
     statsFilename = os.path.join(
         path,
