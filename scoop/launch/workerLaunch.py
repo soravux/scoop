@@ -28,9 +28,9 @@ from scoop import utils
 
 class Host(object):
     """Represents an accessible computing resource.
-       Can be remote (ssh via netowrk) or represent localhost."""
-    BOOTSTRAP_MODULE = 'scoop.bootstrap.__main__'
-    BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+       Can be remote (ssh via network) or local."""
+    LAUNCH_MODULE = 'scoop.launch.__main__'
+    BASE_SSH = ['ssh', '-x', '-T', '-n', '-oStrictHostKeyChecking=no']
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
         [
@@ -41,24 +41,25 @@ class Host(object):
     )
 
     def __init__(self, hostname="localhost"):
-        self.workersArguments = []
+        self.workersArguments = None
         self.hostname = hostname
         self.subprocesses = []
         self.remoteProcessGID = None
+        self.workerAmount = 0
 
     def __repr__(self):
         return "{0} ({1} workers)".format(
             self.hostname,
-            len(self.workersArguments)
+            self.workerAmount,
         )
 
     def isLocal(self):
         """Is the current host the localhost?"""
         return self.hostname in utils.localHostnames
 
-    def addWorker(self, *args, **kwargs):
+    def setWorker(self, *args, **kwargs):
         """Add a worker assignation
-            arguments and order to pass are defined in LAUNCHING_ARGUMENTS
+            Arguments and order to pass are defined in LAUNCHING_ARGUMENTS
             Using named args is advised.
         """
         try:
@@ -69,10 +70,15 @@ class Host(object):
                             (args, kwargs, len(self.LAUNCHING_ARGUMENTS._fields),
                              self.LAUNCHING_ARGUMENTS._fields))
 
-        self.workersArguments.append(la)
+        self.workersArguments = la
+
+    def setWorkerAmount(self, workerAmount):
+        """Sets the worker amount to launch on this host."""
+        self.workerAmount = workerAmount
 
     def _WorkerCommand_environment(self, worker):
-        """Return list of shell commands to prepare the environment for bootstrap"""
+        """Return list of shell commands to prepare the environment for
+           bootstrap."""
         c = []
         if worker.prolog:
             c.extend([
@@ -94,24 +100,25 @@ class Host(object):
             ])
         return c
 
-    def _WorkerCommand_bootstrap(self, worker):
+    def _WorkerCommand_launcher(self):
         """Return list commands to start the bootstrap process"""
-        c = []
-        c.extend([worker.pythonExecutable, '-m', self.BOOTSTRAP_MODULE])
-        return c
+        return [
+            self.workersArguments.pythonExecutable,
+            '-m',
+            self.LAUNCH_MODULE,
+            str(self.workerAmount),
+        ]
 
-    def _WorkerCommand_options(self, worker, workerID):
+    def _WorkerCommand_options(self):
         """Return list of options for bootstrap"""
+        worker = self.workersArguments
         c = []
+
         # If broker is on localhost
         if self.hostname == worker.brokerHostname:
             broker = "127.0.0.1"
         else:
             broker = worker.brokerHostname
-
-        # If host is not localhost, echo group process
-        if not self.isLocal() and workerID == 0:
-            c.append("--echoGroup ")
 
         if worker.nice is not None:
             c.extend(['--nice', str(worker.nice)])
@@ -135,8 +142,10 @@ class Host(object):
             c.append('-v')
         return c
 
-    def _WorkerCommand_executable(self, worker):
+    def _WorkerCommand_executable(self):
         """Return executable and any options to be executed by bootstrap"""
+        worker = self.workersArguments
+
         c = []
         if worker.executable:
             c.append(worker.executable)
@@ -157,46 +166,28 @@ class Host(object):
                 ])
         return c
 
-    def _getWorkerCommandList(self, workerID):
+    def _getWorkerCommandList(self):
         """Generate the workerCommand as list"""
-        worker = self.workersArguments[workerID]
-
         c = []
         if not self.isLocal():
-            c.extend(self._WorkerCommand_environment(worker))
+            c.extend(self._WorkerCommand_environment())
 
-        c.extend(self._WorkerCommand_bootstrap(worker))
-        c.extend(self._WorkerCommand_options(worker, workerID))
-        c.extend(self._WorkerCommand_executable(worker))
+        c.extend(self._WorkerCommand_launcher())
+        c.extend(self._WorkerCommand_options())
+        c.extend(self._WorkerCommand_executable())
 
-        return c
-
-    def getWorkerCommand(self, workerID=None):
-        """Retrieves the working launching shell command."""
-        c = " ".join(self._getWorkerCommandList(workerID))
         return c
 
     def getCommand(self):
-        """Retrieves the shell command to launch every worker on this host."""
-        # All this parenthesis insanity is to start subshells (workers) in the
-        # correct monitoring mode (no background job echo).
-        # Output: ( [launch command 1] & ) && ( [launch command 2] & ) [...]
-        command = []
-        for workerID, worker in enumerate(self.workersArguments):
-            command.append("(" + self.getWorkerCommand(workerID))
-        command[-1] += ")"
-        return " & ) && ".join(command)
+        """Retrieves the shell command to launch the workers on this host."""
+        return " ".join(self._getWorkerCommandList())
 
     def launch(self, tunnelPorts=None, stdPipe=False):
         """Launch every worker assigned on this host."""
         if self.isLocal():
             # Launching local workers
-            for workerID, workerToLaunch in enumerate(self.workersArguments):
-                # Launch one per subprocess
-                c = self._getWorkerCommandList(workerID)
-                self.subprocesses.append(
-                    subprocess.Popen(c)
-                )
+            c = self._getWorkerCommandList()
+            self.subprocesses.append(subprocess.Popen(c))
         else:
             # Launching remotely
             sshCmd = self.BASE_SSH

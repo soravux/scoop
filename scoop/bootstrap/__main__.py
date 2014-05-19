@@ -129,9 +129,6 @@ class Bootstrap(object):
         self.parser.add_argument('--profile',
                                  help="Activate the profiler",
                                  action='store_true')
-        self.parser.add_argument('--echoGroup',
-                                 help="Echo the process Group ID before launch",
-                                 action='store_true')
         self.parser.add_argument('--workingDirectory',
                                  help="Set the working directory for the "
                                       "execution",
@@ -250,16 +247,6 @@ class Bootstrap(object):
 
         if globs is None:
             globs = globals()
-
-        # Show the current process Group ID if asked
-        if self.args.echoGroup:
-            sys.stdout.write(str(os.getpgrp()) + "\n")
-            sys.stdout.flush()
-
-            scoop.logger.info("Worker(s) launched using {0}".format(
-                    os.environ['SHELL'],
-                )
-            )
 
         # import the user module
         if scoop.MAIN_MODULE:
