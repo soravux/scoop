@@ -86,7 +86,7 @@ class localBroker(object):
 
 
 class remoteBroker(object):
-    BASE_SSH = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
+    BASE_SSH = ['ssh', '-x', '-T', '-n', '-oStrictHostKeyChecking=no']
 
     def __init__(self, hostname, pythonExecutable, debug=False, nice=0,
                  backend='ZMQ'):
@@ -117,7 +117,9 @@ class remoteBroker(object):
             ]
             scoop.logger.debug("Launching remote broker: {cmd}"
                                "".format(cmd=" ".join(cmd)))
-            self.shell = subprocess.Popen(cmd,
+            self.shell = subprocess.Popen(
+                cmd,
+                bufsize=0,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
