@@ -152,7 +152,7 @@ class Host(object):
             c.append(worker.executable)
         # This trick is used to parse correctly quotes
         # (ie. myScript.py 'arg1 "arg2" arg3')
-        # Because shell=True is set with Popen, every quote gets re-interpreted
+        # Because it is parsed by a shell, every quote gets re-interpreted.
         # It replaces simple quotation marks with \\\" which gets evaluated to
         # \" by the second shell which prints it out as a double quote.
         if worker.args:
@@ -199,6 +199,7 @@ class Host(object):
                 ]
             self.subprocesses.append(
                 subprocess.Popen(sshCmd + [self.hostname, self.getCommand()],
+                                 bufsize=0,
                                  stdout=subprocess.PIPE if stdPipe else None,
                                  stderr=subprocess.PIPE if stdPipe else None,
                 )
