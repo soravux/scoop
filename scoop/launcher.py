@@ -180,7 +180,7 @@ class ScoopApp(object):
         return hosts
 
     def showHostDivision(self, headless):
-        """Show the worker distribution over the hosts"""
+        """Show the worker distribution over the hosts."""
         scoop.logger.info('Worker distribution: ')
         for worker, number in self.worker_hosts:
             first_worker = (worker == self.worker_hosts[0][0])
@@ -191,15 +191,13 @@ class ScoopApp(object):
                 )
             )
 
-    def _addWorker_args(self, workerinfo):
+    def _setWorker_args(self):
         """Create the arguments to pass to the addWorker call.
             The returned args and kwargs must ordered/named according to the namedtuple
-            in LAUNCH_HOST_CLASS.LAUNCHING_ARGUMENTS
+            in LAUNCH_HOST_CLASS.LAUNCHING_ARGUMENTS .
 
             both args and kwargs are supported for full flexibilty,
-            but usage of kwargs only is strongly advised
-
-            workerinfo is a dict with information that can be used to start the worker
+            but usage of kwargs only is strongly advised.
         """
         args = []
         kwargs = {
@@ -222,9 +220,8 @@ class ScoopApp(object):
         }
         return args, kwargs
 
-    def addWorkerToHost(self, workerinfo):
-        """Adds a worker to current host"""
-        hostname = workerinfo['hostname']
+    def setWorkerInfo(self, hostname, workerAmount):
+        """Sets the worker information for the current host."""
 
         scoop.logger.debug('Initialising {0}{1} worker {2} [{3}].'.format(
             "local" if hostname in utils.localHostnames else "remote",
@@ -234,15 +231,15 @@ class ScoopApp(object):
             )
         )
 
-        add_args, add_kwargs = self._addWorker_args(workerinfo)
-        self.workers[-1].addWorker(*add_args, **add_kwargs)
+        add_args, add_kwargs = self._setWorker_args()
+        self.workers[-1].setWorker(*add_args, **add_kwargs)
+        self.workers[-1].setWorkerAmount(workerAmount)
 
     def run(self):
         """Launch the broker(s) and worker(s) assigned on every hosts."""
-        # Launch the brokers
+        # Launch the broker(s)
         for hostname, nb_brokers in self.broker_hosts:
             for ind in range(nb_brokers):
-                # Launching the broker(s)
                 if self.externalHostname in utils.localHostnames:
                     self.brokers.append(localBroker(
                         debug=self.debug,
@@ -278,14 +275,9 @@ class ScoopApp(object):
         for hostname, nb_workers in self.worker_hosts:
             self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
             total_workers_host = min(nb_workers, self.workersLeft)
-            for worker_idx_host in range(total_workers_host):
-                workerinfo = {
-                    'hostname': hostname,
-                    'total_workers_host': total_workers_host,
-                    'worker_idx_host': worker_idx_host,
-                }
-                self.addWorkerToHost(workerinfo)
-                self.workersLeft -= 1
+
+            self.setWorkerInfo(hostname, total_workers_host)
+            self.workersLeft -= 1
 
             # Launch every workers at the same time
             scoop.logger.debug(
