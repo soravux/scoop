@@ -47,7 +47,7 @@ class ScoopApp(object):
 
     def __init__(self, hosts, n, b, verbose, python_executable,
             externalHostname, executable, arguments, tunnel, path, debug,
-            nice, env, profile, pythonPath, prolog, backend):
+            nice, env, profile, pythonPath, prolog, backend, cleanup):
         # Assure setup sanity
         assert type(hosts) == list and hosts, ("You should at least "
                                                "specify one host.")
@@ -70,6 +70,7 @@ class ScoopApp(object):
         self.profile = profile
         self.backend = backend
         self.errors = None
+        self.cleanup = cleanup
 
         # Logging configuration
         if self.verbose > 2:
@@ -290,7 +291,7 @@ class ScoopApp(object):
                 (self.brokers[0].brokerPort,
                  self.brokers[0].infoPort)
                     if self.tunnel else None,
-                stdPipe=not self.workers[-1].isLocal(),
+                stdPipe=not self.workers[-1].isLocal() and self.cleanup,
             ))
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
@@ -415,6 +416,9 @@ def makeParser():
     parser.add_argument('--debug',
                         help=argparse.SUPPRESS,
                         action='store_true')
+    parser.add_argument('--nocleanup',
+                        help=argparse.SUPPRESS,
+                        action='store_true')
     parser.add_argument('--profile',
                         help=("Turn on the profiling. SCOOP will call "
                         "cProfile.run on the executable for every worker and"
@@ -462,7 +466,7 @@ def main():
                             args.executable, args.args, args.tunnel,
                             args.path, args.debug, args.nice,
                             utils.getEnv(), args.profile, args.pythonpath[0],
-                            args.prolog[0], args.backend)
+                            args.prolog[0], args.backend, not args.nocleanup)
 
     rootTaskExitCode = False
     interruptPreventer = Thread(target=thisScoopApp.close)
