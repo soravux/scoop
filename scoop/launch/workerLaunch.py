@@ -76,9 +76,10 @@ class Host(object):
         """Sets the worker amount to launch on this host."""
         self.workerAmount = workerAmount
 
-    def _WorkerCommand_environment(self, worker):
+    def _WorkerCommand_environment(self):
         """Return list of shell commands to prepare the environment for
            bootstrap."""
+        worker = self.workersArguments
         c = []
         if worker.prolog:
             c.extend([
