@@ -243,7 +243,7 @@ barrier such as this one:
     if __name__ == '__main__':
 
 
-A remote workers example may be as follow::
+An example with remote workers may be as follow::
 
     python -m scoop --hostfile hosts -vv -n 6 your_program.py [your arguments]
 

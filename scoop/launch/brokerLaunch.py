@@ -26,6 +26,7 @@ except ImportError:
     import pickle
 
 import scoop
+from .constants import BASE_SSH
 try:
     import psutil
 except ImportError:
@@ -86,8 +87,6 @@ class localBroker(object):
 
 
 class remoteBroker(object):
-    BASE_SSH = ['ssh', '-x', '-T', '-n', '-oStrictHostKeyChecking=no']
-
     def __init__(self, hostname, pythonExecutable, debug=False, nice=0,
                  backend='ZMQ'):
         """Starts a broker on the specified hostname on unoccupied ports"""
@@ -108,7 +107,7 @@ class remoteBroker(object):
             )
         self.hostname = hostname
         for i in range(5000, 10000, 2):
-            cmd = self.BASE_SSH + [
+            cmd = BASE_SSH + [
                 hostname,
                 brokerString.format(brokerPort=i,
                                     infoPort=i + 1,
@@ -225,7 +224,7 @@ class remoteBroker(object):
             command = ("python -c "
                        "'import os, signal; os.killpg({0}, signal.SIGKILL)' "
                        ">&/dev/null").format(self.remoteProcessGID)
-            subprocess.Popen(self.BASE_SSH
+            subprocess.Popen(BASE_SSH
                              + [self.hostname]
                              + [command],
             ).wait()

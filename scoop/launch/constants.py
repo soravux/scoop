@@ -15,5 +15,8 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from .workerLaunch import Host
-from .brokerLaunch import localBroker, remoteBroker
+# -t : Enforce a shell to be created to hold the remote comand.
+#      This allows the kill of the remote command on ssh's termination
+# -x : Disable X11 redirection.
+# -n : Attach stdin to /dev/null .
+BASE_SSH = ['ssh', '-t', '-x', '-n', '-oStrictHostKeyChecking=no']
