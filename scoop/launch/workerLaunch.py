@@ -24,13 +24,13 @@ from threading import Thread
 # Local
 import scoop
 from scoop import utils
+from .constants import BASE_SSH
 
 
 class Host(object):
     """Represents an accessible computing resource.
-       Can be remote (ssh via network) or local."""
+       Can be remote (ssh via netowrk) or represent localhost."""
     LAUNCH_MODULE = 'scoop.launch.__main__'
-    BASE_SSH = ['ssh', '-x', '-T', '-n', '-oStrictHostKeyChecking=no']
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
         [
@@ -191,7 +191,7 @@ class Host(object):
             self.subprocesses.append(subprocess.Popen(c))
         else:
             # Launching remotely
-            sshCmd = self.BASE_SSH
+            sshCmd = BASE_SSH
             if tunnelPorts is not None:
                 sshCmd += [
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),
@@ -267,7 +267,7 @@ class Host(object):
             command = ("python -c "
                        "'import os, signal; os.killpg({0}, signal.SIGKILL)' "
                        ">&/dev/null").format(self.remoteProcessGID)
-            subprocess.Popen(self.BASE_SSH
+            subprocess.Popen(BASE_SSH
                              + [self.hostname]
                              + [command],
             ).wait()
