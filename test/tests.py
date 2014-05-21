@@ -302,17 +302,19 @@ class TestScoopCommon(unittest.TestCase):
 
     def setUp(self):
         global subprocesses
+        import socket, datetime, time
+
         # Start the server
         self.server = subprocess.Popen([sys.executable, "-m", "scoop.broker",
         "--tPort", "5555", "--mPort", "5556"])
-        import socket, datetime, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
         while not port_ready(5555, s):
             if (datetime.datetime.now() - begin > datetime.timedelta(seconds=3)):
                 raise Exception('Could not start server!')
-            pass
         subprocesses.append(self.server)
+
+        # Setup worker environment
         scoop.IS_RUNNING = True
         scoop.IS_ORIGIN = True
         scoop.WORKER_NAME = 'origin'.encode()
@@ -330,17 +332,33 @@ class TestScoopCommon(unittest.TestCase):
 
     def tearDown(self):
         global subprocesses
+        import socket, datetime, time
         _control.execQueue.shutdown()
         del _control.execQueue
         _control.futureDict.clear()
-        try: self.w.kill()
-        except: pass
+        try:
+            self.w.terminate()
+            self.w.wait()
+        except:
+            pass
         # Destroy the server
         if self.server.poll() == None:
-            try: self.server.kill()
-            except: pass
+            try:
+                self.server.terminate()
+                self.server.wait()
+            except:
+                pass
         # Stabilise zmq after a deleted socket
         del subprocesses[:]
+
+        # Wait for the previous server to be correctly terminated
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        begin = datetime.datetime.now()
+        while port_ready(5555, s):
+            if (datetime.datetime.now() - begin > datetime.timedelta(seconds=3)):
+                raise Exception('Could not terminate server!')
+        s.close()
+
 
 class TestMultiFunction(TestScoopCommon):
     def __init__(self, *args, **kwargs):
