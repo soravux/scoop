@@ -19,4 +19,16 @@
 #      This allows the kill of the remote command on ssh's termination
 # -x : Disable X11 redirection.
 # -n : Attach stdin to /dev/null .
-BASE_SSH = ['ssh', '-t', '-x', '-n', '-oStrictHostKeyChecking=no']
+# -oStrictHostKeyChecking=no : Automatically accept host fingerprint.
+# -oBatchMode=yes : Add automatically the host to known hosts.
+# -oServerAliveInterval=300 : Send sign of life every 5 minutes to prevent
+#                             the server to close the connection.
+BASE_SSH = [
+    'ssh',
+    '-t',
+    '-x',
+    '-n',
+    '-oStrictHostKeyChecking=no',
+    '-oBatchMode=yes',
+    '-oServerAliveInterval=300',
+]

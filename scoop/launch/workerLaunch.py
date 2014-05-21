@@ -30,7 +30,6 @@ from .constants import BASE_SSH
 class Host(object):
     """Represents an accessible computing resource.
        Can be remote (ssh via netowrk) or represent localhost."""
-    LAUNCH_MODULE = 'scoop.launch.__main__'
     LAUNCHING_ARGUMENTS = namedtuple(
         'launchingArguments',
         [
@@ -106,7 +105,7 @@ class Host(object):
         return [
             self.workersArguments.pythonExecutable,
             '-m',
-            self.LAUNCH_MODULE,
+            'scoop.launch.__main__',
             str(self.workerAmount),
         ]
 
@@ -183,7 +182,7 @@ class Host(object):
         """Retrieves the shell command to launch the workers on this host."""
         return " ".join(self._getWorkerCommandList())
 
-    def launch(self, tunnelPorts=None, stdPipe=False):
+    def launch(self, tunnelPorts=None):
         """Launch every worker assigned on this host."""
         if self.isLocal():
             # Launching local workers
@@ -199,9 +198,9 @@ class Host(object):
                 ]
             self.subprocesses.append(
                 subprocess.Popen(sshCmd + [self.hostname, self.getCommand()],
-                                 bufsize=0,
-                                 stdout=subprocess.PIPE if stdPipe else None,
-                                 stderr=subprocess.PIPE if stdPipe else None,
+                                 bufsize=-1,
+                                 stdout=None,
+                                 stderr=None,
                 )
             )
             self.getGIDAsyncThread = Thread(target=self.getGID)
@@ -247,27 +246,3 @@ class Host(object):
                 process.terminate()
             except OSError:
                 pass
-
-        # Output child processes stdout and stderr to console
-        for process in self.subprocesses:
-            if process.stdout is not None:
-                sys.stdout.write(process.stdout.read().decode("utf-8"))
-                sys.stdout.flush()
-
-            if process.stderr is not None:
-                sys.stderr.write(process.stderr.read().decode("utf-8"))
-                sys.stderr.flush()
-
-
-        # Send termination signal to remaining workers
-        if not self.isLocal() and self.remoteProcessGID is None:
-                scoop.logger.warn("Zombie process(es) possibly left on "
-                             "host {0}!".format(self.hostname))
-        elif not self.isLocal():
-            command = ("python -c "
-                       "'import os, signal; os.killpg({0}, signal.SIGKILL)' "
-                       ">&/dev/null").format(self.remoteProcessGID)
-            subprocess.Popen(BASE_SSH
-                             + [self.hostname]
-                             + [command],
-            ).wait()

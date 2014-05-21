@@ -105,7 +105,7 @@ class ZMQCommunicator(object):
 
         # socket for the shutdown signal
         self.infoSocket = self.createZMQSocket(zmq.SUB)
-        
+
         # Set poller
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)

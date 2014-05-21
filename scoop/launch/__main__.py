@@ -50,6 +50,7 @@ def getArgs():
 def launchBoostraps():
     """Launch the bootstrap instances in separate subprocesses"""
     worker_amount, args = getArgs()
+    was_origin = False
 
     try:
         sys.stdout.write(str(os.getpgrp()) + "\n")
@@ -76,9 +77,16 @@ def launchBoostraps():
             args.remove("--origin")
         except ValueError:
             pass
+        else:
+            was_origin = True
 
-    for p in processes:
-        p.wait()
+    if was_origin:
+        # Only wait on the origin, this will return and notify the launcher
+        # the the job has finished and start the cleanup phase
+        processes[0].wait()
+    else:
+        for p in processes:
+            p.wait()
 
 
 if __name__ == "__main__":
