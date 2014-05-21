@@ -293,6 +293,7 @@ class Bootstrap(object):
                 if scoop._control.execQueue:
                     scoop._control.execQueue.shutdown()
 
+
 if __name__ == "__main__":
     b = Bootstrap()
     b.main()
