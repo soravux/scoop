@@ -277,7 +277,7 @@ class ScoopApp(object):
             total_workers_host = min(nb_workers, self.workersLeft)
 
             self.setWorkerInfo(hostname, total_workers_host)
-            self.workersLeft -= 1
+            self.workersLeft -= total_workers_host
 
             # Launch every workers at the same time
             scoop.logger.debug(
