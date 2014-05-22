@@ -110,6 +110,7 @@ class remoteBroker(object):
         cmd = BASE_SSH + [
             hostname,
             brokerString.format(pythonExec=pythonExecutable)
+        ]
 
         scoop.logger.debug("Launching remote broker: {cmd}"
                            "".format(cmd=" ".join(cmd)))
