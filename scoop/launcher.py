@@ -300,15 +300,6 @@ class ScoopApp(object):
         if self.workers[0].isLocal():
             self.errors = self.workers[0].subprocesses[0].wait()
         else:
-            # Process stdout first, then the whole stderr at the end
-            for outStream, inStream in [(sys.stdout, rootProcess.stdout),
-                                        (sys.stderr, rootProcess.stderr)]:
-                data = inStream.read(1)
-                while len(data) > 0:
-                    # Should not rely on utf-8 codec
-                    outStream.write(data.decode("utf-8"))
-                    outStream.flush()
-                    data = inStream.read(1)
             self.errors = rootProcess.wait()
         scoop.logger.info('Root process is done.')
         return self.errors
