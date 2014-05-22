@@ -15,7 +15,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 
-# -t : Enforce a shell to be created to hold the remote comand.
+# -tt : Enforce a shell to be created to hold the remote comand.
 #      This allows the kill of the remote command on ssh's termination
 # -x : Disable X11 redirection.
 # -n : Attach stdin to /dev/null .
@@ -25,6 +25,7 @@
 #                             the server to close the connection.
 BASE_SSH = [
     'ssh',
+    '-tt',
     '-x',
     '-n',
     '-oStrictHostKeyChecking=no',
