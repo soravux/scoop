@@ -43,7 +43,6 @@ class Host(object):
         self.workersArguments = None
         self.hostname = hostname
         self.subprocesses = []
-        self.remoteProcessGID = None
         self.workerAmount = 0
 
     def __repr__(self):
@@ -203,34 +202,8 @@ class Host(object):
                                  stderr=None,
                 )
             )
-            self.getGIDAsyncThread = Thread(target=self.getGID)
-            self.getGIDAsyncThread.start()
 
         return self.subprocesses
-
-    def getGID(self):
-        # Get group id from remote connections
-        receivedLine = self.subprocesses[-1].stdout.readline()
-        try:
-            textGID = receivedLine.decode().strip()
-            self.remoteProcessGID = int(textGID)
-        except ValueError:
-            # Following line for Python 2.6 compatibility (instead of [as e])
-            e = sys.exc_info()[1]
-
-            # Terminate the process, otherwide reading from stderr may wait
-            # undefinitely
-            self.subprocesses[-1].terminate()
-
-            stderr = self.subprocesses[-1].stderr.read()
-            hostname = self.hostname
-            scoop.logger.warning("Could not successfully launch the remote "
-                             "worker on {hostname}.\n"
-                             "Requested remote group process id, "
-                             "received:\n{receivedLine}\n"
-                             "Group id decoding error:\n{e}\n"
-                             "SSH process stderr:\n{stderr}"
-                             "".format(**locals()))
 
     def close(self):
         """Connection(s) cleanup."""
