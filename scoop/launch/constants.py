@@ -25,7 +25,6 @@
 #                             the server to close the connection.
 BASE_SSH = [
     'ssh',
-    '-t',
     '-x',
     '-n',
     '-oStrictHostKeyChecking=no',

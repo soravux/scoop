@@ -106,30 +106,19 @@ class remoteBroker(object):
                 path=os.getcwd()
             )
         self.hostname = hostname
-        for i in range(5000, 10000, 2):
-            cmd = BASE_SSH + [
-                hostname,
-                brokerString.format(brokerPort=i,
-                                    infoPort=i + 1,
-                                    pythonExec=pythonExecutable,
-                                    )
-            ]
-            scoop.logger.debug("Launching remote broker: {cmd}"
-                               "".format(cmd=" ".join(cmd)))
-            self.shell = subprocess.Popen(
-                cmd,
-                bufsize=0,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            # TODO: This condition is not doing what it's supposed
-            if self.shell.poll() is not None:
-                continue
-            else:
-                self.brokerPort, self.infoPort = i, i + 1
-                break
-        else:
-            raise Exception("Could not successfully launch the remote broker.")
+
+        cmd = BASE_SSH + [
+            hostname,
+            brokerString.format(pythonExec=pythonExecutable)
+
+        scoop.logger.debug("Launching remote broker: {cmd}"
+                           "".format(cmd=" ".join(cmd)))
+        self.shell = subprocess.Popen(
+            cmd,
+            bufsize=0,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
         # Get remote process group ID
         try:
