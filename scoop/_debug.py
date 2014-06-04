@@ -27,11 +27,15 @@ def getDebugIdentifier():
     return scoop.worker.decode().replace(":", "_")
 
 
-def createDirectory(path="debug"):
+def getDebugDirectory():
+    return os.path.join(scoop.WORKING_DIRECTORY, "debug")
+
+
+def createDirectory():
     """Create a directory in a way that multiple concurrent requests won't
     be problematic."""
     try:
-        os.makedirs(path)
+        os.makedirs(getDebugDirectory())
     except:
         pass
 
@@ -39,32 +43,39 @@ def createDirectory(path="debug"):
 def redirectSTDOUTtoDebugFile():
     import sys
     sys.stdout = open(
-        "debug/{0}.stdout".format(getDebugIdentifier()),
+        os.path.join(
+            getDebugDirectory(),
+            "{0}.stdout".format(getDebugIdentifier()),
+        ),
         "w",
         1, # Buffering by line
         encoding="utf8",
     )
     sys.stderr = open(
-        "debug/{0}.stderr".format(getDebugIdentifier()),
+        os.path.join(
+            getDebugDirectory(),
+            "{0}.stderr".format(getDebugIdentifier()),
+        ),
         "w",
         1, # Buffering by line
         encoding="utf8",
     )
 
 
-def writeWorkerDebug(debugStats, queueLength, path="debug"):
-    createDirectory(path)
+def writeWorkerDebug(debugStats, queueLength, pathSuffix="debug"):
+    createDirectory(os.path.join(getDebugDirectory(), pathSuffix))
     origin_prefix = "origin-" if scoop.IS_ORIGIN else ""
     statsFilename = os.path.join(
-        path,
+        getDebugDirectory(),
+        pathSuffix,
         "{1}worker-{0}-STATS".format(getDebugIdentifier(), origin_prefix)
     )
     lengthFilename = os.path.join(
-        path,
+        getDebugDirectory(),
+        pathSuffix,
         "{1}worker-{0}-QUEUE".format(getDebugIdentifier(), origin_prefix)
     )
     with open(statsFilename, 'wb') as f:
         pickle.dump(debugStats, f)
     with open(lengthFilename, 'wb') as f:
         pickle.dump(queueLength, f)
-

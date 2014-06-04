@@ -262,6 +262,10 @@ class FutureQueue(object):
             self.lowwatermark = 0.01
             self.highwatermark = 0.01
 
+    def __del__(self):
+        """Destructor. Ensures Communicator is correctly discarted."""
+        self.shutdown()
+
     def __iter__(self):
         """Iterates over the selectable (cancellable) elements of the queue."""
         return itertools.chain(self.movable, self.ready)

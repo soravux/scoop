@@ -106,6 +106,7 @@ class Host(object):
             '-m',
             'scoop.launch.__main__',
             str(self.workerAmount),
+            str(self.workersArguments.verbose),
         ]
 
     def _WorkerCommand_options(self):
@@ -135,10 +136,8 @@ class Host(object):
             c.append('--profile')
         if worker.backend:
             c.append('--backend={0}'.format(worker.backend))
-        if worker.verbose == 0:
-            c.append('-q')
-        elif worker.verbose >= 2:
-            c.append('-v')
+        if worker.verbose >= 1:
+            c.append('-' + 'v' * worker.verbose)
         return c
 
     def _WorkerCommand_executable(self):
@@ -200,6 +199,7 @@ class Host(object):
                                  bufsize=-1,
                                  stdout=None,
                                  stderr=None,
+                                 stdin=subprocess.PIPE
                 )
             )
 
@@ -209,9 +209,6 @@ class Host(object):
         """Connection(s) cleanup."""
         # Ensure everything is cleaned up on exit
         scoop.logger.debug('Closing workers on {0}.'.format(self))
-
-        if hasattr(self, 'self.getGIDAsyncThread'):
-            self.self.getGIDAsyncThread.join()
 
         # Terminate subprocesses
         for process in self.subprocesses:
