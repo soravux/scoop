@@ -132,7 +132,7 @@ class Bootstrap(object):
         self.parser.add_argument('--workingDirectory',
                                  help="Set the working directory for the "
                                       "execution",
-                                 default=None)
+                                 default="~")
         self.parser.add_argument('--backend',
                                  help="Choice of communication backend",
                                  choices=['ZMQ', 'TCP'],
@@ -175,6 +175,7 @@ class Bootstrap(object):
           'headless': not bool(self.args.executable),
           'backend': self.args.backend,
         }
+        scoop.WORKING_DIRECTORY = self.args.workingDirectory
         scoop.logger = self.log
         if self.args.nice:
             if not psutil:
