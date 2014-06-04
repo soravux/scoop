@@ -69,7 +69,7 @@ class _stat(deque):
 def advertiseBrokerWorkerDown(exctype, value, traceback):
     """Hook advertizing the broker if an impromptu shutdown is occuring."""
     if not scoop.SHUTDOWN_REQUESTED:
-        execQueue.socket.shutdown()
+        execQueue.shutdown()
     sys.__excepthook__(exctype, value, traceback)
 
 
