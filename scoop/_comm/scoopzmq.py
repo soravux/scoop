@@ -136,8 +136,6 @@ class ZMQCommunicator(object):
                 continue
             self._addBroker(broker)
 
-        self.OPEN = True
-
     def createZMQSocket(self, sock_type):
         """Create a socket of the given sock_type and deactivate message dropping"""
         sock = self.ZMQcontext.socket(sock_type)
@@ -225,45 +223,48 @@ class ZMQCommunicator(object):
         return thisFuture
 
     def pumpInfoSocket(self):
-        while self.infoSocket.poll(0):
-            msg = self.infoSocket.recv_multipart()
-            if msg[0] == b"SHUTDOWN":
-                if scoop.IS_ORIGIN is False:
-                    raise Shutdown("Shutdown received")
-                if not scoop.SHUTDOWN_REQUESTED:
-                    scoop.logger.error(
-                        "A worker exited unexpectedly. Read the worker logs "
-                        "for more information. SCOOP pool will now shutdown."
-                    )
-                    raise Shutdown("Unexpected shutdown received")
-            elif msg[0] == b"VARIABLE":
-                key = pickle.loads(msg[3])
-                varValue = pickle.loads(msg[2])
-                varName = pickle.loads(msg[1])
-                shared.elements.setdefault(key, {}).update({varName: varValue})
-                self.convertVariable(key, varName, varValue)
-            elif msg[0] == b"BROKER_INFO":
-                # TODO: find out what to do here ...
-                if len(self.broker_set) == 0: # The first update
-                    self.broker_set.add(pickle.loads(msg[1]))
-                if len(self.broker_set) < self.number_of_broker:
-                    brokers = pickle.loads(msg[2])
-                    needed = self.number_of_broker - len(self.broker_set)
-                    try:
-                        new_brokers = random.sample(brokers, needed)
-                    except ValueError:
-                        new_brokers = brokers
-                        self.number_of_broker = len(self.broker_set) + len(new_brokers)
-                        scoop.logger.warning(("The number of brokers could not be set"
-                                        " on worker {0}. A total of {1} worker(s)"
-                                        " were set.".format(scoop.worker,
-                                                            self.number_of_broker)))
+        try:
+            while self.infoSocket.poll(0):
+                msg = self.infoSocket.recv_multipart()
+                if msg[0] == b"SHUTDOWN":
+                    if scoop.IS_ORIGIN is False:
+                        raise Shutdown("Shutdown received")
+                    if not scoop.SHUTDOWN_REQUESTED:
+                        scoop.logger.error(
+                            "A worker exited unexpectedly. Read the worker logs "
+                            "for more information. SCOOP pool will now shutdown."
+                        )
+                        raise Shutdown("Unexpected shutdown received")
+                elif msg[0] == b"VARIABLE":
+                    key = pickle.loads(msg[3])
+                    varValue = pickle.loads(msg[2])
+                    varName = pickle.loads(msg[1])
+                    shared.elements.setdefault(key, {}).update({varName: varValue})
+                    self.convertVariable(key, varName, varValue)
+                elif msg[0] == b"BROKER_INFO":
+                    # TODO: find out what to do here ...
+                    if len(self.broker_set) == 0: # The first update
+                        self.broker_set.add(pickle.loads(msg[1]))
+                    if len(self.broker_set) < self.number_of_broker:
+                        brokers = pickle.loads(msg[2])
+                        needed = self.number_of_broker - len(self.broker_set)
+                        try:
+                            new_brokers = random.sample(brokers, needed)
+                        except ValueError:
+                            new_brokers = brokers
+                            self.number_of_broker = len(self.broker_set) + len(new_brokers)
+                            scoop.logger.warning(("The number of brokers could not be set"
+                                            " on worker {0}. A total of {1} worker(s)"
+                                            " were set.".format(scoop.worker,
+                                                                self.number_of_broker)))
 
-                    for broker in new_brokers:
-                        broker_address = "tcp://" + broker.hostname + broker.task_port
-                        meta_address = "tcp://" + broker.hostname + broker.info_port
-                        self._addBroker(broker_address, meta_address)
-                    self.broker_set.update(new_brokers)
+                        for broker in new_brokers:
+                            broker_address = "tcp://" + broker.hostname + broker.task_port
+                            meta_address = "tcp://" + broker.hostname + broker.info_port
+                            self._addBroker(broker_address, meta_address)
+                        self.broker_set.update(new_brokers)
+        except zmq.error.ZMQError:
+            pass
 
     def convertVariable(self, key, varName, varValue):
         """Puts the function in the globals() of the main module."""
@@ -379,8 +380,7 @@ class ZMQCommunicator(object):
 
     def shutdown(self):
         """Sends a shutdown message to other workers."""
-        if self.OPEN:
-            self.OPEN = False
+        if not self.ZMQcontext.closed:
             scoop.SHUTDOWN_REQUESTED = True
             self.socket.send(b"SHUTDOWN")
             self.ZMQcontext.destroy()
