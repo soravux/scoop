@@ -132,7 +132,7 @@ class Bootstrap(object):
         self.parser.add_argument('--workingDirectory',
                                  help="Set the working directory for the "
                                       "execution",
-                                 default=None)
+                                 default="~")
         self.parser.add_argument('--backend',
                                  help="Choice of communication backend",
                                  choices=['ZMQ', 'TCP'],
@@ -146,17 +146,15 @@ class Bootstrap(object):
                                  default=[])
         self.parser.add_argument('--verbose', '-v', action='count',
                                  help=("Verbosity level of this launch script"
-                                      "(-vv for "
-                                      "more)"), default=1)
-        self.parser.add_argument('--quiet', '-q', action='store_true',
-                                 help="Suppress the output")
+                                      "(-vv for more)"),
+                                 default=0)
 
     def parse(self):
         """Generate a argparse parser and parse the command-line arguments"""
         if self.parser is None:
             self.makeParser()
         self.args = self.parser.parse_args()
-        self.verbose = self.args.verbose if not self.args.quiet else 0
+        self.verbose = self.args.verbose
 
     def setScoop(self):
         """Setup the SCOOP constants."""
@@ -177,6 +175,7 @@ class Bootstrap(object):
           'headless': not bool(self.args.executable),
           'backend': self.args.backend,
         }
+        scoop.WORKING_DIRECTORY = self.args.workingDirectory
         scoop.logger = self.log
         if self.args.nice:
             if not psutil:

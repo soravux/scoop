@@ -72,8 +72,8 @@ class ScoopApp(object):
         self.errors = None
 
         # Logging configuration
-        if self.verbose > 2:
-            self.verbose = 2
+        if self.verbose > 3:
+            self.verbose = 3
 
         scoop.logger = utils.initLogging(
             verbosity=self.verbose,
