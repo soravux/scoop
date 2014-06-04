@@ -44,32 +44,33 @@ def getArgs():
     if nb_to_launch == 0:
         nb_to_launch = getCPUcount()
 
-    return nb_to_launch, sys.argv[2:]
+    try:
+        verbosity = int(sys.argv[2])
+    except:
+        verbosity = 3
+
+    return nb_to_launch, verbosity, sys.argv[3:]
 
 
 def launchBoostraps():
     """Launch the bootstrap instances in separate subprocesses"""
-    worker_amount, args = getArgs()
+    worker_amount, verbosity, args = getArgs()
     was_origin = False
 
-    try:
-        sys.stdout.write(str(os.getpgrp()) + "\n")
-    except:
-        sys.stderr.write("Could not get process group.\n")
-    sys.stdout.flush()
-
-    sys.stderr.write("Launching {0} worker(s) using {1}.\n".format(
-            worker_amount,
-            os.environ['SHELL'] if 'SHELL' in os.environ else "an unknown shell",
+    if verbosity >= 1:
+        sys.stderr.write("Launching {0} worker(s) using {1}.\n".format(
+                worker_amount,
+                os.environ['SHELL'] if 'SHELL' in os.environ else "an unknown shell",
+            )
         )
-    )
-    sys.stderr.flush()
+        sys.stderr.flush()
 
     processes = []
     for _ in range(worker_amount):
         command = [sys.executable, "-m", BOOTSTRAP_MODULE] + args
-        sys.stderr.write("Executing '{0}'...\n".format(command))
-        sys.stderr.flush()
+        if verbosity >= 3:
+            sys.stderr.write("Executing '{0}'...\n".format(command))
+            sys.stderr.flush()
         processes.append(Popen(command))
 
         # Only have a single origin

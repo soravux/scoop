@@ -106,6 +106,7 @@ class Host(object):
             '-m',
             'scoop.launch.__main__',
             str(self.workerAmount),
+            str(self.workersArguments.verbose),
         ]
 
     def _WorkerCommand_options(self):
@@ -135,10 +136,8 @@ class Host(object):
             c.append('--profile')
         if worker.backend:
             c.append('--backend={0}'.format(worker.backend))
-        if worker.verbose == 0:
-            c.append('-q')
-        elif worker.verbose >= 2:
-            c.append('-v')
+        if worker.verbose >= 1:
+            c.append('-' + 'v' * worker.verbose)
         return c
 
     def _WorkerCommand_executable(self):
