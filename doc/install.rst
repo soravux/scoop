@@ -86,7 +86,7 @@ ssh keys to allow **passwordless authentication between every computing
 node**. You should make sure that your public ssh key is contained in the
 ``~/.ssh/authorized_keys``  file on the remote systems (Refer to the `ssh
 manual <http://www.openbsd.org/cgi-bin/man.cgi?query=ssh>`_). If you have a
-shared :file:`/home/` over your systems,  you can do as such::
+shared :file:`/home/` over your systems, you can do as such::
     
     [~]$ mkdir ~/.ssh; cd ~/.ssh
     [.ssh]$ ssh-keygen -t dsa
@@ -106,3 +106,24 @@ shared :file:`/home/` over your systems,  you can do as such::
         * -x : Deactivates X forwarding
         * -n : Prevents reading from stdin (batch mode)
         * -oStrictHostKeyChecking=no : Allow the connection to hosts ``ssh`` sees for the first time. Without it, ``ssh`` interactively asks to accept the identity of the peer.
+
+HPC usage
+---------
+
+If you use an Infiniband network, you may want to use an RDMA accelerated
+socket alternative instead of TCP over IB. In order to do so, you can use
+libsdp. This can be done by performing the following steps::
+
+    $ wget https://www.openfabrics.org/downloads/libsdp/libsdp-1.1.108-0.17.ga6958ef.tar.gz 
+    $ tar xfvz libsdp-1.1.108-0.17.ga6958ef.tar.gz
+    $ cd libsdp-1.1.108
+    $ ./configure --prefix=$HOME && make && make install
+
+Once the compilation is done, you can use it by creating a file containing this
+(for bash)::
+
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib/
+    export LD_PRELOAD=libsdp.so
+
+By passing this file to the ``--prolog`` parameter of SCOOP, SDP sockets will
+be used instead of TCP over IB.
