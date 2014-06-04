@@ -200,6 +200,7 @@ class Host(object):
                                  bufsize=-1,
                                  stdout=None,
                                  stderr=None,
+                                 stdin=subprocess.PIPE
                 )
             )
 
