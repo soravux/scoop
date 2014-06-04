@@ -56,7 +56,8 @@ def initLogging(verbosity=0, name="SCOOP"):
             0: "WARNING",
             1: "INFO",
             2: "DEBUG",
-            3: "NOSET",
+            3: "DEBUG",
+            4: "NOSET",
         }
         log_handlers = {
             "console":
