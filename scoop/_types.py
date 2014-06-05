@@ -256,6 +256,7 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = set()
         self.socket = Communicator()
+        self.lastStatus = 0.0
         if scoop.SIZE == 1 and not scoop.CONFIGURATION.get('headless', False):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
@@ -303,6 +304,11 @@ class FutureQueue(object):
 
     def askForPreviousFutures(self):
         """Request a status for every future to the broker."""
+        # Don't request it too often
+        if time.time() < self.lastStatus + POLLING_TIME / 1000:
+            return
+        self.lastStatus = time.time()
+
         for future in scoop._control.futureDict.values():
             # Skip the root future
             if scoop.IS_ORIGIN and future.id == (scoop.worker, 0):
@@ -330,6 +336,7 @@ class FutureQueue(object):
             return self.movable.popleft()
         else:
             # Otherwise, block until a new task arrives
+            self.lastStatus = time.time()
             while len(self) == 0:
                 # Block until message arrives
                 self.askForPreviousFutures()

@@ -231,9 +231,15 @@ class ZMQCommunicator(object):
             if msg[2] == STATUS_NONE:
                 # If a task was requested but is nowhere to be found, resend it
                 future_id = pickle.loads(msg[1])
-                scoop.logger.warning("Lost track of future {0}. Resending it..."
-                                     "".format(scoop._control.futureDict[future_id]))
-                self.sendFuture(scoop._control.futureDict[future_id])
+                try:
+                    scoop.logger.warning(
+                        "Lost track of future {0}. Resending it..."
+                        "".format(scoop._control.futureDict[future_id])
+                    )
+                    self.sendFuture(scoop._control.futureDict[future_id])
+                except KeyError:
+                    # Future was received and processed meanwhile
+                    pass
             return
 
         isCallable = callable(thisFuture.callable)
