@@ -28,6 +28,8 @@ from subprocess import Popen
 
 from scoop.utils import getCPUcount
 
+import atexit
+
 
 BOOTSTRAP_MODULE = 'scoop.bootstrap.__main__'
 
@@ -52,8 +54,18 @@ def getArgs():
     return nb_to_launch, verbosity, sys.argv[3:]
 
 
-def launchBoostraps():
+def cleanupBootstraps():
+    """Perform a cleanup (terminate) of the children processes."""
+    for p in processes:
+        try:
+            p.terminate()
+        except OSError:
+            pass
+
+
+def launchBootstraps():
     """Launch the bootstrap instances in separate subprocesses"""
+    global processes
     worker_amount, verbosity, args = getArgs()
     was_origin = False
 
@@ -91,4 +103,8 @@ def launchBoostraps():
 
 
 if __name__ == "__main__":
-    launchBoostraps()
+    processes = []
+    try:
+        launchBootstraps()
+    finally:
+        cleanupBootstraps()
