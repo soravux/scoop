@@ -232,7 +232,7 @@ class ZMQCommunicator(object):
                 # If a task was requested but is nowhere to be found, resend it
                 future_id = pickle.loads(msg[1])
                 scoop.logger.warning("Lost track of future {0}. Resending it..."
-                                     "".format(future_id))
+                                     "".format(scoop._control.futureDict[future_id]))
                 self.sendFuture(scoop._control.futureDict[future_id])
             return
 
@@ -321,6 +321,7 @@ class ZMQCommunicator(object):
         """Send a Future to be executed remotely."""
         future = copy.copy(future)
         future.greenlet = None
+        future.children = {}
 
         try:
             if shared.getConst(hash(future.callable), timeout=0):
@@ -331,14 +332,14 @@ class ZMQCommunicator(object):
                 pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
                 pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
             ])
-        except pickle.PicklingError as e:
-            import pdb
-            pdb.set_trace()
+        except (pickle.PicklingError, TypeError) as e:
+            if scoop.IS_ORIGIN:
+                import pdb
+                pdb.set_trace()
         
             # If element not picklable, pickle its name
             # TODO: use its fully qualified name
             scoop.logger.warn("Pickling Error: {0}".format(e))
-            previousCallable = future.callable
             future.callable = hash(future.callable)
             self.socket.send_multipart([
                 TASK,
