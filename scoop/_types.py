@@ -29,6 +29,9 @@ else:
     from collections import Counter
 
 
+POLLING_TIME = 2000
+
+
 class CallbackType:
     """Type of groups enumeration."""
     standard = "standard"
@@ -236,8 +239,8 @@ class Future(object):
 
     def _delete(self):
         # TODO: Do we need this?
-        if self.id in scoop._control.execQueue.inprogress:
-            del scoop._control.execQueue.inprogress[self.id]
+        # discard: remove if exists
+        scoop._control.execQueue.inprogress.discard(self.id)
         for child in self.children:
             child.exceptionValue = CancelledError()
         scoop._control.delFuture(self)
@@ -251,7 +254,7 @@ class FutureQueue(object):
         object."""
         self.movable = deque()
         self.ready = deque()
-        self.inprogress = {}
+        self.inprogress = set()
         self.socket = Communicator()
         if scoop.SIZE == 1 and not scoop.CONFIGURATION.get('headless', False):
             self.lowwatermark = float("inf")
@@ -282,11 +285,11 @@ class FutureQueue(object):
     def append(self, future):
         """Append a future to the queue."""
         if future._ended() and future.index is None:
-            self.inprogress[future.id] = future
+            self.inprogress.add(future)
         elif future._ended() and future.index is not None:
             self.ready.append(future)
         elif future.greenlet is not None:
-            self.inprogress.append(future)
+            self.inprogress.add(future)
         else:
             self.movable.append(future)
 
@@ -330,7 +333,7 @@ class FutureQueue(object):
             while len(self) == 0:
                 # Block until message arrives
                 self.askForPreviousFutures()
-                self.socket._poll(-1)
+                self.socket._poll(POLLING_TIME)
                 self.updateQueue()
             if len(self.ready) != 0:
                 return self.ready.popleft()
@@ -377,13 +380,14 @@ class FutureQueue(object):
                 self.append(scoop._control.futureDict[future.id])
             else:
                 self.append(scoop._control.futureDict[future.id])
+
         to_remove = []
-        for future in self.inprogress.values():
+        for future in self.inprogress:
             if future.index is not None:
                 self.ready.append(future)
                 to_remove.append(future)
         for future in to_remove:
-            del self.inprogress[future.id]
+            self.inprogress.discard(future.id)
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
