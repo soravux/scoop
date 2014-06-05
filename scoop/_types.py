@@ -71,7 +71,6 @@ class TimeoutError(Exception):
     pass
 
 
-FutureId = namedtuple('FutureId', ['worker', 'rank'])
 callbackEntry = namedtuple('callbackEntry', ['func', 'callbackType', 'groupID'])
 class Future(object):
     """This class encapsulates an independent future that can be executed in parallel.
@@ -80,7 +79,7 @@ class Future(object):
     rank = itertools.count()
     def __init__(self, parentId, callable, *args, **kargs):
         """Initialize a new Future."""
-        self.id = FutureId(scoop.worker, next(Future.rank))
+        self.id = (scoop.worker, next(Future.rank))
         self.executor = None  # id of executor
         self.parentId = parentId  # id of parent
         self.index = None  # parent index for result
@@ -227,7 +226,7 @@ class Future(object):
 
     def _execute_callbacks(self, callbackType=CallbackType.standard):
         for callback in self.callback:
-            isUniRun = (self.parentId.worker == scoop.worker 
+            isUniRun = (self.parentId[0] == scoop.worker 
                         and callbackType == CallbackType.universal)
             if isUniRun or callback.callbackType == callbackType:
                 try:
@@ -295,9 +294,19 @@ class FutureQueue(object):
             over_hwm = self.timelen(self.movable) > self.highwatermark
             while over_hwm and len(self.movable) > 1:
                 sending_future = self.movable.popleft()
-                if sending_future.id.worker != scoop.worker:
+                if sending_future.id[0] != scoop.worker:
                     sending_future._delete()
                 self.socket.sendFuture(sending_future)
+
+    def askForPreviousFutures(self):
+        """Request a status for every future to the broker."""
+        for future in scoop._control.futureDict.values():
+            # Skip the root future
+            if scoop.IS_ORIGIN and future.id == (scoop.worker, 0):
+                continue
+
+            if future not in self.inprogress:
+                self.socket.sendStatusRequest(future)
 
     def pop(self):
         """Pop the next future from the queue;
@@ -320,6 +329,7 @@ class FutureQueue(object):
             # Otherwise, block until a new task arrives
             while len(self) == 0:
                 # Block until message arrives
+                self.askForPreviousFutures()
                 self.socket._poll(-1)
                 self.updateQueue()
             if len(self.ready) != 0:
@@ -331,7 +341,7 @@ class FutureQueue(object):
         """Empty the local queue and send its elements to be executed remotely.
         """
         for elem in self:
-            if elem.id.worker != scoop.worker:
+            if elem.id[0] != scoop.worker:
                 elem._delete()
             self.socket.sendFuture(elem)
         self.ready.clear()

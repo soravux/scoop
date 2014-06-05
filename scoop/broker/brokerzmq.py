@@ -33,15 +33,24 @@ from .structs import BrokerInfo
 
 
 # Worker requests
-INIT = b"INIT"
-REQUEST = b"REQUEST"
-TASK = b"TASK"
-REPLY = b"REPLY"
-SHUTDOWN = b"SHUTDOWN"
-VARIABLE = b"VARIABLE"
-BROKER_INFO = b"BROKER_INFO"
+INIT = b"I"
+REQUEST = b"RQ"
+TASK = b"T"
+REPLY = b"RP"
+SHUTDOWN = b"S"
+VARIABLE = b"V"
+BROKER_INFO = b"B"
+STATUS_REQ = b"SR"
+STATUS_ANS = b"SA"
+STATUS_SET = b"SS"
+
+# Task statuses
+STATUS_HERE = b"H"
+STATUS_GIVEN = b"G"
+STATUS_NONE = b"N"
+
 # Broker interconnection
-CONNECT = b"CONNECT"
+CONNECT = b"C"
 
 
 class LaunchingError(Exception): pass
@@ -128,7 +137,7 @@ class Broker(object):
         # The busy workers variable will contain a dict (map) of workers: task
         self.availableWorkers = deque()
         self.unassignedTasks = deque()
-        self.groupTasks = defaultdict(list)
+        self.assignedTasks = {}
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
@@ -168,8 +177,7 @@ class Broker(object):
                 )
 
     def run(self):
-        """Redirects messages until a shutdown message is received.
-        """
+        """Redirects messages until a shutdown message is received."""
         while True:
             if not self.taskSocket.poll(-1):
                 continue
@@ -189,27 +197,59 @@ class Broker(object):
                     self.lastDebugTs = time.time()
 
             # New task inbound
-            if msg_type in TASK:
-                task = msg[2]
+            if msg_type == TASK:
+                task_id = msg[2]
+                task = msg[3]
+                self.logger.debug("Received task {0}".format(task_id))
                 try:
                     address = self.availableWorkers.popleft()
                 except IndexError:
-                    self.unassignedTasks.append(task)
+                    self.unassignedTasks.append((task_id, task))
                 else:
+                    self.logger.debug("Sent {0}".format(task_id))
                     self.taskSocket.send_multipart([address, TASK, task])
+                    self.assignedTasks[task_id] = address
+
+            # A task status request is requested
+            elif msg_type == STATUS_REQ:
+                address = msg[0]
+                task_id = msg[2]
+
+                if self.assignedTasks.get(task_id, None):
+                    status = STATUS_GIVEN
+                elif task_id in (x[0] for x in self.unassignedTasks):
+                    status = STATUS_HERE
+                else:
+                    status = STATUS_NONE
+
+                self.taskSocket.send_multipart([
+                    address, STATUS_ANS, task_id, status
+                ])
+
+            # A task status set (task done) is received
+            elif msg_type == STATUS_SET:
+                task_id = msg[2]
+
+                try:
+                    del self.assignedTasks[task_id]
+                except KeyError:
+                    pass
 
             # Request for task
             elif msg_type == REQUEST:
                 address = msg[0]
                 try:
-                    task = self.unassignedTasks.popleft()
+                    task_id, task = self.unassignedTasks.popleft()
                 except IndexError:
                     self.availableWorkers.append(address)
                 else:
+                    self.logger.debug("Sent {0}".format(task_id))
                     self.taskSocket.send_multipart([address, TASK, task])
+                    self.assignedTasks[task_id] = address
 
             # Answer needing delivery
             elif msg_type == REPLY:
+                self.logger.debug("Relaying")
                 destination = msg[-1]
                 origin = msg[0]
                 self.taskSocket.send_multipart([destination] + msg[1:] + [origin])
@@ -303,4 +343,3 @@ class Broker(object):
                 path,
                 "broker-{name}".format(**locals())), 'wb') as f:
             pickle.dump(self.stats, f)
-

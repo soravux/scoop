@@ -32,6 +32,23 @@ from .. import shared, encapsulation, utils
 from ..shared import SharedElementEncapsulation
 from .scoopexceptions import Shutdown, ReferenceBroken
 
+# Worker requests
+INIT = b"I"
+REQUEST = b"RQ"
+TASK = b"T"
+REPLY = b"RP"
+SHUTDOWN = b"S"
+VARIABLE = b"V"
+BROKER_INFO = b"B"
+STATUS_REQ = b"SR"
+STATUS_ANS = b"SA"
+STATUS_SET = b"SS"
+
+# Task statuses
+STATUS_HERE = b"H"
+STATUS_GIVEN = b"G"
+STATUS_NONE = b"N"
+
 
 LINGER_TIME = 1000
 
@@ -117,7 +134,7 @@ class ZMQCommunicator(object):
         # Send an INIT to get all previously set variables and share
         # current configuration to broker
         self.socket.send_multipart([
-            b"INIT",
+            INIT,
             pickle.dumps(scoop.CONFIGURATION)
         ])
         scoop.CONFIGURATION.update(pickle.loads(self.socket.recv()))
@@ -144,7 +161,11 @@ class ZMQCommunicator(object):
         # Remove message dropping
         sock.setsockopt(zmq.SNDHWM, 0)
         sock.setsockopt(zmq.RCVHWM, 0)
-        sock.setsockopt(zmq.IMMEDIATE, 1)
+        try:
+            sock.setsockopt(zmq.IMMEDIATE, 1)
+        except:
+            # This parameter was recently added by new libzmq versions
+            pass
 
         # Don't accept unroutable messages
         if sock_type == zmq.ROUTER:
@@ -199,11 +220,21 @@ class ZMQCommunicator(object):
             )
             raise ReferenceBroken(e)
 
-        if msg[0] == b"TASK":
+        if msg[0] == TASK:
             # Try to connect directly to this worker to send the result
             # afterwards if Future is from a map.
             if thisFuture.sendResultBack:
-                self.addPeer(thisFuture.id.worker)
+                self.addPeer(thisFuture.id[0])
+
+        elif msg[0] == STATUS_ANS:
+            # TODO: This should not be here but in FuturesQueue.
+            if msg[2] == STATUS_NONE:
+                # If a task was requested but is nowhere to be found, resend it
+                future_id = pickle.loads(msg[1])
+                scoop.logger.warning("Lost track of future {0}. Resending it..."
+                                     "".format(future_id))
+                self.sendFuture(scoop._control.futureDict[future_id])
+            return
 
         isCallable = callable(thisFuture.callable)
         isDone = thisFuture._ended()
@@ -226,7 +257,7 @@ class ZMQCommunicator(object):
         try:
             while self.infoSocket.poll(0):
                 msg = self.infoSocket.recv_multipart()
-                if msg[0] == b"SHUTDOWN":
+                if msg[0] == SHUTDOWN:
                     if scoop.IS_ORIGIN is False:
                         raise Shutdown("Shutdown received")
                     if not scoop.SHUTDOWN_REQUESTED:
@@ -235,13 +266,13 @@ class ZMQCommunicator(object):
                             "for more information. SCOOP pool will now shutdown."
                         )
                         raise Shutdown("Unexpected shutdown received")
-                elif msg[0] == b"VARIABLE":
+                elif msg[0] == VARIABLE:
                     key = pickle.loads(msg[3])
                     varValue = pickle.loads(msg[2])
                     varName = pickle.loads(msg[1])
                     shared.elements.setdefault(key, {}).update({varName: varValue})
                     self.convertVariable(key, varName, varValue)
-                elif msg[0] == b"BROKER_INFO":
+                elif msg[0] == BROKER_INFO:
                     # TODO: find out what to do here ...
                     if len(self.broker_set) == 0: # The first update
                         self.broker_set.add(pickle.loads(msg[1]))
@@ -288,24 +319,35 @@ class ZMQCommunicator(object):
 
     def sendFuture(self, future):
         """Send a Future to be executed remotely."""
+        future = copy.copy(future)
+        future.greenlet = None
+        import random
+        if random.random() < 0.1:
+            return
+
         try:
-            if shared.getConst(hash(future.callable),
-                               timeout=0):
+            if shared.getConst(hash(future.callable), timeout=0):
                 # Enforce name reference passing if already shared
                 future.callable = SharedElementEncapsulation(hash(future.callable))
-            self.socket.send_multipart([b"TASK",
-                                        pickle.dumps(future,
-                                                     pickle.HIGHEST_PROTOCOL)])
+            self.socket.send_multipart([
+                TASK,
+                pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
+                pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
+            ])
         except pickle.PicklingError as e:
+            import pdb
+            pdb.set_trace()
+        
             # If element not picklable, pickle its name
             # TODO: use its fully qualified name
             scoop.logger.warn("Pickling Error: {0}".format(e))
             previousCallable = future.callable
             future.callable = hash(future.callable)
-            self.socket.send_multipart([b"TASK",
-                                        pickle.dumps(future,
-                                                     pickle.HIGHEST_PROTOCOL)])
-            future.callable = previousCallable
+            self.socket.send_multipart([
+                TASK,
+                pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
+                pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
+            ])
 
     def sendResult(self, future):
         """Send a terminated future back to its parent."""
@@ -319,14 +361,12 @@ class ZMQCommunicator(object):
             future.resultValue = None
 
         self._sendReply(
-            future.id.worker,
-            pickle.dumps(
-                future,
-                pickle.HIGHEST_PROTOCOL,
-            ),
+            future.id[0],
+            pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
+            pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
         )
 
-    def _sendReply(self, destination, *args):
+    def _sendReply(self, destination, fid, *args):
         """Send a REPLY directly to its destination. If it doesn't work, launch
         it back to the broker."""
         # Try to send the result directly to its parent
@@ -335,7 +375,7 @@ class ZMQCommunicator(object):
         try:
             self.direct_socket.send_multipart([
                 destination,
-                b"REPLY",
+                REPLY,
             ] + list(args),
                 flags=zmq.NOBLOCK)
         except zmq.error.ZMQError as e:
@@ -345,42 +385,40 @@ class ZMQCommunicator(object):
                 "broker.".format(scoop.worker, destination)
             )
             self.socket.send_multipart([
-                b"REPLY", 
+                REPLY, 
                 ] + list(args) + [
                 destination,
             ])
 
-    def sendVariable(self, key, value):
-        self.socket.send_multipart([b"VARIABLE",
-                                    pickle.dumps(key),
-                                    pickle.dumps(value,
-                                                 pickle.HIGHEST_PROTOCOL),
-                                    pickle.dumps(scoop.worker,
-                                                 pickle.HIGHEST_PROTOCOL)])
-
-    def taskEnd(self, groupID, askResults=False):
         self.socket.send_multipart([
-            b"TASKEND",
-            pickle.dumps(
-                askResults,
-                pickle.HIGHEST_PROTOCOL
-            ),
-            pickle.dumps(
-                groupID,
-                pickle.HIGHEST_PROTOCOL
-            ),
+            STATUS_SET,
+            fid,
+        ])
+
+    def sendStatusRequest(self, future):
+        self.socket.send_multipart([
+            STATUS_REQ,
+            pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
+        ])
+
+    def sendVariable(self, key, value):
+        self.socket.send_multipart([
+            VARIABLE,
+            pickle.dumps(key, pickle.HIGHEST_PROTOCOL),
+            pickle.dumps(value, pickle.HIGHEST_PROTOCOL),
+            pickle.dumps(scoop.worker, pickle.HIGHEST_PROTOCOL),
         ])
 
     def sendRequest(self):
         for _ in range(len(self.broker_set)):
-            self.socket.send(b"REQUEST")
+            self.socket.send(REQUEST)
 
     def workerDown(self):
-        self.socket.send(b"WORKERDOWN")
+        self.socket.send(WORKERDOWN)
 
     def shutdown(self):
         """Sends a shutdown message to other workers."""
         if not self.ZMQcontext.closed:
             scoop.SHUTDOWN_REQUESTED = True
-            self.socket.send(b"SHUTDOWN")
+            self.socket.send(SHUTDOWN)
             self.ZMQcontext.destroy()

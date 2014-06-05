@@ -25,7 +25,7 @@ import traceback
 
 import greenlet
 
-from ._types import Future, FutureId, FutureQueue, CallbackType
+from ._types import Future, FutureQueue, CallbackType
 import scoop
 
 # Backporting collection features
@@ -171,7 +171,7 @@ def runController(callable_, *args, **kargs):
     global execQueue
 
     # initialize and run root future
-    rootId = FutureId(-1, 0)
+    rootId = (-1, 0)
 
     # initialise queue
     if execQueue is None:
@@ -231,7 +231,7 @@ def runController(callable_, *args, **kargs):
         # process future
         if future._ended():
             # future is finished
-            if future.id.worker != scoop.worker:
+            if future.id[0] != scoop.worker:
                 # future is not local
                 execQueue.sendResult(future)
                 future = execQueue.pop()

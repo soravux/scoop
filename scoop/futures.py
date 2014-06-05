@@ -18,7 +18,7 @@ import os
 import sys
 from inspect import ismethod
 from collections import namedtuple, Iterable
-from functools import partial, reduce
+from functools import reduce
 import itertools
 import copy
 import time
