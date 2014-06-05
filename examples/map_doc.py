@@ -22,6 +22,8 @@ from __future__ import print_function
 from scoop import futures
 
 def helloWorld(value):
+    import time
+    time.sleep(0.2)
     return "Hello World from Future #{0}".format(value)
 
 if __name__ == "__main__":
