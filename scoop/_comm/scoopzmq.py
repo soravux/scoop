@@ -321,9 +321,6 @@ class ZMQCommunicator(object):
         """Send a Future to be executed remotely."""
         future = copy.copy(future)
         future.greenlet = None
-        import random
-        if random.random() < 0.1:
-            return
 
         try:
             if shared.getConst(hash(future.callable), timeout=0):
