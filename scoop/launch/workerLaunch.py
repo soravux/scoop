@@ -123,7 +123,10 @@ class Host(object):
         if worker.nice is not None:
             c.extend(['--nice', str(worker.nice)])
         c.extend(['--size', str(worker.size)])
-        c.extend(['--workingDirectory', str(worker.path)])
+        if self.isLocal():
+            c.extend(['--workingDirectory', str(worker.path)])
+        else:
+            c.extend(['--workingDirectory', '"{0}"'.format(str(worker.path))])
         c.extend(['--brokerHostname', broker])
         c.extend(['--externalBrokerHostname', worker.brokerHostname])
         c.extend(['--taskPort', str(worker.brokerPorts[0])])
