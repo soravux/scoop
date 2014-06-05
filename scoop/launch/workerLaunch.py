@@ -210,9 +210,6 @@ class Host(object):
         # Ensure everything is cleaned up on exit
         scoop.logger.debug('Closing workers on {0}.'.format(self))
 
-        if hasattr(self, 'self.getGIDAsyncThread'):
-            self.self.getGIDAsyncThread.join()
-
         # Terminate subprocesses
         for process in self.subprocesses:
             try:
