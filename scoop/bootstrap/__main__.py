@@ -132,7 +132,7 @@ class Bootstrap(object):
         self.parser.add_argument('--workingDirectory',
                                  help="Set the working directory for the "
                                       "execution",
-                                 default="~")
+                                 default=os.path.expanduser("~"))
         self.parser.add_argument('--backend',
                                  help="Choice of communication backend",
                                  choices=['ZMQ', 'TCP'],
