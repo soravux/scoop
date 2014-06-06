@@ -333,11 +333,6 @@ class ZMQCommunicator(object):
         future.greenlet = None
         future.children = {}
 
-        import random
-        if random.random() < 0.1:
-            print("Losing ", future)
-            return
-
         try:
             if shared.getConst(hash(future.callable), timeout=0):
                 # Enforce name reference passing if already shared
