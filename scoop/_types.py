@@ -304,10 +304,15 @@ class FutureQueue(object):
 
     def askForPreviousFutures(self):
         """Request a status for every future to the broker."""
-        # Don't request it too often
+        # Don't request it too often (otherwise it ping-pongs because)
+        # the broker answer triggers the _poll of pop()
         if time.time() < self.lastStatus + POLLING_TIME / 1000:
             return
         self.lastStatus = time.time()
+
+        if not hasattr(self, 'lastrapporte') or self.lastrapporte != scoop._control.futureDict.values():
+            self.lastrapporte = scoop._control.futureDict.values()
+            print("New request:", scoop._control.futureDict.values())
 
         for future in scoop._control.futureDict.values():
             # Skip the root future

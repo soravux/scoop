@@ -228,7 +228,11 @@ class ZMQCommunicator(object):
 
         elif msg[0] == STATUS_ANS:
             # TODO: This should not be here but in FuturesQueue.
-            if msg[2] == STATUS_NONE:
+            print(pickle.loads(msg[1]), "Status was: ", msg[2], msg[3])
+            if msg[2] == STATUS_HERE:
+                # TODO: Don't know why should that be done?
+                self.sendRequest()
+            elif msg[2] == STATUS_NONE:
                 # If a task was requested but is nowhere to be found, resend it
                 future_id = pickle.loads(msg[1])
                 try:
@@ -328,6 +332,11 @@ class ZMQCommunicator(object):
         future = copy.copy(future)
         future.greenlet = None
         future.children = {}
+
+        import random
+        if random.random() < 0.1:
+            print("Losing ", future)
+            return
 
         try:
             if shared.getConst(hash(future.callable), timeout=0):

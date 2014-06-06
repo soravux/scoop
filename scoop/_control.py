@@ -238,11 +238,16 @@ def runController(callable_, *args, **kargs):
             else:
                 # future is local, parent is waiting
                 if future.index is not None:
-                    parent = futureDict[future.parentId]
-                    if parent.exceptionValue is None:
-                        future = parent._switch(future)
-                    else:
+                    try:
+                        parent = futureDict[future.parentId]
+                    except KeyError:
+                        # Job has no parent here (probably children restart)
                         future = execQueue.pop()
+                    else:
+                        if parent.exceptionValue is None:
+                            future = parent._switch(future)
+                        else:
+                            future = execQueue.pop()
                 else:
                     future = execQueue.pop()
         else:
