@@ -215,15 +215,18 @@ class Broker(object):
                 address = msg[0]
                 task_id = msg[2]
 
+                who = b""
+
                 if self.assignedTasks.get(task_id, None):
                     status = STATUS_GIVEN
+                    who = self.assignedTasks[task_id]
                 elif task_id in (x[0] for x in self.unassignedTasks):
                     status = STATUS_HERE
                 else:
                     status = STATUS_NONE
 
                 self.taskSocket.send_multipart([
-                    address, STATUS_ANS, task_id, status
+                    address, STATUS_ANS, task_id, status, who
                 ])
 
             # A task status set (task done) is received
