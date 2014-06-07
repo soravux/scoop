@@ -310,10 +310,6 @@ class FutureQueue(object):
             return
         self.lastStatus = time.time()
 
-        if not hasattr(self, 'lastrapporte') or self.lastrapporte != scoop._control.futureDict.values():
-            self.lastrapporte = scoop._control.futureDict.values()
-            print("New request:", scoop._control.futureDict.values())
-
         for future in scoop._control.futureDict.values():
             # Skip the root future
             if scoop.IS_ORIGIN and future.id == (scoop.worker, 0):
@@ -392,14 +388,6 @@ class FutureQueue(object):
                 self.append(scoop._control.futureDict[future.id])
             else:
                 self.append(scoop._control.futureDict[future.id])
-
-        to_remove = []
-        for future in self.inprogress:
-            if future.index is not None:
-                self.ready.append(future)
-                to_remove.append(future)
-        for future in to_remove:
-            self.inprogress.discard(future.id)
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or
