@@ -228,7 +228,6 @@ class ZMQCommunicator(object):
 
         elif msg[0] == STATUS_ANS:
             # TODO: This should not be here but in FuturesQueue.
-            print(pickle.loads(msg[1]), "Status was: ", msg[2], msg[3])
             if msg[2] == STATUS_HERE:
                 # TODO: Don't know why should that be done?
                 self.sendRequest()
