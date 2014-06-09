@@ -342,10 +342,6 @@ class ZMQCommunicator(object):
                 pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
             ])
         except (pickle.PicklingError, TypeError) as e:
-            if scoop.IS_ORIGIN:
-                import pdb
-                pdb.set_trace()
-        
             # If element not picklable, pickle its name
             # TODO: use its fully qualified name
             scoop.logger.warn("Pickling Error: {0}".format(e))
