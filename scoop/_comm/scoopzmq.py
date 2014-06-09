@@ -425,7 +425,7 @@ class ZMQCommunicator(object):
 
     def shutdown(self):
         """Sends a shutdown message to other workers."""
-        if not self.ZMQcontext.closed:
+        if self.ZMQcontext and not self.ZMQcontext.closed:
             scoop.SHUTDOWN_REQUESTED = True
             self.socket.send(SHUTDOWN)
             self.ZMQcontext.destroy()
