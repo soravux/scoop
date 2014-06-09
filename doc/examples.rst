@@ -152,8 +152,8 @@ You can now run your code using the command :program:`python -m scoop`.
 Sharing Constant
 ----------------
 
-One usage of shared constants is to halt a computation when a worker has
-found a solution such as a brute forcing example.
+A typical usage of the shared constants is to broadcast a value or an object
+that must be created at runtime and read by every worker, as the following:
 
 .. literalinclude:: ../examples/shared_example_doc.py
    :lines: 22-

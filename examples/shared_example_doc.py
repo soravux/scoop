@@ -16,55 +16,55 @@
 #
 """
 Example of shared constants use.
-This is a synthetic partition and evaluation example that should only be
-analysed for its shared module API.
 """
-from itertools import product
-import string
 from scoop import futures, shared
 
-# Create the hash to brute force
-HASH_TO_FIND = hash("SCO")
 
-
-def generateHashes(iterator):
-    """Compute hashes of given iterator elements"""
-    for combination in iterator:
-        # Stop as soon as a worker finds the solution
-        if shared.getConst('Done', timeout=0):
-            return False
-
-        # Compute the current combination hash
-        currentString = "".join(combination).strip()
-        if hash(currentString) == HASH_TO_FIND:
-            # Share to every other worker that the solution has been found
-            shared.setConst(Done=True)
-            return currentString
-    
-    # Report that computing has not ended
-    return False
+def getValue(words):
+    """Computes the sum of the values of the words."""
+    value = 0
+    for word in words:
+        for letter in word:
+            # shared.getConst will evaluate to the dictionary broadcasted by
+            # the root Future
+            value += shared.getConst('lettersValue')[letter]
+    return value
 
 
 if __name__ == "__main__":
-    # Generate possible characters
-    possibleCharacters = []
-    possibleCharacters.extend(list(string.ascii_uppercase))
-    possibleCharacters.extend(' ')
+    # Set the values of the letters according to the language and broadcast it
+    # This list is set at runtime
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == 'francais':
+        shared.setConst(lettersValue={'a': 1, 'b': 3, 'c': 3, 'd': 2, 'e': 1,
+        'f': 4, 'g': 2, 'h': 4, 'i': 1, 'j': 8, 'k':10, 'l': 1, 'm': 2, 'n': 1,
+        'o': 1, 'p': 3, 'q': 8, 'r': 1, 'r': 1, 's': 1, 't': 1, 'u': 1, 'v': 4,
+        'w':10, 'x':10, 'y':10, 'z': 10})
+        print("French letter values used.")
+    else:
+        shared.setConst(lettersValue={'a': 1, 'b': 3, 'c': 3, 'd': 2, 'e': 1,
+        'f': 4, 'g': 2, 'h': 4, 'i': 1, 'j': 8, 'k': 5, 'l': 1, 'm': 3, 'n': 1,
+        'o': 1, 'p': 3, 'q':10, 'r': 1, 'r': 1, 's': 1, 't': 1, 'u': 1, 'v': 4,
+        'w': 4, 'x': 8, 'y': 4, 'z': 10})
+        print("English letter values used.")
 
-    # Generate the solution space.
-    stringIterator = product(possibleCharacters, repeat=3)
-
-    # Partition the solution space into iterators
-    # Keep in mind that it evaluates the whole solution space
-    # making it pretty memory inefficient.
-    SplittedIterator = [stringIterator for _ in range(1000)]
-
-    # Parallelize the solution space evaluation
-    results = futures.map(generateHashes, SplittedIterator)
-
-    # Loop until a solution is found
-    for result in results:
-        if result:
-            break
-
-    print(result)
+    # Get the player words (generate a list of random letters 
+    import random
+    import string
+    random.seed(3141592653)
+    words = []
+    player_quantity = 4
+    words_per_player = 10
+    word_letters = (1, 6)
+    for pid in range(player_quantity):
+        player = []
+        for _ in range(words_per_player):
+            word = "".join(random.choice(string.ascii_lowercase) for _ in range(random.randint(*word_letters)))
+            player.append(word)
+        print("Player {pid} played words: {player}".format(**locals()))
+        words.append(player)
+    
+    # Compute the score of every player and display it
+    results = list(futures.map(getValue, words))
+    for pid, result in enumerate(results):
+        print("Player {pid}: {result}".format(**locals()))
