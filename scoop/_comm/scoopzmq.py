@@ -53,6 +53,15 @@ STATUS_NONE = b"N"
 LINGER_TIME = 1000
 
 
+def ensureValidSocket(method):
+    def ensureValidSocketDecorator(*args, **kwargs):
+        try:
+            method(*args, **kwargs)
+        except zmq.error.ZMQError:
+            raise Shutdown()
+    return ensureValidSocketDecorator
+
+
 class ZMQCommunicator(object):
     """This class encapsulates the communication features toward the broker."""
 
@@ -195,6 +204,7 @@ class ZMQCommunicator(object):
 
         self.broker_set.add(brokerEntry)
 
+    @ensureValidSocket
     def _poll(self, timeout):
         self.pumpInfoSocket()
         return self.poller.poll(timeout)
@@ -262,6 +272,7 @@ class ZMQCommunicator(object):
                                       "{0}.".format(thisFuture))
         return thisFuture
 
+    @ensureValidSocket
     def pumpInfoSocket(self):
         try:
             while self.infoSocket.poll(0):
@@ -326,11 +337,14 @@ class ZMQCommunicator(object):
             if received:
                 yield received
 
+    @ensureValidSocket
     def sendFuture(self, future):
         """Send a Future to be executed remotely."""
         future = copy.copy(future)
         future.greenlet = None
         future.children = {}
+        #if random.random() < 0.01:
+        #    return
 
         try:
             if shared.getConst(hash(future.callable), timeout=0):
@@ -356,6 +370,7 @@ class ZMQCommunicator(object):
                 pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
             ])
 
+    @ensureValidSocket
     def sendResult(self, future):
         """Send a terminated future back to its parent."""
         future = copy.copy(future)
@@ -373,6 +388,7 @@ class ZMQCommunicator(object):
             pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
         )
 
+    @ensureValidSocket
     def _sendReply(self, destination, fid, *args):
         """Send a REPLY directly to its destination. If it doesn't work, launch
         it back to the broker."""
@@ -402,12 +418,14 @@ class ZMQCommunicator(object):
             fid,
         ])
 
+    @ensureValidSocket
     def sendStatusRequest(self, future):
         self.socket.send_multipart([
             STATUS_REQ,
             pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
         ])
 
+    @ensureValidSocket
     def sendVariable(self, key, value):
         self.socket.send_multipart([
             VARIABLE,
@@ -416,16 +434,18 @@ class ZMQCommunicator(object):
             pickle.dumps(scoop.worker, pickle.HIGHEST_PROTOCOL),
         ])
 
+    @ensureValidSocket
     def sendRequest(self):
         for _ in range(len(self.broker_set)):
             self.socket.send(REQUEST)
 
+    @ensureValidSocket
     def workerDown(self):
         self.socket.send(WORKERDOWN)
 
     def shutdown(self):
         """Sends a shutdown message to other workers."""
-        if not self.ZMQcontext.closed:
+        if self.ZMQcontext and not self.ZMQcontext.closed:
             scoop.SHUTDOWN_REQUESTED = True
             self.socket.send(SHUTDOWN)
             self.ZMQcontext.destroy()
