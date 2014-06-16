@@ -410,6 +410,6 @@ class FutureQueue(object):
                 from scoop import _debug
                 _debug.writeWorkerDebug(control.debug_stats,
                                         control.QueueLength)
-        except AttributeError:
+        except (AttributeError, TypeError):
             # scoop evals to None, hence it was not properly started
             pass
