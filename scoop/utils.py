@@ -173,7 +173,8 @@ def getHostsFromFile(filename):
                     if n:
                         n = n.group()
                     else:
-                        n = 1
+                        # Automatically assign based on CPU count
+                        n = 0
                     hosts.append((hostname, int(n)))
     return hosts
 
