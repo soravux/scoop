@@ -298,8 +298,8 @@ class ScoopApp(object):
             ))
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
-                rootProcess = shells[0][0]
                 break
+        rootProcess = shells[0][0]
 
         # Wait for the root program
         if self.workers[0].isLocal():
