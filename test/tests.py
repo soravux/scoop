@@ -294,7 +294,7 @@ class TestScoopCommon(unittest.TestCase):
 
     def multiworker_set(self):
         global subprocesses
-        worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap",
+        worker = subprocess.Popen([sys.executable, "-m", "scoop.bootstrap.__main__",
         "--brokerHostname", "127.0.0.1", "--taskPort", "5555",
         "--metaPort", "5556", "tests.py"])
         subprocesses.append(worker)
@@ -305,7 +305,7 @@ class TestScoopCommon(unittest.TestCase):
         import socket, datetime, time
 
         # Start the server
-        self.server = subprocess.Popen([sys.executable, "-m", "scoop.broker",
+        self.server = subprocess.Popen([sys.executable, "-m", "scoop.broker.__main__",
         "--tPort", "5555", "--mPort", "5556"])
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         begin = datetime.datetime.now()
