@@ -24,10 +24,12 @@ import scoop
 
 
 def getDebugIdentifier():
+    """Returns the unique identifier of the current worker."""
     return scoop.worker.decode().replace(":", "_")
 
 
 def getDebugDirectory():
+    """Returns the debug directory."""
     return os.path.join(scoop.WORKING_DIRECTORY, "debug")
 
 
@@ -41,6 +43,7 @@ def createDirectory():
 
 
 def redirectSTDOUTtoDebugFile():
+    """Redirects the stdout and stderr of the current process to a file."""
     import sys
     sys.stdout = open(
         os.path.join(
@@ -63,6 +66,8 @@ def redirectSTDOUTtoDebugFile():
 
 
 def writeWorkerDebug(debugStats, queueLength, pathSuffix="debug"):
+    """Serialize the execution data using pickle and writes it into the debug
+    directory."""
     createDirectory(os.path.join(getDebugDirectory(), pathSuffix))
     origin_prefix = "origin-" if scoop.IS_ORIGIN else ""
     statsFilename = os.path.join(
