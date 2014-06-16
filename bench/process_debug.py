@@ -275,7 +275,6 @@ def plotHistogram(dataTask, filename):
         if hasattr(vals, 'values'):
             for future in vals.values():
                 times.append(future['end_time'][0] - future['start_time'][0])
-                print("appending: ", future['end_time'][0] - future['start_time'][0])
 
     if not times:
         return
