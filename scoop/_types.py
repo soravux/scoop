@@ -404,3 +404,12 @@ class FutureQueue(object):
     def shutdown(self):
         """Shutdown the ressources used by the queue"""
         self.socket.shutdown()
+
+        try:
+            if scoop.DEBUG:
+                from scoop import _debug
+                _debug.writeWorkerDebug(control.debug_stats,
+                                        control.QueueLength)
+        except AttributeError:
+            # scoop evals to None, hence it was not properly started
+            pass
