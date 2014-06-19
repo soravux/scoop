@@ -268,11 +268,12 @@ You can specify the hosts with a hostfile and pass it to SCOOP using the :option
 The hostfile should use the following syntax::
 
     hostname_or_ip 4
-    other_hostname 5
+    other_hostname
     third_hostname 2
 
 The name being the system hostname and the number being the number of workers
-to launch on this host.
+to launch on this host. The number of workers to launch is optional. If
+omitted, SCOOP will launch as many workers as there are cores on the machine.
 
 Using a list of host
 ~~~~~~~~~~~~~~~~~~~~
