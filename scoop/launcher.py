@@ -34,6 +34,7 @@ from scoop.launch.brokerLaunch import localBroker, remoteBroker
 from .broker.structs import BrokerInfo
 import scoop
 
+# TODO: Is this useful anymore?
 try:
     signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
 except AttributeError:
@@ -49,9 +50,9 @@ class ScoopApp(object):
             externalHostname, executable, arguments, tunnel, path, debug,
             nice, env, profile, pythonPath, prolog, backend):
         # Assure setup sanity
-        assert type(hosts) == list and hosts, ("You should at least "
-                                               "specify one host.")
-        self.workersLeft = n
+        assert type(hosts) == list and hosts, (
+            "You should at least specify one host.")
+        self.workersLeft = n if n > 0 else len(hosts)
         self.createdSubprocesses = []
 
         # launch information
@@ -113,16 +114,18 @@ class ScoopApp(object):
         # Logging of worker distribution warnings
         maximumWorkers = sum(host[1] for host in hosts)
         if self.n > maximumWorkers:
-            scoop.logger.debug("The -n flag is set at {0} workers, which is higher "
-                           "than the maximum number of workers ({1}) specified "
-                           "by the hostfile.\nThis behavior may degrade the "
-                           "performances of scoop for cpu-bound operations."
-                           "".format(qty, maximumWorkers))
-        elif self.n < maximumWorkers:
-            scoop.logger.debug("The -n flag is set at {0} workers, which is lower "
-                           "than the maximum number of workers ({1}) specified "
-                           "by the hostfile."
-                           "".format(qty, maximumWorkers))
+            scoop.logger.debug(
+                "The -n flag is set at {0} workers, which is higher than the "
+                "maximum number of workers ({1}) specified by the hostfile.\n"
+                "This behavior may degrade the performances of scoop for "
+                "cpu-bound operations.".format(qty, maximumWorkers)
+            )
+        elif self.n < maximumWorkers and self.n > 0:
+            scoop.logger.debug(
+                "The -n flag is set at {0} workers, which is lower than the "
+                "maximum number of workers ({1}) specified by the hostfile."
+                "".format(qty, maximumWorkers)
+            )
 
         # Display
         self.showHostDivision(headless=not executable)
@@ -191,7 +194,7 @@ class ScoopApp(object):
                 )
             )
 
-    def _setWorker_args(self):
+    def _setWorker_args(self, origin):
         """Create the arguments to pass to the addWorker call.
             The returned args and kwargs must ordered/named according to the namedtuple
             in LAUNCH_HOST_CLASS.LAUNCHING_ARGUMENTS .
@@ -207,7 +210,7 @@ class ScoopApp(object):
             'nice': self.nice,
             'pythonExecutable': self.python_executable,
             'size': self.n,
-            'origin': self.workersLeft == self.n,
+            'origin': origin,
             'brokerHostname': self.externalHostname,
             'brokerPorts': (self.brokers[0].brokerPort,
                             self.brokers[0].infoPort),
@@ -220,18 +223,18 @@ class ScoopApp(object):
         }
         return args, kwargs
 
-    def setWorkerInfo(self, hostname, workerAmount):
+    def setWorkerInfo(self, hostname, workerAmount, origin):
         """Sets the worker information for the current host."""
 
         scoop.logger.debug('Initialising {0}{1} worker {2} [{3}].'.format(
             "local" if hostname in utils.localHostnames else "remote",
-            " origin" if self.workersLeft == self.n else "",
+            " origin" if origin else "",
             self.workersLeft,
             hostname,
             )
         )
 
-        add_args, add_kwargs = self._setWorker_args()
+        add_args, add_kwargs = self._setWorker_args(origin)
         self.workers[-1].setWorker(*add_args, **add_kwargs)
         self.workers[-1].setWorkerAmount(workerAmount)
 
@@ -272,11 +275,13 @@ class ScoopApp(object):
 
         # Launch the workers
         shells = []
+        origin_launched = False
         for hostname, nb_workers in self.worker_hosts:
             self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
             total_workers_host = min(nb_workers, self.workersLeft)
 
-            self.setWorkerInfo(hostname, total_workers_host)
+            self.setWorkerInfo(hostname, total_workers_host, not origin_launched)
+            origin_launched = True
             self.workersLeft -= total_workers_host
 
             # Launch every workers at the same time
@@ -293,8 +298,8 @@ class ScoopApp(object):
             ))
             if self.workersLeft <= 0:
                 # We've launched every worker we needed, so let's exit the loop
-                rootProcess = shells[0][0]
                 break
+        rootProcess = shells[0][0]
 
         # Wait for the root program
         if self.workers[0].isLocal():
@@ -435,12 +440,16 @@ def main():
 
     # Get a list of resources to launch worker(s) on
     hosts = utils.getHosts(args.hostfile, args.hosts)
+
     if args.n:
         n = args.n
     else:
         n = utils.getWorkerQte(hosts)
-    assert n > 0, ("Scoop couldn't determine the number of worker to start.\n"
-                   "Use the '-n' flag to set it manually.")
+    assert n >= 0, (
+            "Scoop couldn't determine the number of worker to start.\n"
+            "Use the '-n' flag to set it manually."
+    )
+
     if not args.external_hostname:
         args.external_hostname = [utils.externalHostname(hosts)]
 

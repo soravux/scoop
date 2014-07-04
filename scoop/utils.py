@@ -39,10 +39,15 @@ localHostnames = loopbackReferences + [
     socket.getfqdn().split('.')[0],
 ]
 
-localHostnames.extend([
-    ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
-        if not ip.startswith("127.")][:1]
-)
+try:
+    localHostnames.extend([
+        ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
+            if not ip.startswith("127.")][:1]
+    )
+except socket.gaierror as e:
+    sys.stderr.write("WARGNING: Could not find system address(es):\n"
+                     "{}\n".format(e))
+    sys.stderr.flush()
 
 loggingConfig = {}
 
@@ -173,7 +178,8 @@ def getHostsFromFile(filename):
                     if n:
                         n = n.group()
                     else:
-                        n = 1
+                        # Automatically assign based on CPU count
+                        n = 0
                     hosts.append((hostname, int(n)))
     return hosts
 

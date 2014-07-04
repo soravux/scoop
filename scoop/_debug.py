@@ -24,23 +24,26 @@ import scoop
 
 
 def getDebugIdentifier():
+    """Returns the unique identifier of the current worker."""
     return scoop.worker.decode().replace(":", "_")
 
 
 def getDebugDirectory():
+    """Returns the debug directory."""
     return os.path.join(scoop.WORKING_DIRECTORY, "debug")
 
 
-def createDirectory():
+def createDirectory(path_suffix=""):
     """Create a directory in a way that multiple concurrent requests won't
     be problematic."""
     try:
-        os.makedirs(getDebugDirectory())
+        os.makedirs(os.path.join(getDebugDirectory(), path_suffix))
     except:
         pass
 
 
 def redirectSTDOUTtoDebugFile():
+    """Redirects the stdout and stderr of the current process to a file."""
     import sys
     sys.stdout = open(
         os.path.join(
@@ -62,17 +65,19 @@ def redirectSTDOUTtoDebugFile():
     )
 
 
-def writeWorkerDebug(debugStats, queueLength, pathSuffix="debug"):
-    createDirectory(os.path.join(getDebugDirectory(), pathSuffix))
+def writeWorkerDebug(debugStats, queueLength, path_suffix=""):
+    """Serialize the execution data using pickle and writes it into the debug
+    directory."""
+    createDirectory(path_suffix)
     origin_prefix = "origin-" if scoop.IS_ORIGIN else ""
     statsFilename = os.path.join(
         getDebugDirectory(),
-        pathSuffix,
+        path_suffix,
         "{1}worker-{0}-STATS".format(getDebugIdentifier(), origin_prefix)
     )
     lengthFilename = os.path.join(
         getDebugDirectory(),
-        pathSuffix,
+        path_suffix,
         "{1}worker-{0}-QUEUE".format(getDebugIdentifier(), origin_prefix)
     )
     with open(statsFilename, 'wb') as f:

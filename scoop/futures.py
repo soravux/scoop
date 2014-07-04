@@ -66,10 +66,6 @@ def _startup(rootFuture, *args, **kargs):
     except scoop._comm.Shutdown:
         result = None
         control.execQueue.shutdown()
-    if scoop.DEBUG:
-        from scoop import _debug
-        _debug.writeWorkerDebug(control.debug_stats,
-                                control.QueueLength)
     return result
 
 

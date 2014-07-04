@@ -404,3 +404,11 @@ class FutureQueue(object):
     def shutdown(self):
         """Shutdown the ressources used by the queue"""
         self.socket.shutdown()
+
+        if scoop:
+            if scoop.DEBUG:
+                from scoop import _debug
+                _debug.writeWorkerDebug(
+                    scoop._control.debug_stats,
+                    scoop._control.QueueLength,
+                )
