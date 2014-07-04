@@ -424,4 +424,11 @@ class ZMQCommunicator(object):
         if self.ZMQcontext and not self.ZMQcontext.closed:
             scoop.SHUTDOWN_REQUESTED = True
             self.socket.send(SHUTDOWN)
+            
+            # pyzmq would issue an 'no module named zmqerror' on windows
+            # without this
+            self.direct_socket.__del__()
+            self.socket.__del__()
+            self.infoSocket.__del__()
+
             self.ZMQcontext.destroy()
