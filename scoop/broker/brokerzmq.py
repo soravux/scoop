@@ -210,6 +210,18 @@ class Broker(object):
                     self.taskSocket.send_multipart([address, TASK, task])
                     self.assignedTasks[task_id] = address
 
+            # Request for task
+            elif msg_type == REQUEST:
+                address = msg[0]
+                try:
+                    task_id, task = self.unassignedTasks.popleft()
+                except IndexError:
+                    self.availableWorkers.append(address)
+                else:
+                    self.logger.debug("Sent {0}".format(task_id))
+                    self.taskSocket.send_multipart([address, TASK, task])
+                    self.assignedTasks[task_id] = address
+
             # A task status request is requested
             elif msg_type == STATUS_REQ:
                 address = msg[0]
@@ -237,18 +249,6 @@ class Broker(object):
                     del self.assignedTasks[task_id]
                 except KeyError:
                     pass
-
-            # Request for task
-            elif msg_type == REQUEST:
-                address = msg[0]
-                try:
-                    task_id, task = self.unassignedTasks.popleft()
-                except IndexError:
-                    self.availableWorkers.append(address)
-                else:
-                    self.logger.debug("Sent {0}".format(task_id))
-                    self.taskSocket.send_multipart([address, TASK, task])
-                    self.assignedTasks[task_id] = address
 
             # Answer needing delivery
             elif msg_type == REPLY:

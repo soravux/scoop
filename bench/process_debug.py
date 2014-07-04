@@ -276,6 +276,9 @@ def plotHistogram(dataTask, filename):
             for future in vals.values():
                 times.append(future['end_time'][0] - future['start_time'][0])
 
+    if not times:
+        return
+
     n, bins, patches = ax.hist(times, 10)
     ax.plot(bins)
     ax.set_ylabel('Tasks')
@@ -348,7 +351,6 @@ def plotTimeline(dataTask, filename):
                 start_time = [future['start_time'][0] - min_time]
                 end_time = [future['end_time'][0] - min_time]
                 timelines(ax, y, start_time, end_time)
-
 
     #ax.xaxis_date()
     #myFmt = DateFormatter('%H:%M:%S')
