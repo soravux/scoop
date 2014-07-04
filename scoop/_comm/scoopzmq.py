@@ -427,8 +427,12 @@ class ZMQCommunicator(object):
             
             # pyzmq would issue an 'no module named zmqerror' on windows
             # without this
-            self.direct_socket.__del__()
-            self.socket.__del__()
-            self.infoSocket.__del__()
+            try:
+                self.direct_socket.__del__()
+                self.socket.__del__()
+                self.infoSocket.__del__()
+            except AttributeError:
+                # Older versions of pyzmq doesn't have the __del__ method
+                pass
 
             self.ZMQcontext.destroy()
