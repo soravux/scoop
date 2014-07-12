@@ -46,11 +46,16 @@ class _stat(deque):
         super(_stat, self).__init__(*args, maxlen=10, **kargs)
 
     def appendleft(self, x):
+        try:
+            ln_x = math.log(x)
+        except ValueError:
+            # Make it smaller than possible clock precision
+            ln_x = 1e-100
         if len(self) >= self.maxlen:
             self._sum -= self[-1]
             self._squared_sum -= self[-1] ** 2
-        self._sum += x
-        self._squared_sum += x ** 2
+        self._sum += ln_x
+        self._squared_sum += ln_x ** 2
         super(_stat, self).appendleft(x)
 
     def mean(self):
@@ -62,8 +67,17 @@ class _stat(deque):
     def std(self):
         ourSize = len(self)
         if ourSize > 3:
-            return math.sqrt(len(self) * self._squared_sum - self._sum ** 2) / len(self)
+            return math.sqrt(ourSize * self._squared_sum - self._sum ** 2) / ourSize
         return float("inf")
+
+    def mode(self):
+        """Computes the mode of a log-normal distribution built with the stats data."""
+        mu = self.mean()
+        sigma = self.std()
+        ret_val = math.exp(mu - sigma**2)
+        if math.isnan(ret_val):
+            ret_val = float("inf")
+        return ret_val
 
 
 def advertiseBrokerWorkerDown(exctype, value, traceback):
@@ -140,7 +154,7 @@ def runFuture(future):
 
     # Update the worker inner work statistics
     if future.executionTime != 0. and hasattr(future.callable, '__name__'):
-        execStats[future.callable.__name__].appendleft(future.executionTime)
+        execStats[hash(future.callable)].appendleft(future.executionTime)
 
     # Set debugging informations if needed
     if scoop.DEBUG:
