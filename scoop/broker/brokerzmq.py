@@ -74,19 +74,19 @@ class Broker(object):
         self.hostname = hostname
 
         # zmq Socket for the tasks, replies and request.
-        self.taskSocket = self.context.socket(zmq.ROUTER)
-        self.taskSocket.setsockopt(zmq.ROUTER_MANDATORY, 1)
-        self.taskSocket.setsockopt(zmq.LINGER, 1000)
-        self.tSockPort = 0
+        self.task_socket = self.context.socket(zmq.ROUTER)
+        self.task_socket.setsockopt(zmq.ROUTER_MANDATORY, 1)
+        self.task_socket.setsockopt(zmq.LINGER, 1000)
+        self.t_sock_port = 0
         if tSock[-2:] == ":*":
-            self.tSockPort = self.taskSocket.bind_to_random_port(tSock[:-2])
+            self.t_sock_port = self.task_socket.bind_to_random_port(tSock[:-2])
         else:
-            self.taskSocket.bind(tSock)
-            self.tSockPort = tSock.split(":")[-1]
+            self.task_socket.bind(tSock)
+            self.t_sock_port = tSock.split(":")[-1]
 
 
         # Create identifier for this broker
-        self.name = "{0}:{1}".format(hostname, self.tSockPort)
+        self.name = "{0}:{1}".format(hostname, self.t_sock_port)
 
         # Initialize broker logging
         self.logger = utils.initLogging(2 if debug else 0, name=self.name)
@@ -98,30 +98,30 @@ class Broker(object):
         )
 
         # zmq Socket for the pool informations
-        self.infoSocket = self.context.socket(zmq.PUB)
-        self.infoSocket.setsockopt(zmq.LINGER, 1000)
-        self.infoSockPort = 0
+        self.info_socket = self.context.socket(zmq.PUB)
+        self.info_socket.setsockopt(zmq.LINGER, 1000)
+        self.info_sock_port = 0
         if mSock[-2:] == ":*":
-            self.infoSockPort = self.infoSocket.bind_to_random_port(mSock[:-2])
+            self.info_sock_port = self.info_socket.bind_to_random_port(mSock[:-2])
         else:
-            self.infoSocket.bind(mSock)
-            self.infoSockPort = mSock.split(":")[-1]
+            self.info_socket.bind(mSock)
+            self.info_sock_port = mSock.split(":")[-1]
 
-        self.taskSocket.setsockopt(zmq.SNDHWM, 0)
-        self.taskSocket.setsockopt(zmq.RCVHWM, 0)
-        self.infoSocket.setsockopt(zmq.SNDHWM, 0)
-        self.infoSocket.setsockopt(zmq.RCVHWM, 0)
+        self.task_socket.setsockopt(zmq.SNDHWM, 0)
+        self.task_socket.setsockopt(zmq.RCVHWM, 0)
+        self.info_socket.setsockopt(zmq.SNDHWM, 0)
+        self.info_socket.setsockopt(zmq.RCVHWM, 0)
 
         # Init connection to fellow brokers
-        self.clusterSocket = self.context.socket(zmq.DEALER)
-        self.clusterSocket.setsockopt_string(zmq.IDENTITY, self.getName())
+        self.cluster_socket = self.context.socket(zmq.DEALER)
+        self.cluster_socket.setsockopt_string(zmq.IDENTITY, self.getName())
             
-        self.clusterSocket.setsockopt(zmq.RCVHWM, 0)
-        self.clusterSocket.setsockopt(zmq.SNDHWM, 0)
-        self.clusterSocket.setsockopt(zmq.IMMEDIATE, 1)
+        self.cluster_socket.setsockopt(zmq.RCVHWM, 0)
+        self.cluster_socket.setsockopt(zmq.SNDHWM, 0)
+        self.cluster_socket.setsockopt(zmq.IMMEDIATE, 1)
 
         self.cluster = []
-        self.clusterAvailable = set()
+        self.cluster_available = set()
 
         # Init statistics
         if self.debug:
@@ -136,30 +136,30 @@ class Broker(object):
 
         # Initializing the queue of workers and tasks
         # The busy workers variable will contain a dict (map) of workers: task
-        self.availableWorkers = deque()
-        self.unassignedTasks = deque()
+        self.available_workers = deque()
+        self.unassigned_tasks = deque()
         self.assigned_tasks = defaultdict(set)
         self.status_times = {}
         # Shared variables containing {workerID:{varName:varVal},}
-        self.sharedVariables = defaultdict(dict)
+        self.shared_variables = defaultdict(dict)
 
         # Start a worker-like communication if needed
         self.execQueue = None
 
         # Handle cloud-like behavior
-        self.discoveryThread = None
+        self.discovery_thread = None
         self.config = defaultdict(bool)
         self.processConfig({'headless': headless})
 
     def addBrokerList(self, aBrokerInfoList):
         """Add a broker to the broker cluster available list.
         Connects to the added broker if needed."""
-        self.clusterAvailable.update(set(aBrokerInfoList))
+        self.cluster_available.update(set(aBrokerInfoList))
 
         # If we need another connection to a fellow broker
         # TODO: only connect to a given number
         for aBrokerInfo in aBrokerInfoList:
-            self.clusterSocket.connect(
+            self.cluster_socket.connect(
                 "tcp://{hostname}:{port}".format(
                     hostname=aBrokerInfo.hostname,
                     port=aBrokerInfo.task_port,
@@ -173,25 +173,25 @@ class Broker(object):
         self.config['headless'] |= worker_config.get("headless", False)
         if self.config['headless']:
             # Launch discovery process
-            if not self.discoveryThread:
-                self.discoveryThread = discovery.Advertise(
+            if not self.discovery_thread:
+                self.discovery_thread = discovery.Advertise(
                     port=",".join(str(a) for a in self.getPorts()),
                 )
 
     def run(self):
         """Redirects messages until a shutdown message is received."""
         while True:
-            if not self.taskSocket.poll(-1):
+            if not self.task_socket.poll(-1):
                 continue
 
-            msg = self.taskSocket.recv_multipart()
+            msg = self.task_socket.recv_multipart()
             msg_type = msg[1]
 
             if self.debug:
                 self.stats.append((time.time(),
                                    msg_type,
-                                   len(self.unassignedTasks),
-                                   len(self.availableWorkers)))
+                                   len(self.unassigned_tasks),
+                                   len(self.available_workers)))
                 if time.time() - self.lastDebugTs > TIME_BETWEEN_PARTIALDEBUG:
                     self.writeDebug("debug/partial-{0}".format(
                         round(time.time(), -1)
@@ -204,24 +204,24 @@ class Broker(object):
                 task = msg[3]
                 self.logger.debug("Received task {0}".format(task_id))
                 try:
-                    address = self.availableWorkers.popleft()
+                    address = self.available_workers.popleft()
                 except IndexError:
-                    self.unassignedTasks.append((task_id, task))
+                    self.unassigned_tasks.append((task_id, task))
                 else:
                     self.logger.debug("Sent {0}".format(task_id))
-                    self.taskSocket.send_multipart([address, TASK, task])
+                    self.task_socket.send_multipart([address, TASK, task])
                     self.assigned_tasks[address].add(task_id)
 
             # Request for task
             elif msg_type == REQUEST:
                 address = msg[0]
                 try:
-                    task_id, task = self.unassignedTasks.popleft()
+                    task_id, task = self.unassigned_tasks.popleft()
                 except IndexError:
-                    self.availableWorkers.append(address)
+                    self.available_workers.append(address)
                 else:
                     self.logger.debug("Sent {0}".format(task_id))
-                    self.taskSocket.send_multipart([address, TASK, task])
+                    self.task_socket.send_multipart([address, TASK, task])
                     self.assigned_tasks[address].add(task_id)
 
             # A task status request is requested
@@ -232,12 +232,12 @@ class Broker(object):
 
                 if any(task_id in x for x in self.assigned_tasks.values()):
                     status = STATUS_GIVEN
-                elif task_id in (x[0] for x in self.unassignedTasks):
+                elif task_id in (x[0] for x in self.unassigned_tasks):
                     status = STATUS_HERE
                 else:
                     status = STATUS_NONE
 
-                self.taskSocket.send_multipart([
+                self.task_socket.send_multipart([
                     address, STATUS_ANS, task_id, status
                 ])
 
@@ -266,17 +266,17 @@ class Broker(object):
                 self.logger.debug("Relaying")
                 destination = msg[-1]
                 origin = msg[0]
-                self.taskSocket.send_multipart([destination] + msg[1:] + [origin])
+                self.task_socket.send_multipart([destination] + msg[1:] + [origin])
 
             # Shared variable to distribute
             elif msg_type == VARIABLE:
                 address = msg[4]
                 value = msg[3]
                 key = msg[2]
-                self.sharedVariables[address].update(
+                self.shared_variables[address].update(
                     {key: value},
                 )
-                self.infoSocket.send_multipart([VARIABLE,
+                self.info_socket.send_multipart([VARIABLE,
                                                 key,
                                                 value,
                                                 address])
@@ -288,17 +288,17 @@ class Broker(object):
                     self.processConfig(pickle.loads(msg[2]))
                 except pickle.PickleError:
                     continue
-                self.taskSocket.send_multipart([
+                self.task_socket.send_multipart([
                     address,
                     pickle.dumps(self.config,
                                  pickle.HIGHEST_PROTOCOL),
-                    pickle.dumps(self.sharedVariables,
+                    pickle.dumps(self.shared_variables,
                                  pickle.HIGHEST_PROTOCOL),
                 ])
 
-                self.taskSocket.send_multipart([
+                self.task_socket.send_multipart([
                     address,
-                    pickle.dumps(self.clusterAvailable,
+                    pickle.dumps(self.cluster_available,
                                  pickle.HIGHEST_PROTOCOL),
                 ])
 
@@ -334,7 +334,7 @@ class Broker(object):
             self.status_times.pop(addr)
 
     def getPorts(self):
-        return (self.tSockPort, self.infoSockPort)
+        return (self.t_sock_port, self.info_sock_port)
 
     def getName(self):
         import sys
@@ -347,7 +347,7 @@ class Broker(object):
         # Looping over it until it gets through
         for i in range(100):
             try:
-                self.infoSocket.send(SHUTDOWN)
+                self.info_socket.send(SHUTDOWN)
             except zmq.ZMQError:
                 time.sleep(0.01)
             else:
