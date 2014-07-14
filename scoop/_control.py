@@ -79,6 +79,14 @@ class _stat(deque):
             ret_val = float("inf")
         return ret_val
 
+    def median(self):
+        """Computes the median of a log-normal distribution built with the stats data."""
+        mu = self.mean()
+        ret_val = math.exp(mu)
+        if math.isnan(ret_val):
+            ret_val = float("inf")
+        return ret_val
+
 
 def advertiseBrokerWorkerDown(exctype, value, traceback):
     """Hook advertizing the broker if an impromptu shutdown is occuring."""
