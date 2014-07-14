@@ -183,15 +183,19 @@ class ZMQCommunicator(object):
         """Sends futures status updates to broker at intervals of
         scoop.TIME_BETWEEN_STATUS_REPORTS seconds. Is intended to be run by a
         separate thread."""
-        while True:
-            time.sleep(scoop.TIME_BETWEEN_STATUS_REPORTS)
-            fids = set(x.id for x in scoop._control.execQueue.movable)
-            fids.update(set(x.id for x in scoop._control.execQueue.ready))
-            fids.update(set(x.id for x in scoop._control.execQueue.inprogress))
-            self.socket.send_multipart([
-                STATUS_UPDATE,
-                pickle.dumps(fids),
-            ])
+        try:
+            while True:
+                time.sleep(scoop.TIME_BETWEEN_STATUS_REPORTS)
+                fids = set(x.id for x in scoop._control.execQueue.movable)
+                fids.update(set(x.id for x in scoop._control.execQueue.ready))
+                fids.update(set(x.id for x in scoop._control.execQueue.inprogress))
+                self.socket.send_multipart([
+                    STATUS_UPDATE,
+                    pickle.dumps(fids),
+                ])
+        except AttributeError:
+            # The process is being shut down.
+            pass
 
     def addPeer(self, peer):
         if peer not in self.direct_socket_peers:
