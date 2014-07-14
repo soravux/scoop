@@ -322,7 +322,7 @@ class Broker(object):
         to_keep = set()
         for address in self.assigned_tasks.keys():
             addr_time = self.status_times.get(address, 0)
-            if addr_time + TIME_BETWEEN_STATUS_PRUNING > time.time():
+            if addr_time + scoop.TIME_BETWEEN_STATUS_PRUNING > time.time():
                 to_keep += address
 
         to_remove = set(self.assigned_tasks.keys()).difference(to_keep)
