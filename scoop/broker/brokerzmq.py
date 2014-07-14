@@ -42,7 +42,8 @@ VARIABLE = b"V"
 BROKER_INFO = b"B"
 STATUS_REQ = b"SR"
 STATUS_ANS = b"SA"
-STATUS_SET = b"SS"
+STATUS_DONE = b"SD"
+STATUS_UPDATE = b"SU"
 
 # Task statuses
 STATUS_HERE = b"H"
@@ -137,7 +138,8 @@ class Broker(object):
         # The busy workers variable will contain a dict (map) of workers: task
         self.availableWorkers = deque()
         self.unassignedTasks = deque()
-        self.assignedTasks = {}
+        self.assigned_tasks = defaultdict(set)
+        self.status_times = {}
         # Shared variables containing {workerID:{varName:varVal},}
         self.sharedVariables = defaultdict(dict)
 
@@ -208,7 +210,7 @@ class Broker(object):
                 else:
                     self.logger.debug("Sent {0}".format(task_id))
                     self.taskSocket.send_multipart([address, TASK, task])
-                    self.assignedTasks[task_id] = address
+                    self.assigned_tasks[address].add(task_id)
 
             # Request for task
             elif msg_type == REQUEST:
@@ -220,35 +222,44 @@ class Broker(object):
                 else:
                     self.logger.debug("Sent {0}".format(task_id))
                     self.taskSocket.send_multipart([address, TASK, task])
-                    self.assignedTasks[task_id] = address
+                    self.assigned_tasks[address].add(task_id)
 
             # A task status request is requested
             elif msg_type == STATUS_REQ:
+                self.pruneAssignedTasks()
                 address = msg[0]
                 task_id = msg[2]
 
-                who = b""
-
-                if self.assignedTasks.get(task_id, None):
+                if any(task_id in x for x in self.assigned_tasks.values()):
                     status = STATUS_GIVEN
-                    who = self.assignedTasks[task_id]
                 elif task_id in (x[0] for x in self.unassignedTasks):
                     status = STATUS_HERE
                 else:
                     status = STATUS_NONE
 
                 self.taskSocket.send_multipart([
-                    address, STATUS_ANS, task_id, status, who
+                    address, STATUS_ANS, task_id, status
                 ])
 
             # A task status set (task done) is received
-            elif msg_type == STATUS_SET:
+            elif msg_type == STATUS_DONE:
+                address = msg[0]
                 task_id = msg[2]
 
                 try:
-                    del self.assignedTasks[task_id]
+                    self.assigned_tasks[address].discard(task_id)
                 except KeyError:
                     pass
+
+            elif msg_type == STATUS_UPDATE:
+                address = msg[0]
+                try:
+                    tasks_ids = pickle.loads(msg[2])
+                except:
+                    self.logger.error("Could not unpickle status update message.")
+                else:
+                    self.assigned_tasks[address] = tasks_ids
+                    self.status_times[address] = time.time()
 
             # Answer needing delivery
             elif msg_type == REPLY:
@@ -306,6 +317,21 @@ class Broker(object):
                 self.logger.debug("SHUTDOWN command received.")
                 self.shutdown()
                 break
+
+    def pruneAssignedTasks(self):
+        to_keep = set()
+        for address in self.assigned_tasks.keys():
+            addr_time = self.status_times.get(address, 0)
+            if addr_time + TIME_BETWEEN_STATUS_PRUNING > time.time():
+                to_keep += address
+
+        to_remove = set(self.assigned_tasks.keys()).difference(to_keep)
+        for addr in to_remove:
+            self.assigned_tasks.pop(addr)
+
+        to_remove = set(self.status_times.keys()).difference(to_keep)
+        for addr in to_remove:
+            self.status_times.pop(addr)
 
     def getPorts(self):
         return (self.tSockPort, self.infoSockPort)
