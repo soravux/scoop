@@ -57,6 +57,15 @@ class TestStat(unittest.TestCase):
         stats.appendleft(1000)
         self.assertAlmostEqual(stats.mode(), 0.39835810516)
 
+    def test_median(self):
+        stats = _stat()
+        data = list(range(1, 11))
+        for i in data:
+            stats.appendleft(float(i))
+        self.assertAlmostEqual(stats.median(), 4.52872868811)
+        stats.appendleft(1000)
+        self.assertAlmostEqual(stats.median(), 8.17611243503)
+
 if __name__ == "__main__":
     t = unittest.TestLoader().loadTestsFromTestCase(TestStat)
     unittest.TextTestRunner(verbosity=2).run(t)
