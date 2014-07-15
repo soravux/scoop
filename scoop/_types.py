@@ -108,15 +108,21 @@ class Future(object):
     def __repr__(self):
         """Convert future to string."""
         try:
-            return "{0}:{1}{2}={3}".format(self.id,
-                                       self.callable.__name__,
-                                       self.args,
-                                       self.resultValue)
+            return "{0}:{1}{2}{3}={4}".format(
+                self.id,
+                self.callable.__name__,
+                self.args,
+                self.kargs,
+                self.resultValue,
+            )
         except AttributeError:
-            return "{0}:{1}{2}={3}".format(self.id,
-                                       "partial",
-                                       self.args,
-                                       self.resultValue)
+            return "{0}:{1}{2}{3}={4}".format(
+                self.id,
+                "partial",
+                self.args,
+                self.kargs,
+                self.resultValue,
+            )
 
     def _switch(self, future):
         """Switch greenlet."""
