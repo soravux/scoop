@@ -82,6 +82,10 @@ def funcLambda(n):
     return sum(result)
 
 
+def funcWithKW(n, **kwargs):
+    return kwargs
+
+
 def funcLambdaSubfuncNotGlobal(n):
     """Tests a lambda function containing a call to a function that is not in
     the globals()."""
@@ -240,6 +244,13 @@ def funcIter(n):
     return sum(result)
 
 
+def funcKeywords(n, **kwargs):
+    task = futures.submit(funcWithKW, n, **kwargs)
+    futures.wait([task], return_when=futures.ALL_COMPLETED)
+    result = task.result()
+    return result
+
+
 def main(n):
     task = futures.submit(func0, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
@@ -247,7 +258,7 @@ def main(n):
     return result
 
 
-def main_simple(n):
+def mainSimple(n):
     task = futures.submit(func3, n)
     futures.wait([task], return_when=futures.ALL_COMPLETED)
     result = task.result()
@@ -476,7 +487,6 @@ class TestMultiFunction(TestScoopCommon):
             "Buffers are not empty after future completion"
         )
 
-
     def test_partial(self):
         """This function removes some attributes (such as __name__)."""
         from functools import partial
@@ -488,7 +498,7 @@ class TestSingleFunction(TestMultiFunction):
     def __init__(self, *args, **kwargs):
         # Parent initialization
         super(TestSingleFunction, self).__init__(*args, **kwargs)
-        self.main_func = main_simple
+        self.main_func = mainSimple
         self.small_result = 30
         self.large_result = 2870
 
@@ -519,6 +529,10 @@ class TestApi(TestScoopCommon):
         self.w = self.multiworker_set()
         result = futures._startup(funcLambda, 30)
         self.assertEqual(result, 9455)
+
+    def test_submit_with_keyword(self):
+        result = futures._startup(funcKeywords, 2, kwarg=3.1415926)
+        self.assertEqual(result, { "kwarg": 3.1415926} )
 
     # This test is complex to handle and has many implications
     # Bundle a closure with the future?
@@ -657,4 +671,4 @@ if __name__ == '__main__' and os.environ.get('IS_ORIGIN', "1") == "1":
     else:
         unittest.main()
 elif __name__ == '__main__':
-    futures._startup(main_simple)
+    futures._startup(mainSimple)
