@@ -17,6 +17,7 @@
 # Global imports
 from collections import namedtuple
 import logging
+import os
 import sys
 import subprocess
 from threading import Thread
@@ -85,17 +86,20 @@ class Host(object):
                 worker.prolog,
                 "&&",
             ])
-        if worker.pythonPath:
+        if worker.pythonPath and not self.isLocal():
             # Tried to make it compliant to all shell variants.
             c.extend([
-                "export",
+                "env",
                 "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath),
-                ">&/dev/null",
-                "||",
-                "setenv",
-                "PYTHONPATH",
-                "{0}:$PYTHONPATH".format(worker.pythonPath),
-                "&&",
+            ])
+        elif worker.pythonPath and self.isLocal():
+            # Tried to make it compliant to all shell variants.
+            c.extend([
+                "env",
+                "PYTHONPATH={0}:{1}".format(
+                    worker.pythonPath,
+                    os.environ.get("PYTHONPATH", ""),
+                ),
             ])
         return c
 
@@ -170,9 +174,7 @@ class Host(object):
     def _getWorkerCommandList(self):
         """Generate the workerCommand as list"""
         c = []
-        if not self.isLocal():
-            c.extend(self._WorkerCommand_environment())
-
+        c.extend(self._WorkerCommand_environment())
         c.extend(self._WorkerCommand_launcher())
         c.extend(self._WorkerCommand_options())
         c.extend(self._WorkerCommand_executable())
