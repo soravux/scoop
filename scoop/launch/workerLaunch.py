@@ -25,7 +25,7 @@ from threading import Thread
 # Local
 import scoop
 from scoop import utils
-from .constants import BASE_SSH
+from .constants import BASE_SSH, BASE_RSH
 
 
 class Host(object):
@@ -40,11 +40,12 @@ class Host(object):
         ]
     )
 
-    def __init__(self, hostname="localhost"):
+    def __init__(self, hostname="localhost", rsh=False):
         self.workersArguments = None
         self.hostname = hostname
         self.subprocesses = []
         self.workerAmount = 0
+        self.rsh = rsh
 
     def __repr__(self):
         return "{0} ({1} workers)".format(
@@ -193,7 +194,7 @@ class Host(object):
             self.subprocesses.append(subprocess.Popen(c))
         else:
             # Launching remotely
-            sshCmd = BASE_SSH
+            sshCmd = BASE_SSH if not self.rsh else BASE_RSH
             if tunnelPorts is not None:
                 sshCmd += [
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),

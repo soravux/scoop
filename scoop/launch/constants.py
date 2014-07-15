@@ -27,8 +27,11 @@ BASE_SSH = [
     'ssh',
     '-tt',
     '-x',
-    #'-n',
     '-oStrictHostKeyChecking=no',
     '-oBatchMode=yes',
     '-oServerAliveInterval=300',
+]
+
+BASE_RSH = [
+    'rsh',
 ]

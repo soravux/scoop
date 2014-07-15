@@ -48,7 +48,7 @@ class ScoopApp(object):
 
     def __init__(self, hosts, n, b, verbose, python_executable,
             externalHostname, executable, arguments, tunnel, path, debug,
-            nice, env, profile, pythonPath, prolog, backend):
+            nice, env, profile, pythonPath, prolog, backend, rsh):
         # Assure setup sanity
         assert type(hosts) == list and hosts, (
             "You should at least specify one host.")
@@ -70,6 +70,7 @@ class ScoopApp(object):
         self.nice = nice
         self.profile = profile
         self.backend = backend
+        self.rsh = rsh
         self.errors = None
 
         # Logging configuration
@@ -184,7 +185,7 @@ class ScoopApp(object):
 
     def showHostDivision(self, headless):
         """Show the worker distribution over the hosts."""
-        scoop.logger.info('Worker distribution: ')
+        scoop.logger.info('Worker d--istribution: ')
         for worker, number in self.worker_hosts:
             first_worker = (worker == self.worker_hosts[0][0])
             scoop.logger.info('   {0}:\t{1} {2}'.format(
@@ -256,6 +257,7 @@ class ScoopApp(object):
                         debug=self.debug,
                         nice=self.nice,
                         backend=self.backend,
+                        rsh=self.rsh,
                     ))
 
         # Share connection information between brokers
@@ -277,7 +279,7 @@ class ScoopApp(object):
         shells = []
         origin_launched = False
         for hostname, nb_workers in self.worker_hosts:
-            self.workers.append(self.LAUNCH_HOST_CLASS(hostname))
+            self.workers.append(self.LAUNCH_HOST_CLASS(hostname, self.rsh))
             total_workers_host = min(nb_workers, self.workersLeft)
 
             self.setWorkerInfo(hostname, total_workers_host, not origin_launched)
@@ -379,6 +381,10 @@ def makeParser():
                         type=int,
                         default=1,
                         metavar="NumberOfBrokers")
+    parser.add_argument('--rsh',
+                        help="Use RSH instead of SSH for the launching process. "
+                             "Not compatible with --tunnel flag.",
+                        action='store_true')
     parser.add_argument('--tunnel',
                         help="Activate ssh tunnels to route toward the broker "
                              "sockets over remote connections (may eliminate "
@@ -461,7 +467,7 @@ def main():
                             args.executable, args.args, args.tunnel,
                             args.path, args.debug, args.nice,
                             utils.getEnv(), args.profile, args.pythonpath[0],
-                            args.prolog[0], args.backend)
+                            args.prolog[0], args.backend, args.rsh)
 
     rootTaskExitCode = False
     interruptPreventer = Thread(target=thisScoopApp.close)
