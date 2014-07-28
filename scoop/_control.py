@@ -52,8 +52,8 @@ class _stat(deque):
             # Make it smaller than possible clock precision
             ln_x = 1e-100
         if len(self) >= self.maxlen:
-            self._sum -= self[-1]
-            self._squared_sum -= self[-1] ** 2
+            self._sum -= math.log(self[-1])
+            self._squared_sum -= math.log(self[-1]) ** 2
         self._sum += ln_x
         self._squared_sum += ln_x ** 2
         super(_stat, self).appendleft(x)

@@ -37,7 +37,7 @@ class TestStat(unittest.TestCase):
             stats.appendleft(float(i))
         self.assertAlmostEqual(stats.mean(), 1.51044125730)
         stats.appendleft(1000)
-        self.assertAlmostEqual(stats.mean(), 2.10121678520)
+        self.assertAlmostEqual(stats.mean(), 2.20121678520)
 
     def test_std(self):
         stats = _stat()
@@ -46,7 +46,7 @@ class TestStat(unittest.TestCase):
             stats.appendleft(float(i))
         self.assertAlmostEqual(stats.std(), 0.695407498476473)
         stats.appendleft(1000)
-        self.assertAlmostEqual(stats.std(), 1.7382809616728327)
+        self.assertAlmostEqual(stats.std(), 1.640541783885151)
 
     def test_mode(self):
         stats = _stat()
@@ -55,7 +55,7 @@ class TestStat(unittest.TestCase):
             stats.appendleft(float(i))
         self.assertAlmostEqual(stats.mode(), 2.79225543353)
         stats.appendleft(1000)
-        self.assertAlmostEqual(stats.mode(), 0.39835810516)
+        self.assertAlmostEqual(stats.mode(), 0.61252803911)
 
     def test_median(self):
         stats = _stat()
@@ -64,7 +64,7 @@ class TestStat(unittest.TestCase):
             stats.appendleft(float(i))
         self.assertAlmostEqual(stats.median(), 4.52872868811)
         stats.appendleft(1000)
-        self.assertAlmostEqual(stats.median(), 8.17611243503)
+        self.assertAlmostEqual(stats.median(), 9.03600168611)
 
 if __name__ == "__main__":
     t = unittest.TestLoader().loadTestsFromTestCase(TestStat)
