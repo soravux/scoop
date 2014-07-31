@@ -19,7 +19,6 @@
 import argparse
 import os
 import sys
-import socket
 import subprocess
 import time
 import logging
