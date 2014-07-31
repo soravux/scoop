@@ -15,6 +15,7 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 import os
+import sys
 try:
     import cPickle as pickle
 except ImportError:
@@ -45,6 +46,9 @@ def createDirectory(path_suffix=""):
 def redirectSTDOUTtoDebugFile():
     """Redirects the stdout and stderr of the current process to a file."""
     import sys
+    kwargs = {}
+    if sys.version_info >= (3,):
+        kwargs["encoding"] = "utf8"
     sys.stdout = open(
         os.path.join(
             getDebugDirectory(),
@@ -52,7 +56,7 @@ def redirectSTDOUTtoDebugFile():
         ),
         "w",
         1, # Buffering by line
-        encoding="utf8",
+        **kwargs
     )
     sys.stderr = open(
         os.path.join(
@@ -61,7 +65,7 @@ def redirectSTDOUTtoDebugFile():
         ),
         "w",
         1, # Buffering by line
-        encoding="utf8",
+        **kwargs
     )
 
 
