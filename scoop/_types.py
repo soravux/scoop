@@ -301,6 +301,7 @@ class FutureQueue(object):
                 if sending_future.id[0] != scoop.worker:
                     sending_future._delete()
                 self.socket.sendFuture(sending_future)
+                over_hwm = self.timelen(self.movable) > self.highwatermark
 
     def askForPreviousFutures(self):
         """Request a status for every future to the broker."""
