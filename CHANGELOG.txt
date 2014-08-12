@@ -1,0 +1,123 @@
+0.7.1 (2014/03/17)
+------------------
+
++ Added: Support for SLURM (Thanks EBo!)
++ Added: Fallback to standard map when application launched without -m scoop
++ Fixed: Distribution ordering issue that translated in loss of performance when multiple maps were used
++ Fixed: Multiple SIGINT would cancel remote process cleanup and result in zombie workers
++ Fixed: Support for csh and its variants
++ Improved: SCOOP's logger
++ Improved: Queues (Broker and Worker) are now all FIFOs
++ Improved: Debugging information on launching process
++ Improved: Documentation
+
+0.7.0 (2014/01/30)
+------------------
+
++ Improved: Garbage collection of Futures.
+
+0.7.0-RC2 (2013/11/13)
+----------------------
+
++ Fixed: Bug sharing lambda function (referenced elements could not unpickle)
++ Fixed: Bug sharing method (elements would falsely be treated as methods)
+
+0.7.0-RC1 (2013/08/02)
+----------------------
+
++ Fixed: Local launches could generate zombie processes
++ Added: map_as_completed() in the futures API interface
++ Added: Benchmark utilities
++ Added: Support for multi-brokers
++ Improved: Documentation
++ Improved: mapReduce() now won't communicate intermediary results
++ Improved: Future results are now sent back directly to its destination
++ Improved: Reduction has now a tree communication scheme (logarithmic reduce)
++ Improved: Various socket optimizations
+
+0.6.2 (2013/07/02)
+------------------
+
++ Fixed: Process cleanup on csh/tsh shell variants
++ Fixed: Using partials could crash - switched Future callable identification from __name__ to its hash()
+
+0.6.1 (2013/03/04)
+------------------
+
++ Fixed: Support for Python 2.6
++ Fixed: Logging configuration contamination
++ Added: Preliminary support for Object-Oriented paradigm (Parallel method executions)
++ Added: Support for lambda execution
++ Added: Pool discovery features
++ Improved: A Future can now return None
+
+0.6.0 (2013/01/21)
+------------------
+
++ Improved: Launching submodule
++ Improved: Network handling
++ Improved: Debugging output
++ Improved: Documentation and examples
++ Changed: Default verbosity is now level 1
++ Added: --quiet flag
++ Added: Nicing levels for local workers
+
+Special thanks to:
++ Stijn De Weirdt <stijn.deweirdt <at> gmail.com>
+
+0.6.0-RC2 (2012/12/28)
+----------------------
+
++ Added: Shared constants and functions
++ Added: Examples for newly available features
++ Added: Support for interactive sessions
+
+0.6.0-RC1 (2012/11/22)
+----------------------
+
++ Fixed: Backported modules conflicting with Python 3 installation
++ Fixed: Memory leak in the Futures queues
++ Improved: Time-based future buffer (instead of count-based)
++ Improved: Cleaning remote workers after termination
++ Added: Remote broker launching
++ Added: mapReduce and mapScan functions
+
+
+0.5.3 (2012/08/24)
+------------------
+
++ Improved worker ouput to standard output
++ Fixed: Launching distribution shown in verbose mode
++ Fixed: Python 2.6 launching issue
++ Fixed: Remote worker cleanup upon abnormal program termination
+
+
+0.5.2 (2012/08/14)
+------------------
+
++ Improved networking
++ Improved bootstrapping
++ Added unit tests
++ Fixed: Memory leak on exception handling
++ Fixed: Memory leak on Futures handling
+
+
+0.5.1 (2012/07/29)
+------------------
+
++ Substantially improved documentation
++ Improved grid scheduler support (SGE and Torque)
++ Improved hostfile support
++ Added: Python 2.6 support (see documentation)
++ Added: Default number of workers is now the number of local CPUs
++ Fixed: Bug on some Future return value
++ Fixed: Memory leak on a specific Future usage
+
+
+0.5.0 (Alpha) (2012/05/11)
+--------------------------
+
++ Greenlet based task handling
++ ZeroMQ based networking
++ Master-Slave paradigm implemented named Broker <-> Worker
++ Tasks caching features implemented (Thresholds named high and low water marks)
