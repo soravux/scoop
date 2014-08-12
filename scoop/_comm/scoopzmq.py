@@ -20,6 +20,7 @@ import random
 import socket
 import copy
 import logging
+import threading
 try:
     import cPickle as pickle
 except ImportError:
@@ -42,7 +43,8 @@ VARIABLE = b"V"
 BROKER_INFO = b"B"
 STATUS_REQ = b"SR"
 STATUS_ANS = b"SA"
-STATUS_SET = b"SS"
+STATUS_DONE = b"SD"
+STATUS_UPDATE = b"SU"
 
 # Task statuses
 STATUS_HERE = b"H"
@@ -153,6 +155,11 @@ class ZMQCommunicator(object):
                 continue
             self._addBroker(broker)
 
+        # Putting futures status reporting in place
+        self.status_update_thread = threading.Thread(target=self._reportFutures)
+        self.status_update_thread.daemon = True
+        self.status_update_thread.start()
+
     def createZMQSocket(self, sock_type):
         """Create a socket of the given sock_type and deactivate message dropping"""
         sock = self.ZMQcontext.socket(sock_type)
@@ -171,6 +178,24 @@ class ZMQCommunicator(object):
         if sock_type == zmq.ROUTER:
             sock.setsockopt(zmq.ROUTER_MANDATORY, 1)
         return sock
+
+    def _reportFutures(self):
+        """Sends futures status updates to broker at intervals of
+        scoop.TIME_BETWEEN_STATUS_REPORTS seconds. Is intended to be run by a
+        separate thread."""
+        try:
+            while True:
+                time.sleep(scoop.TIME_BETWEEN_STATUS_REPORTS)
+                fids = set(x.id for x in scoop._control.execQueue.movable)
+                fids.update(set(x.id for x in scoop._control.execQueue.ready))
+                fids.update(set(x.id for x in scoop._control.execQueue.inprogress))
+                self.socket.send_multipart([
+                    STATUS_UPDATE,
+                    pickle.dumps(fids),
+                ])
+        except AttributeError:
+            # The process is being shut down.
+            pass
 
     def addPeer(self, peer):
         if peer not in self.direct_socket_peers:
@@ -394,7 +419,7 @@ class ZMQCommunicator(object):
             ])
 
         self.socket.send_multipart([
-            STATUS_SET,
+            STATUS_DONE,
             fid,
         ])
 

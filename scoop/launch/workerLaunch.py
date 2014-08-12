@@ -17,6 +17,7 @@
 # Global imports
 from collections import namedtuple
 import logging
+import os
 import sys
 import subprocess
 from threading import Thread
@@ -24,7 +25,7 @@ from threading import Thread
 # Local
 import scoop
 from scoop import utils
-from .constants import BASE_SSH
+from .constants import BASE_SSH, BASE_RSH
 
 
 class Host(object):
@@ -39,11 +40,12 @@ class Host(object):
         ]
     )
 
-    def __init__(self, hostname="localhost"):
+    def __init__(self, hostname="localhost", rsh=False):
         self.workersArguments = None
         self.hostname = hostname
         self.subprocesses = []
         self.workerAmount = 0
+        self.rsh = rsh
 
     def __repr__(self):
         return "{0} ({1} workers)".format(
@@ -85,17 +87,20 @@ class Host(object):
                 worker.prolog,
                 "&&",
             ])
-        if worker.pythonPath:
+        if worker.pythonPath and not self.isLocal():
             # Tried to make it compliant to all shell variants.
             c.extend([
-                "export",
+                "env",
                 "PYTHONPATH={0}:$PYTHONPATH".format(worker.pythonPath),
-                ">&/dev/null",
-                "||",
-                "setenv",
-                "PYTHONPATH",
-                "{0}:$PYTHONPATH".format(worker.pythonPath),
-                "&&",
+            ])
+        elif worker.pythonPath and self.isLocal():
+            # Tried to make it compliant to all shell variants.
+            c.extend([
+                "env",
+                "PYTHONPATH={0}:{1}".format(
+                    worker.pythonPath,
+                    os.environ.get("PYTHONPATH", ""),
+                ),
             ])
         return c
 
@@ -170,9 +175,7 @@ class Host(object):
     def _getWorkerCommandList(self):
         """Generate the workerCommand as list"""
         c = []
-        if not self.isLocal():
-            c.extend(self._WorkerCommand_environment())
-
+        c.extend(self._WorkerCommand_environment())
         c.extend(self._WorkerCommand_launcher())
         c.extend(self._WorkerCommand_options())
         c.extend(self._WorkerCommand_executable())
@@ -191,7 +194,7 @@ class Host(object):
             self.subprocesses.append(subprocess.Popen(c))
         else:
             # Launching remotely
-            sshCmd = BASE_SSH
+            sshCmd = BASE_SSH if not self.rsh else BASE_RSH
             if tunnelPorts is not None:
                 sshCmd += [
                     '-R {0}:127.0.0.1:{0}'.format(tunnelPorts[0]),

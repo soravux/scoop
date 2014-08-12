@@ -256,7 +256,7 @@ def mapReduce(mapFunc, reductionFunc, *iterables, **kwargs):
     ).result()
 
 
-def _createFuture(func, *args):
+def _createFuture(func, *args, **kwargs):
     """Helper function to create a future."""
     assert callable(func), (
         "The provided func parameter is not a callable."
@@ -276,10 +276,10 @@ def _createFuture(func, *args):
         from .shared import SharedElementEncapsulation
         func = SharedElementEncapsulation(func)
 
-    return Future(control.current.id, func, *args)
+    return Future(control.current.id, func, *args, **kwargs)
 
 @ensureScoopStartedProperly
-def submit(func, *args):
+def submit(func, *args, **kwargs):
     """Submit an independent asynchronous :class:`~scoop._types.Future` that will
     either run locally or remotely as `func(*args)`.
 
@@ -288,6 +288,8 @@ def submit(func, *args):
         The callable must return a value.
     :param args: A tuple of positional arguments that will be passed to the
         func object.
+    :param kwargs: A dictionary of additional arguments that will be passed to
+        the func object.
 
     :returns: A future object for retrieving the Future result.
 
@@ -296,7 +298,7 @@ def submit(func, *args):
     may carry on with any further computations while the Future completes.
     Result retrieval is made via the :meth:`~scoop._types.Future.result`
     function on the Future."""
-    child = _createFuture(func, *args)
+    child = _createFuture(func, *args, **kwargs)
 
     control.futureDict[control.current.id].children[child] = None
     control.execQueue.append(child)
