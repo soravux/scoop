@@ -281,6 +281,23 @@ def plotHistogram(dataTask, filename):
 
     n, bins, patches = ax.hist(times, 10)
     ax.plot(bins)
+
+    # Code taken from http://stackoverflow.com/questions/6352740/matplotlib-label-each-bin
+    # Label the raw counts and the percentages below the x-axis...
+    bin_centers = 0.5 * np.diff(bins) + bins[:-1]
+    for count, x in zip(n, bin_centers):
+        # Label the raw counts
+        ax.annotate(str(count), xy=(x, 0), xycoords=('data', 'axes fraction'),
+            xytext=(0, -18), textcoords='offset points', va='top', ha='center')
+
+        # Label the percentages
+        percent = '%0.0f%%' % (100 * float(count) / n.sum())
+        ax.annotate(percent, xy=(x, 0), xycoords=('data', 'axes fraction'),
+            xytext=(0, -32), textcoords='offset points', va='top', ha='center')
+
+    # Give ourselves some more room at the bottom of the plot
+    plt.subplots_adjust(bottom=0.15)
+
     ax.set_ylabel('Tasks')
     ax.set_title('Task execution time distribution')
     #ax.set_xticks([x+(width/2.0) for x in ind])
