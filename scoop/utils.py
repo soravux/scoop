@@ -45,7 +45,7 @@ try:
             if not ip.startswith("127.")][:1]
     )
 except socket.gaierror as e:
-    sys.stderr.write("WARGNING: Could not find system address(es):\n"
+    sys.stderr.write("WARNING: Could not find system address(es):\n"
                      "{}\n".format(e))
     sys.stderr.flush()
 
