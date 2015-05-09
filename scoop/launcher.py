@@ -118,13 +118,13 @@ class ScoopApp(object):
                 "The -n flag is set at {0} workers, which is higher than the "
                 "maximum number of workers ({1}) specified by the hostfile.\n"
                 "This behavior may degrade the performances of scoop for "
-                "cpu-bound operations.".format(qty, maximumWorkers)
+                "cpu-bound operations.", self.n, maximumWorkers
             )
         elif self.n < maximumWorkers and self.n > 0:
             scoop.logger.debug(
                 "The -n flag is set at {0} workers, which is lower than the "
-                "maximum number of workers ({1}) specified by the hostfile."
-                "".format(qty, maximumWorkers)
+                "maximum number of workers ({1}) specified by the hostfile.",
+                self.n, maximumWorkers
             )
 
         # Display
