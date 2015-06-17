@@ -5,7 +5,7 @@ You can find the examples detailed on this page and more in the
 |exampleDirectory|_ directory of SCOOP.
 
 .. |exampleDirectory| replace:: :file:`examples/`
-.. _exampleDirectory: https://code.google.com/p/scoop/source/browse/examples/
+.. _exampleDirectory: https://github.com/soravux/scoop/tree/master/examples/
 
 Please check the :doc:`api` for any implentation detail of the proposed 
 functions.
@@ -17,7 +17,7 @@ A core concept of task-based parallelism as presented in SCOOP is the
 map. An introductory example to map working is presented in |map_doc_file|_.
 
 .. |map_doc_file| replace:: :file:`examples/map_doc.py`
-.. _map_doc_file: https://code.google.com/p/scoop/source/browse/examples/map_doc.py
+.. _map_doc_file: https://github.com/soravux/scoop/blob/master/examples/map_doc.py
 
 .. literalinclude:: ../examples/map_doc.py
    :lines: 21-
@@ -86,7 +86,7 @@ going forth with this example.
     that shows the Monte Carlo computation of :math:`\pi`.
 
 .. |piCalcFile| replace:: :file:`examples/pi_calc.py`
-.. _piCalcFile: https://code.google.com/p/scoop/source/browse/examples/pi_calc.py
+.. _piCalcFile: https://github.com/soravux/scoop/blob/master/examples/pi_calc.py
 
 First, we need to import the needed functions as such:
 
@@ -168,7 +168,7 @@ It notably shows that SCOOP is capable of handling twisted and complex
 hierarchical requirements.
 
 .. |fullTreeFile| replace:: :file:`examples/fullTree.py`
-.. _fullTreeFile: https://code.google.com/p/scoop/source/browse/examples/fullTree.py
+.. _fullTreeFile: https://github.com/soravux/scoop/blob/master/examples/full_tree.py
 
 Getting acquainted with the previous examples is fairly enough to use SCOOP, no
 need to dive into this complicated example.
