@@ -6,7 +6,7 @@ Reporting a bug
 ---------------
 
 You can report a bug on the 
-`issue tracker <http://code.google.com/p/scoop/issues/list>`_ on google code or
+`issue tracker <https://github.com/soravux/scoop/issues>`_ on google code or
 on the `mailing list <http://groups.google.com/group/scoop-users>`_.
 
 
@@ -15,11 +15,11 @@ Retrieving the latest code
 
 You can check the latest sources with the command::
 
-    hg clone https://code.google.com/p/scoop/ 
+    git clone https://github.com/soravux/scoop.git
 
 Bear in mind that this development code may be partially broken or unfinished.
-To get a stable version of the code, update to a release tag using 
-`hg update <tag name>`.
+To get a stable version of the code, checkout to a release tag using
+`git checkout tags/<tag name>`.
 
 
 Coding guidelines
