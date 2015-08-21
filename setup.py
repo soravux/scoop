@@ -14,9 +14,10 @@ else:
     read_md = lambda f: convert(f, 'rst')
 
 # Backports installation
-extraPackages = []
+extraPackages, extraRequires = [], []
 if sys.version_info < (2, 7):
     extraPackages = ['scoop.backports']
+    extraRequires = ['argparse>=1.1']
 
 
 setup(name='scoop',
@@ -30,26 +31,21 @@ setup(name='scoop',
       author_email='scoop-users@googlegroups.com',
       url='http://pyscoop.org',
       install_requires=['greenlet>=0.3.4',
-                        'pyzmq>=13.1.0',
-                        'argparse>=1.1',
-                        ],
-      extras_require = {'nice': ['psutil>=0.6.1'],
-                        },
+                        'pyzmq>=13.1.0'] + extraRequires,
+      extras_require = {'nice': ['psutil>=0.6.1']},
       packages=['scoop',
                 'scoop.bootstrap',
                 'scoop.launch',
                 'scoop.broker',
                 'scoop._comm',
-                'scoop.discovery',
-                ] + extraPackages,
+                'scoop.discovery'] + extraPackages,
       platforms=['any'],
       keywords=['distributed algorithms',
                 'parallel programming',
                 'Concurrency',
                 'Cluster programming',
                 'greenlet',
-                'zmq',
-                ],
+                'zmq'],
       license='LGPL',
       classifiers=[
         'Development Status :: 4 - Beta',
