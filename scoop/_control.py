@@ -152,10 +152,9 @@ def runFuture(future):
         future.exceptionValue = err
         future.exceptionTraceback = str(traceback.format_exc())
         scoop.logger.debug(
-            "The following error occured on a worker:\n{err}\n{tb}".format(
-                err=err,
-                tb=traceback.format_exc(),
-            )
+            "The following error occured on a worker:\n%r\n%s",
+            err,
+            traceback.format_exc(),
         )
     future.executionTime = future.stopWatch.get()
     future.isDone = True
