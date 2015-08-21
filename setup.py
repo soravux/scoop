@@ -20,7 +20,7 @@ if sys.version_info < (2, 7):
 
 
 setup(name='scoop',
-      version="{ver} {rev}".format(
+      version="{ver}.{rev}".format(
           ver=scoop.__version__,
           rev=scoop.__revision__,
       ),
