@@ -12,7 +12,7 @@ if sys.version_info < (2, 7):
 
 
 setup(name='scoop',
-      version="{ver} {rev}".format(
+      version="{ver}.{rev}".format(
           ver=scoop.__version__,
           rev=scoop.__revision__,
       ),
@@ -20,8 +20,7 @@ setup(name='scoop',
       long_description=open('README.txt').read(),
       author='SCOOP Development Team',
       author_email='scoop-users@googlegroups.com',
-      url='http://scoop.googlecode.com',
-      download_url='http://code.google.com/p/scoop/downloads/list',
+      url='http://github.com/soravux/scoop',
       install_requires=['greenlet>=0.3.4',
                         'pyzmq>=13.1.0',
                         'argparse>=1.1',
