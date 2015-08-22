@@ -180,7 +180,7 @@ Its functionnalities are summarised in this example::
 
 
     if __name__ == '__main__':
-        shared.setCont(myValue=5)
+        shared.setConst(myValue=5)
         print(list(futures.map(myParallelFunc, range(10))))
 
 
