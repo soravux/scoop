@@ -207,14 +207,19 @@ def parseSLURM(string):
 
     hosts = []
 
-    # parse out the name followed by range (ex. borgb[001-002,004-006]
+    # parse out the name followed by range (ex. borgb[001-002,004-006,008]
     for h,n in bunchedlist:
 
         block = re.findall('([^\[\],]+)', n)
         for rng in block:
-
-            bmin, bmax = rng.split('-')
-            fill_width = max(len(bmin), len(bmax))
+            
+            if '-' in rng:
+                bmin,bmax = rng.split('-')
+                fill_width = max(len(bmin),len(bmax))
+            else:
+                bmin = rng
+                bmax = bmin
+                fill_width = len(bmin)
             for i in range(int(bmin), int(bmax) + 1):
                 hostname = str(h) + str(i).zfill(fill_width)
                 hosts.append((hostname, int(1)))
