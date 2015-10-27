@@ -207,6 +207,11 @@ def parseSLURM(string):
 
     hosts = []
 
+    # for the single node case
+    if len(bunchedlist) == 0:
+        hosts.append((string, int(1)))
+        return hosts
+    
     # parse out the name followed by range (ex. borgb[001-002,004-006,008]
     for h,n in bunchedlist:
 
