@@ -40,12 +40,13 @@ class Host(object):
         ]
     )
 
-    def __init__(self, hostname="localhost", rsh=False):
+    def __init__(self, hostname="localhost", rsh=False, ssh_executable='ssh'):
         self.workersArguments = None
         self.hostname = hostname
         self.subprocesses = []
         self.workerAmount = 0
         self.rsh = rsh
+        self.ssh_executable = ssh_executable
 
     def __repr__(self):
         return "{0} ({1} workers)".format(
@@ -194,6 +195,7 @@ class Host(object):
             self.subprocesses.append(subprocess.Popen(c))
         else:
             # Launching remotely
+            BASE_SSH[0] = self.ssh_executable
             sshCmd = BASE_SSH if not self.rsh else BASE_RSH
             if tunnelPorts is not None:
                 sshCmd += [
