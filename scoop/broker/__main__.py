@@ -101,8 +101,8 @@ if __name__ == "__main__":
         import os
         import sys
         sys.stdout.write("{0},{1}\n".format(
-            thisBroker.tSockPort,
-            thisBroker.infoSockPort,
+            thisBroker.t_sock_port,
+            thisBroker.info_sock_port,
         ))
         sys.stdout.flush()
 

@@ -75,6 +75,7 @@ class Broker(object):
 
         # zmq Socket for the tasks, replies and request.
         self.task_socket = self.context.socket(zmq.ROUTER)
+        self.task_socket.setsockopt(zmq.IPV4ONLY, 0)
         self.task_socket.setsockopt(zmq.ROUTER_MANDATORY, 1)
         self.task_socket.setsockopt(zmq.LINGER, 1000)
         self.t_sock_port = 0
@@ -99,6 +100,7 @@ class Broker(object):
 
         # zmq Socket for the pool informations
         self.info_socket = self.context.socket(zmq.PUB)
+        self.info_socket.setsockopt(zmq.IPV4ONLY, 0)
         self.info_socket.setsockopt(zmq.LINGER, 1000)
         self.info_sock_port = 0
         if mSock[-2:] == ":*":
@@ -114,6 +116,7 @@ class Broker(object):
 
         # Init connection to fellow brokers
         self.cluster_socket = self.context.socket(zmq.DEALER)
+        self.cluster_socket.setsockopt(zmq.IPV4ONLY, 0)
         self.cluster_socket.setsockopt_string(zmq.IDENTITY, self.getName())
             
         self.cluster_socket.setsockopt(zmq.RCVHWM, 0)
