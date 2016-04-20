@@ -92,6 +92,18 @@ class TestUtils(unittest.TestCase):
                 result.append(("{prefix}{num}".format(**locals()), 1))
         self.assertEqual(set(hosts), set(result))
 
+    def test_parseSLURM_nondashOneDecimal(self):
+        hosts = utils.parseSLURM("n[1,4]")
+        result = []
+        result = zip(("n{0}".format(x) for x in [1, 4]), repeat(1))
+        self.assertEqual(set(hosts), set(result))
+
+    def test_parseSLURM_nondash_and_dashOneDecimal(self):
+        hosts = utils.parseSLURM("n[1,5-9]")
+        result = []
+        result = zip(("n{0}".format(x) for x in [1, 5, 6, 7, 8, 9]), repeat(1))
+        self.assertEqual(set(hosts), set(result))
+        
     def test_getHostsFile(self):
         self.assertEqual(set(utils.getHosts("hostfilesim.txt")), set(hosts))
 
