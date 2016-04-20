@@ -67,12 +67,13 @@ class ZMQCommunicator(object):
 
 
         # Get the current address of the interface facing the broker
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect((scoop.BROKER.externalHostname, scoop.BROKER.task_port))
+        info = socket.getaddrinfo(scoop.BROKER.externalHostname, scoop.BROKER.task_port)[0]
+        s = socket.socket(info[0], socket.SOCK_DGRAM)
+        s.connect(info[4][:2])
         external_addr = s.getsockname()[0]
         s.close()
 
-        if external_addr in utils.loopbackReferences:
+        if external_addr in utils.loopbackReferences or info[0] == socket.AF_INET6:
             external_addr = scoop.BROKER.externalHostname
 
         # Create an inter-worker socket
@@ -164,6 +165,7 @@ class ZMQCommunicator(object):
         """Create a socket of the given sock_type and deactivate message dropping"""
         sock = self.ZMQcontext.socket(sock_type)
         sock.setsockopt(zmq.LINGER, LINGER_TIME)
+        sock.setsockopt(zmq.IPV4ONLY, 0)
 
         # Remove message dropping
         sock.setsockopt(zmq.SNDHWM, 0)
