@@ -69,7 +69,7 @@ def initLogging(verbosity=0, name="SCOOP"):
             {
                 "class": "logging.StreamHandler",
                 "formatter": "{name}Formatter".format(name=name),
-                "stream": "ext://sys.stdout",
+                "stream": "ext://sys.stderr",
             },
         }
         loggingConfig.update({
