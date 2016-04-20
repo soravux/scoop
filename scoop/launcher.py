@@ -307,10 +307,13 @@ class ScoopApp(object):
         rootProcess = shells[0][0]
 
         # Wait for the root program
-        if self.workers[0].isLocal():
-            self.errors = self.workers[0].subprocesses[0].wait()
-        else:
-            self.errors = rootProcess.wait()
+        try:
+            if self.workers[0].isLocal():
+                self.errors = self.workers[0].subprocesses[0].wait()
+            else:
+                self.errors = rootProcess.wait()
+        except KeyboardInterrupt:
+            pass
         scoop.logger.info('Root process is done.')
         return self.errors
 

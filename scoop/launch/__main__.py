@@ -96,7 +96,10 @@ def launchBootstraps():
     if was_origin:
         # Only wait on the origin, this will return and notify the launcher
         # the the job has finished and start the cleanup phase
-        processes[0].wait()
+        try:
+            processes[0].wait()
+        except KeyboardInterrupt:
+            pass
     else:
         for p in processes:
             p.wait()
