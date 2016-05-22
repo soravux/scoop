@@ -23,7 +23,7 @@ efficiency and speed.
 
 Some comments we received on SCOOP:
 
-  * "I must say that that was by far the easiest upgrade I have probably ever done.  I still need to build and test it on the cluster, but on my development machine it took about 10 minutes to upgrade and test." [https://groups.google.com/d/msg/deap-users/chQY-2HHZWM/4qZRkQuvbbIJ EBo, deap Mailing list]
+  * "I must say that that was by far the easiest upgrade I have probably ever done.  I still need to build and test it on the cluster, but on my development machine it took about 10 minutes to upgrade and test." [deap mailing list](https://groups.google.com/d/msg/deap-users/chQY-2HHZWM/4qZRkQuvbbIJ EBo)
 
 Features
 ========
@@ -35,7 +35,7 @@ and similar modules are as follows:
 
   * Harness the power of **multiple computers** over network;
   * Ability to spawn multiple tasks inside a task;
-  * API compatible with [http://www.python.org/dev/peps/pep-3148/ PEP-3148];
+  * API compatible with [PEP-3148](http://www.python.org/dev/peps/pep-3148/);
   * Parallelizing serial code with only minor modifications;
   * Efficient load-balancing.
 
@@ -79,4 +79,4 @@ Authors of scientific papers including results generated using SCOOP are encoura
 Useful links
 ============
 
-You can [download the latest stable version](https://pypi.python.org/pypi/scoop/), check the project [http://scoop.readthedocs.org/ documentation], post to the [mailing list](http://groups.google.com/group/scoop-users) or [submit an issue](https://github.com/soravux/scoop/issues) if you've found one.
+You can [download the latest stable version](https://pypi.python.org/pypi/scoop/), check the [project  documentation](http://scoop.readthedocs.org/), post to the [mailing list](http://groups.google.com/group/scoop-users) or [submit an issue](https://github.com/soravux/scoop/issues) if you've found one.
