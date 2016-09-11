@@ -203,32 +203,15 @@ def getHostsFromList(hostlist):
 
 def parseSLURM(string):
     """Return a host list from a SLURM string"""
-    bunchedlist = re.findall('([^ /\t=\n\[,]+)(?=\[)(.*?)(?<=\])', string)
-
-    hosts = []
-
-    # for the single node case
-    if len(bunchedlist) == 0:
-        hosts.append((string, int(1)))
-        return hosts
-    
-    # parse out the name followed by range (ex. borgb[001-002,004-006,008]
-    for h,n in bunchedlist:
-
-        block = re.findall('([^\[\],]+)', n)
-        for rng in block:
-            
-            if '-' in rng:
-                bmin,bmax = rng.split('-')
-                fill_width = max(len(bmin),len(bmax))
-            else:
-                bmin = rng
-                bmax = bmin
-                fill_width = len(bmin)
-            for i in range(int(bmin), int(bmax) + 1):
-                hostname = str(h) + str(i).zfill(fill_width)
-                hosts.append((hostname, int(1)))
-
+    # Use scontrol utility to get the hosts list
+    import subprocess, os
+    hostsstr = subprocess.check_output(["scontrol", "show", "hostnames", string])
+    # Split using endline
+    hosts = hostsstr.split(os.linesep)
+    # Take out last empty host
+    hosts = filter(None, hosts)
+    # Create the desired pair of host and number of hosts
+    hosts = [(host, 1) for host in hosts]
     return hosts
 
 
