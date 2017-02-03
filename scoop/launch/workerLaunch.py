@@ -120,11 +120,7 @@ class Host(object):
         worker = self.workersArguments
         c = []
 
-        # If broker is on localhost
-        if self.hostname == worker.brokerHostname:
-            broker = "127.0.0.1"
-        else:
-            broker = worker.brokerHostname
+        broker = worker.brokerHostname
 
         if worker.nice is not None:
             c.extend(['--nice', str(worker.nice)])

@@ -67,14 +67,18 @@ class ZMQCommunicator(object):
 
 
         # Get the current address of the interface facing the broker
-        info = socket.getaddrinfo(scoop.BROKER.externalHostname, scoop.BROKER.task_port)[0]
+        if scoop.BROKER.hostname == scoop.BROKER.externalHostname:
+            hostname = "127.0.0.1"
+        else:
+            hostname = scoop.BROKER.externalHostname
+        info = socket.getaddrinfo(hostname, scoop.BROKER.task_port)[0]
         s = socket.socket(info[0], socket.SOCK_DGRAM)
         s.connect(info[4][:2])
         external_addr = s.getsockname()[0]
         s.close()
 
         if external_addr in utils.loopbackReferences or info[0] == socket.AF_INET6:
-            external_addr = scoop.BROKER.externalHostname
+            external_addr = hostname
 
         # Create an inter-worker socket
         self.direct_socket_peers = []
@@ -206,13 +210,17 @@ class ZMQCommunicator(object):
             self.direct_socket.connect(new_peer)
 
     def _addBroker(self, brokerEntry):
+        if brokerEntry.hostname == brokerEntry.externalHostname:
+            hostname = "127.0.0.1"
+        else:
+            hostname = brokerEntry.externalHostname
         # Add a broker to the socket and the infosocket.
         broker_address = "tcp://{hostname}:{port}".format(
-            hostname=brokerEntry.hostname,
+            hostname=hostname,
             port=brokerEntry.task_port,
         )
         meta_address = "tcp://{hostname}:{port}".format(
-            hostname=brokerEntry.hostname,
+            hostname=hostname,
             port=brokerEntry.info_port,
         )
         self.socket.connect(broker_address)
