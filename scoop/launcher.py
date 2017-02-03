@@ -467,6 +467,7 @@ def main():
 
     if not args.external_hostname:
         args.external_hostname = [utils.externalHostname(hosts)]
+    utils.localHostnames.append(args.external_hostname[0])
 
     # Launch SCOOP
     thisScoopApp = ScoopApp(hosts, n, args.b,
