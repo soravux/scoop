@@ -206,6 +206,8 @@ def parseSLURM(string):
     # Use scontrol utility to get the hosts list
     import subprocess, os
     hostsstr = subprocess.check_output(["scontrol", "show", "hostnames", string])
+    if sys.version_info.major > 2:
+        hostsstr = hostsstr.decode()
     # Split using endline
     hosts = hostsstr.split(os.linesep)
     # Take out last empty host
