@@ -105,6 +105,13 @@ class Future(object):
         """Order futures by creation time."""
         return self.creationTime < other.creationTime
 
+    def __eq__(self, other):
+        # This uses he fact that id's are unique
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
     def __repr__(self):
         """Convert future to string."""
         try:
@@ -246,7 +253,7 @@ class Future(object):
     def _delete(self):
         # TODO: Do we need this?
         # discard: remove if exists
-        scoop._control.execQueue.inprogress.discard(self.id)
+        scoop._control.execQueue.inprogress.discard(self)
         for child in self.children:
             child.exceptionValue = CancelledError()
         scoop._control.delFuture(self)
