@@ -258,6 +258,7 @@ class Broker(object):
                 address = msg[0]
                 try:
                     tasks_ids = pickle.loads(msg[2])
+                    tasks_ids = set(pickle.dumps(x, pickle.HIGHEST_PROTOCOL) for x in tasks_ids)
                 except:
                     self.logger.error("Could not unpickle status update message.")
                 else:

@@ -392,11 +392,10 @@ class ZMQCommunicator(object):
 
         self._sendReply(
             future.id[0],
-            pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
             pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
         )
 
-    def _sendReply(self, destination, fid, *args):
+    def _sendReply(self, destination, *args):
         """Send a REPLY directly to its destination. If it doesn't work, launch
         it back to the broker."""
         # Try to send the result directly to its parent
@@ -420,9 +419,10 @@ class ZMQCommunicator(object):
                 destination,
             ])
 
+    def sendDoneStatus(self, future):
         self.socket.send_multipart([
             STATUS_DONE,
-            fid,
+            pickle.dumps(future.id)
         ])
 
     def sendStatusRequest(self, future):

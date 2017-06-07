@@ -301,7 +301,7 @@ def submit(func, *args, **kwargs):
     child = _createFuture(func, *args, **kwargs)
 
     control.futureDict[control.current.id].children[child] = None
-    control.execQueue.append(child)
+    control.execQueue.append_movable(child)
     return child
 
 
@@ -322,7 +322,6 @@ def _waitAny(*children):
         if future.exceptionValue:
             raise future.exceptionValue
         if future._ended():
-            future._delete()
             yield future
             n -= 1
         else:
@@ -337,7 +336,6 @@ def _waitAny(*children):
             raise childFuture.exceptionValue
         # Only yield if executed future was in children, otherwise loop
         if childFuture in children:
-            childFuture._delete()
             yield childFuture
             n -= 1
 

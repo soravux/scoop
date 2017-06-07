@@ -74,6 +74,11 @@ class TimeoutError(Exception):
     pass
 
 
+class UnrecognizedFuture(Exception):
+    """Some Operation Involved an invalid/unrecognized future"""
+    pass
+
+
 callbackEntry = namedtuple('callbackEntry', ['func', 'callbackType', 'groupID'])
 class Future(object):
     """This class encapsulates an independent future that can be executed in parallel.
@@ -96,6 +101,7 @@ class Future(object):
         self.exceptionValue = None  # exception raised by callable
         self.sendResultBack = True
         self.isDone = False
+        self.isReady = False  # Once this is true, the future is out of our hands
         self.callback = []  # set callback
         self.children = {}  # set children list of the callable (dict for speedier delete)
         # insert future into global dictionary
@@ -145,7 +151,9 @@ class Future(object):
            return True."""
         if self in scoop._control.execQueue.movable:
             self.exceptionValue = CancelledError()
-            scoop._control.futureDict[self.id]._delete()
+            for child in self.children:
+                child.exceptionValue = CancelledError()
+            scoop._control.delFuture(self)
             scoop._control.execQueue.remove(self)
             return True
         return False
@@ -250,14 +258,6 @@ class Future(object):
                 except:
                     pass
 
-    def _delete(self):
-        # TODO: Do we need this?
-        # discard: remove if exists
-        scoop._control.execQueue.inprogress.discard(self)
-        for child in self.children:
-            child.exceptionValue = CancelledError()
-        scoop._control.delFuture(self)
-
 
 class FutureQueue(object):
     """This class encapsulates a queue of futures that are pending execution.
@@ -296,15 +296,29 @@ class FutureQueue(object):
         times = Counter(hash(f.callable) for f in queue_)
         return sum(stats[f].median() * occur for f, occur in times.items())
 
-    def append(self, future):
-        """Append a future to the queue."""
-        if future._ended() and future.index is None:
-            self.inprogress.add(future)
-        elif future._ended() and future.index is not None:
+    def append_ready(self, future):
+        """
+        This appends a ready future to the queue.
+
+        NOTE: A Future is ready iff it has completed execution and been
+        processed by the worker that generated it
+        """
+        if future.isReady:
             self.ready.append(future)
-        elif future.greenlet is not None:
-            self.inprogress.add(future)
         else:
+            raise ValueError(
+                ("The future id {} has not been assimilated"
+                 " before adding, on worker: {}").format(future.id,
+                                                         scoop.worker))
+
+    def append_movable(self, future):
+        """
+        This appends a movable future to the queue.
+
+        NOTE: A Future is movable if it hasn't yet begun execution. This is
+        characterized by the lack of a greenlet and not having completed
+        """
+        if future.greenlet is None and not future.isDone:
             self.movable.append(future)
 
             # Send the oldest future in the movable deque until under the hwm
@@ -315,6 +329,11 @@ class FutureQueue(object):
                     sending_future._delete()
                 self.socket.sendFuture(sending_future)
                 over_hwm = self.timelen(self.movable) > self.highwatermark
+        else:
+            raise ValueError((
+                "The future id {} being added to movable queue is not "
+                " movable before adding, on worker: {}").format(future.id,
+                                                                scoop.worker))
 
     def askForPreviousFutures(self):
         """Request a status for every future to the broker."""
@@ -335,7 +354,13 @@ class FutureQueue(object):
     def pop(self):
         """Pop the next future from the queue;
         in progress futures have priority over those that have not yet started;
-        higher level futures have priority over lower level ones; """
+        higher level futures have priority over lower level ones;
+
+        It is ASSUMED that any queue popped from the movable queue, identifiable
+        by _ended() == False (Note that self.inprogress is never 'popped') is
+        going to be executed and hence will be added to the inprogress set of
+        execQueue."""
+
         self.updateQueue()
 
         # If our buffer is underflowing, request more Futures
@@ -348,6 +373,7 @@ class FutureQueue(object):
 
         # Then, use Futures in the movable queue
         elif len(self.movable) != 0:
+            self.inprogress.add(self.movable[0])
             return self.movable.popleft()
         else:
             # Otherwise, block until a new task arrives
@@ -360,6 +386,7 @@ class FutureQueue(object):
             if len(self.ready) != 0:
                 return self.ready.popleft()
             elif len(self.movable) != 0:
+                self.inprogress.add(self.movable[0])
                 return self.movable.popleft()
 
     def flush(self):
@@ -367,7 +394,7 @@ class FutureQueue(object):
         """
         for elem in self:
             if elem.id[0] != scoop.worker:
-                elem._delete()
+                scoop._control.delFuture(elem)
             self.socket.sendFuture(elem)
         self.ready.clear()
         self.movable.clear()
@@ -378,7 +405,10 @@ class FutureQueue(object):
 
     def updateQueue(self):
         """Process inbound communication buffer.
-        Updates the local queue with elements from the broker."""
+        Updates the local queue with elements from the broker.
+
+        Note that the broker only sends either non-executed (movable)
+        futures, or completed futures"""
         for future in self.socket.recvFuture():
             if future._ended():
                 # If the answer is coming back, update its entry
@@ -393,15 +423,59 @@ class FutureQueue(object):
                 thisFuture.exceptionValue = future.exceptionValue
                 thisFuture.executor = future.executor
                 thisFuture.isDone = future.isDone
-                # Execute standard callbacks here (on parent)
-                thisFuture._execute_callbacks(CallbackType.standard)
-                self.append(thisFuture)
-                future._delete()
+                self.finalizeReturnedFuture(thisFuture)
             elif future.id not in scoop._control.futureDict:
+                # This is the case where the worker is executing a remotely
+                # generated future
                 scoop._control.futureDict[future.id] = future
-                self.append(scoop._control.futureDict[future.id])
+                self.append_movable(scoop._control.futureDict[future.id])
             else:
-                self.append(scoop._control.futureDict[future.id])
+                # This is the case where the worker is executing a locally
+                # generated future
+                self.append_movable(scoop._control.futureDict[future.id])
+
+    def finalizeReturnedFuture(self, future):
+        """Finalize a future that was generated here and executed remotely.
+        """
+        if not (future.executor[0] != scoop.worker == future.id[0]
+                and future.isDone):
+            raise UnrecognizedFuture(("The future ID {0} was not executed"
+                                      " remotely and returned, worker: {1}")
+                                     .format(future.id, scoop.worker))
+        # Execute standard callbacks here (on parent)
+        future._execute_callbacks(CallbackType.standard)
+        scoop._control.delFuture(future)
+        future.isReady = True
+        self.append_ready(future)
+
+    def finalizeFuture(self, future):
+        """Finalize an ended future, this does the following:
+        
+        1.  The future is checked to see if it was inprogress or not on this thread,
+        2.  All references to the future are removed
+        3.  The future is added to the ready queue of the parent process
+
+        NOTE: After this function, do not continue to process this future, pick
+        a new one from the queue
+        """
+        if not (future in self.inprogress and future.isDone):
+            raise UnrecognizedFuture(
+                ("The future ID {0} was not in progress on worker"
+                 " {1}, finalize is undefined ").format(future.id, scoop.worker))
+
+        scoop._control.delFuture(future)
+        self.inprogress.remove(future)
+
+        if future.id[0] == scoop.worker:
+            future.isReady = True
+            self.append_ready(future)
+        else:
+            self.sendResult(future)
+            
+    def sendDoneStatus(self, future):
+        """This should only be called after the future has been finalized on the worker.
+        """
+        self.socket.sendDoneStatus(future)
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or

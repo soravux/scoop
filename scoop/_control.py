@@ -25,7 +25,7 @@ import traceback
 
 import greenlet
 
-from ._types import Future, FutureQueue, CallbackType
+from ._types import Future, FutureQueue, CallbackType, UnrecognizedFuture
 import scoop
 
 # Backporting collection features
@@ -124,11 +124,18 @@ def delFuture(afuture):
     try:
         del futureDict[afuture.id]
     except KeyError:
-        pass
-    try:
-        del futureDict[afuture.parentId].children[afuture]
-    except KeyError:
-        pass
+        raise UnrecognizedFuture(
+            "The future ID {0} was unavailable in the "
+            "futureDict of worker {1}".format(afuture.id, scoop.worker))
+    if afuture.id[0] == scoop.worker and afuture.parentId != (-1, 0):
+        try:
+            del futureDict[afuture.parentId].children[afuture]
+        except KeyError:
+            # This does not raise an exception as this happens when a future is
+            # resent after being lost
+            scoop.logger.warning(
+                "Orphan future {0} being deleted from worker {1}"
+                .format(afuture.id, scoop.worker))
 
 
 def runFuture(future):
@@ -180,9 +187,6 @@ def runFuture(future):
 
     # Run callback (see http://www.python.org/dev/peps/pep-3148/#future-objects)
     future._execute_callbacks(CallbackType.universal)
-
-    # Delete references to the future
-    future._delete()
 
     return future
 
@@ -249,16 +253,17 @@ def runController(callable_, *args, **kargs):
                 )
             )
             lastDebugTs = time.time()
-        # process future
-        if future._ended():
-            # future is finished
-            if future.id[0] != scoop.worker:
-                # future is not local
-                execQueue.sendResult(future)
-                future = execQueue.pop()
-            else:
-                # future is local, parent is waiting
+
+        # At this point , the future is either completed or in progress
+        # in progress => its runFuture greenlet is in progress
+
+        # process future and get new future / result future
+        if future.isDone:
+            if future.isReady:
+                # future is completely processed and ready to be returned
+                execQueue.sendDoneStatus(future)
                 if future.index is not None:
+                    # This means that the parent is waiting for this particular future (see futures._waitAny())
                     try:
                         parent = futureDict[future.parentId]
                     except KeyError:
@@ -270,15 +275,25 @@ def runController(callable_, *args, **kargs):
                         else:
                             future = execQueue.pop()
                 else:
+                    # This means that the parent is not waiting for this result. Since we are now
+                    # done with this future, we can stop processing it and take up a new future
                     future = execQueue.pop()
+            else:
+                execQueue.finalizeFuture(future)
+                future = execQueue.pop()
         else:
             # future is in progress; run next future from pending execution queue.
+            # This happens when a parent process spawns futures and the wait function
+            # returns the parent future back to the switch call
             future = execQueue.pop()
 
         if not future._ended() and future.greenlet is None:
-            # initialize if the future hasn't started
+            # initialize if the future received above is a new future i.e. hasn't started
             future.greenlet = greenlet.greenlet(runFuture)
             future = future._switch(future)
+
+    # Special case of removing the root future from the futureDict
+    scoop._control.delFuture(future)
 
     execQueue.shutdown()
     if future.exceptionValue:
