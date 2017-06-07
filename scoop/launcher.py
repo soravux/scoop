@@ -242,7 +242,6 @@ class ScoopApp(object):
 
     def run(self):
         """Launch the broker(s) and worker(s) assigned on every hosts."""
-        # Launch the broker(s)
         for hostname, nb_brokers in self.broker_hosts:
             for ind in range(nb_brokers):
                 if self.externalHostname in utils.localHostnames:
@@ -468,6 +467,7 @@ def main():
 
     if not args.external_hostname:
         args.external_hostname = [utils.externalHostname(hosts)]
+    utils.localHostnames.append(args.external_hostname[0])
 
     # Launch SCOOP
     thisScoopApp = ScoopApp(hosts, n, args.b,
