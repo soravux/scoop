@@ -18,4 +18,8 @@
 from .launcher import main
 
 if __name__ == "__main__":
-    main()
+    try:
+        # don't produce a backtrace if the user interrupts
+        main()
+    except KeyboardInterrupt:
+        pass
