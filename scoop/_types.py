@@ -336,36 +336,29 @@ class FutureQueue(object):
 
     def pop(self):
         """Pop the next future from the queue;
-        in progress futures have priority over those that have not yet started;
-        higher level futures have priority over lower level ones;
+        ready futures have priority over those that have not yet started;
 
         It is ASSUMED that any queue popped from the movable queue, identifiable
         by _ended() == False (Note that self.inprogress is never 'popped') is
         going to be executed and hence will be added to the inprogress set of
         execQueue."""
 
-        self.updateQueue()
-
+        # Check if queue is empty
+        while len(self) == 0:
+            # If so, Block until message arrives. Also, keep sending requests. This is
+            # because if a node disconnects and reconnects and is lost in between, there
+            # is a possibility that it has been removed from the brokers list of
+            # assignable workers, in which case, it needs to add itself by sending a
+            # future request. The future requests do not add up and only one future
+            # is returned
+            self.requestFuture()
+            self.socket._poll(POLLING_TIME)
+            self.updateQueue()
         if len(self.ready) != 0:
-            # If a future is ready to be returned to the parent, the return that
             return self.ready.popleft()
         elif len(self.movable) != 0:
-            # Then, use Futures in the movable queue
             self.inprogress.add(self.movable[0])
             return self.movable.popleft()
-        else:
-            # Otherwise, block until a new task arrives
-            self.requestFuture()
-            self.lastStatus = time.time()
-            while len(self) == 0:
-                # Block until message arrives
-                self.socket._poll(POLLING_TIME)
-                self.updateQueue()
-            if len(self.ready) != 0:
-                return self.ready.popleft()
-            elif len(self.movable) != 0:
-                self.inprogress.add(self.movable[0])
-                return self.movable.popleft()
 
     def flush(self):
         """Empty the local queue and send its elements to be executed remotely.
