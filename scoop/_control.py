@@ -258,37 +258,44 @@ def runController(callable_, *args, **kargs):
         # in progress => its runFuture greenlet is in progress
 
         # process future and get new future / result future
+        waiting_parent = False
         if future.isDone:
             if future.isReady:
-                # future is completely processed and ready to be returned
-                execQueue.sendDoneStatus(future)
+                # future is completely processed and ready to be returned This return is
+                # executed only if the parent is waiting for this particular future.
+                # Note: orphaned futures are caused by... what again?
+                execQueue.sendReadyStatus(future)
                 if future.index is not None:
-                    # This means that the parent is waiting for this particular future (see futures._waitAny())
-                    try:
+                    # This means that this particular future is being waited upon by a
+                    # parent (see futures._waitAny())
+                    if future.parentId in futureDict:
                         parent = futureDict[future.parentId]
-                    except KeyError:
-                        # Job has no parent here (probably children restart)
-                        future = execQueue.pop()
-                    else:
                         if parent.exceptionValue is None:
-                            future = parent._switch(future)
-                        else:
-                            future = execQueue.pop()
-                else:
-                    # This means that the parent is not waiting for this result. Since we are now
-                    # done with this future, we can stop processing it and take up a new future
-                    future = execQueue.pop()
+                            waiting_parent = True
             else:
                 execQueue.finalizeFuture(future)
-                future = execQueue.pop()
+
+        if future.isReady and waiting_parent:
+            # This means that this future must be returned to the parent future greenlet
+            # by this, one of 2 things happen, the parent completes execution and
+            # returns itself along with its results and isDone set to True, or, in case
+            # it has spawned a sub-future or needs to wait on another future, it returns
+            # itself in an inprogress state (isDone = False)
+            future = parent._switch(future)
         else:
-            # future is in progress; run next future from pending execution queue.
-            # This happens when a parent process spawns futures and the wait function
-            # returns the parent future back to the switch call
+            # This means that the future is either ready and the parent is not waiting,
+            # or the future is in progress. This happens when the future is a parent
+            # future whose greenlet has returned itself in an incomplete manner. check
+            # the above comment
+            # 
+            # In both the above cases, the future can safely be dropped/ignored and the
+            # next future picked up from the queue for processing.
             future = execQueue.pop()
 
         if not future._ended() and future.greenlet is None:
-            # initialize if the future received above is a new future i.e. hasn't started
+            # This checks for the case of a not-yet-started-execution future that is
+            # returned from the queue, (This can only happen if execQueue.pop is called)
+            # and starts the execution
             future.greenlet = greenlet.greenlet(runFuture)
             future = future._switch(future)
 

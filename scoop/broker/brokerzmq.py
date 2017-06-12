@@ -27,7 +27,7 @@ except ImportError:
     import pickle
 
 import scoop
-from scoop import TIME_BETWEEN_PARTIALDEBUG
+from scoop import TIME_BETWEEN_PARTIALDEBUG, TASK_CHECK_INTERVAL
 from .. import discovery, utils
 from .structs import BrokerInfo
 
@@ -40,10 +40,9 @@ REPLY = b"RP"
 SHUTDOWN = b"S"
 VARIABLE = b"V"
 BROKER_INFO = b"B"
-STATUS_REQ = b"SR"
-STATUS_ANS = b"SA"
 STATUS_DONE = b"SD"
-STATUS_UPDATE = b"SU"
+RESEND_FUTURE = b"RF"
+HEARTBEAT = b"HB"
 
 # Task statuses
 STATUS_HERE = b"H"
@@ -139,10 +138,12 @@ class Broker(object):
 
         # Initializing the queue of workers and tasks
         # The busy workers variable will contain a dict (map) of workers: task
-        self.available_workers = deque()
+        self.available_workers = set()
         self.unassigned_tasks = deque()
         self.assigned_tasks = defaultdict(set)
         self.status_times = {}
+        self.init_time = time.time()
+        self.last_task_check_time = time.time()
         # Shared variables containing {workerID:{varName:varVal},}
         self.shared_variables = defaultdict(dict)
 
@@ -181,6 +182,16 @@ class Broker(object):
                     port=",".join(str(a) for a in self.getPorts()),
                 )
 
+    def safeTaskSend(self, worker_address, task_id_pickled, task_pickled):
+        try:
+            self.task_socket.send_multipart([worker_address, TASK, task_pickled])
+        except zmq.ZMQError as E:
+            scoop.logger.warning("Failed to deliver task {0} to address {1}".format(pickle.loads(task_id_pickled), worker_address))
+            self.unassigned_tasks.append((task_id_pickled, task_pickled))
+        else:
+            self.logger.debug("Sent {0} to worker {1}".format(pickle.loads(task_id_pickled), worker_address))
+            self.assigned_tasks[worker_address].add(task_id_pickled)        
+
     def run(self):
         """Redirects messages until a shutdown message is received."""
         while True:
@@ -189,6 +200,11 @@ class Broker(object):
 
             msg = self.task_socket.recv_multipart()
             msg_type = msg[1]
+
+            # Checking if things are fine with servers and futures
+            if time.time() - self.last_task_check_time > TASK_CHECK_INTERVAL:
+                self.last_task_check_time = time.time()
+                self.checkAssignedTasks()
 
             if self.debug:
                 self.stats.append((time.time(),
@@ -207,13 +223,19 @@ class Broker(object):
                 task = msg[3]
                 self.logger.debug("Received task {0}".format(task_id))
                 try:
-                    address = self.available_workers.popleft()
-                except IndexError:
+                    address = self.available_workers.pop()
+                except KeyError:
                     self.unassigned_tasks.append((task_id, task))
                 else:
-                    self.logger.debug("Sent {0}".format(task_id))
-                    self.task_socket.send_multipart([address, TASK, task])
-                    self.assigned_tasks[address].add(task_id)
+                    self.safeTaskSend(address, task_id, task)
+                    # try:
+                    #     self.task_socket.send_multipart([address, TASK, task])
+                    # except zmq.ZMQError as E:
+                    #     scoop.logger.warning("Failed to deliver task {0} to address {1}".format(pickle.loads(task_id), address))
+                    #     self.unassigned_tasks.append((task_id, task))
+                    # else:
+                    #     self.logger.debug("Sent {0}".format(task_id))
+                    #     self.assigned_tasks[address].add(task_id)
 
             # Request for task
             elif msg_type == REQUEST:
@@ -221,28 +243,11 @@ class Broker(object):
                 try:
                     task_id, task = self.unassigned_tasks.popleft()
                 except IndexError:
-                    self.available_workers.append(address)
+                    self.available_workers.add(address)
                 else:
                     self.logger.debug("Sent {0}".format(task_id))
                     self.task_socket.send_multipart([address, TASK, task])
                     self.assigned_tasks[address].add(task_id)
-
-            # A task status request is requested
-            elif msg_type == STATUS_REQ:
-                self.pruneAssignedTasks()
-                address = msg[0]
-                task_id = msg[2]
-
-                if any(task_id in x for x in self.assigned_tasks.values()):
-                    status = STATUS_GIVEN
-                elif task_id in (x[0] for x in self.unassigned_tasks):
-                    status = STATUS_HERE
-                else:
-                    status = STATUS_NONE
-
-                self.task_socket.send_multipart([
-                    address, STATUS_ANS, task_id, status
-                ])
 
             # A task status set (task done) is received
             elif msg_type == STATUS_DONE:
@@ -254,16 +259,11 @@ class Broker(object):
                 except KeyError:
                     pass
 
-            elif msg_type == STATUS_UPDATE:
-                address = msg[0]
-                try:
-                    tasks_ids = pickle.loads(msg[2])
-                    tasks_ids = set(pickle.dumps(x, pickle.HIGHEST_PROTOCOL) for x in tasks_ids)
-                except:
-                    self.logger.error("Could not unpickle status update message.")
-                else:
-                    self.assigned_tasks[address] = tasks_ids
-                    self.status_times[address] = time.time()
+            elif msg_type == HEARTBEAT:
+                address = msg[0][3:]
+                # send_time = pickle.loads(msg[2])
+                # print("RECEIVED HEARTBEAT from {} sent at time {:.3f} at time {:.3f}".format(address, send_time, time.time()))
+                self.status_times[address] = time.time()
 
             # Answer needing delivery
             elif msg_type == REPLY:
@@ -322,20 +322,50 @@ class Broker(object):
                 self.shutdown()
                 break
 
-    def pruneAssignedTasks(self):
+    def checkAssignedTasks(self):
+        """
+        This is the function that checks if the heartbeat from the workers has been
+        received and takes action accordingly. If it hasn't been received then shift
+        the jobs to unassigned_tasks so that they may be sent again
+        """
         to_keep = set()
         for address in self.assigned_tasks.keys():
-            addr_time = self.status_times.get(address, 0)
-            if addr_time + scoop.TIME_BETWEEN_STATUS_PRUNING > time.time():
+            addr_time = self.status_times.get(address, self.init_time)
+            if addr_time + scoop.TIME_BEFORE_LOSING_WORKER > time.time():
                 to_keep.add(address)
 
         to_remove = set(self.assigned_tasks.keys()).difference(to_keep)
-        for addr in to_remove:
-            self.assigned_tasks.pop(addr)
+        if to_remove:
+            scoop.logger.warning('Lost track of the following workers: {0}'.format(to_remove))
+            scoop.logger.warning('Current Time: {}'.format(time.time()))
+            scoop.logger.warning('Last Heartbeat stats:')
+            for address in self.assigned_tasks.keys():
+                scoop.logger.warning('{0}: {1}'.format(address, self.status_times.get(address, 0)))
 
-        to_remove = set(self.status_times.keys()).difference(to_keep)
+        for address in to_remove:
+            # Request resend of the currently lost futures
+            for tid_pickled in self.assigned_tasks[address]:
+                self.task_socket.send_multipart([
+                    pickle.loads(tid_pickled)[0],
+                    RESEND_FUTURE,
+                    tid_pickled
+                ])
+            self.assigned_tasks.pop(address)
+            # Remove all futures generated by the said worker. Because otherwise, these
+            # entries will never be cleared as the remote executor does not issue the
+            # STATUS_DONE signal
+            for exec_addr, task_id_pickled_set in self.assigned_tasks.items():
+                task_id_set = set(pickle.loads(task_id) for task_id in task_id_pickled_set)
+                lost_task_ids = set(task_id for task_id in task_id_set if task_id[0] == address)
+                lost_task_ids_pickled = set(pickle.dumps(task_id, protocol=pickle.HIGHEST_PROTOCOL) for task_id in lost_task_ids)
+                task_id_pickled_set.difference_update(lost_task_ids_pickled)
+
+        # if to_remove:
+        #     print("self.status_times = {}".format(list(self.status_times.keys())))
+        #     print("to_keep = {}".format(to_keep))
+
         for addr in to_remove:
-            self.status_times.pop(addr)
+            self.status_times.pop(addr, None)
 
     def getPorts(self):
         return (self.t_sock_port, self.info_sock_port)

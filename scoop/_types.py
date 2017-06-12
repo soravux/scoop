@@ -269,7 +269,6 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = set()
         self.socket = Communicator()
-        self.lastStatus = 0.0
         if scoop.SIZE == 1 and not scoop.CONFIGURATION.get('headless', False):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
@@ -326,7 +325,7 @@ class FutureQueue(object):
             while over_hwm and len(self.movable) > 1:
                 sending_future = self.movable.popleft()
                 if sending_future.id[0] != scoop.worker:
-                    sending_future._delete()
+                    scoop._control.delFuture(sending_future)
                 self.socket.sendFuture(sending_future)
                 over_hwm = self.timelen(self.movable) > self.highwatermark
         else:
@@ -334,22 +333,6 @@ class FutureQueue(object):
                 "The future id {} being added to movable queue is not "
                 " movable before adding, on worker: {}").format(future.id,
                                                                 scoop.worker))
-
-    def askForPreviousFutures(self):
-        """Request a status for every future to the broker."""
-        # Don't request it too often (otherwise it ping-pongs because)
-        # the broker answer triggers the _poll of pop()
-        if time.time() < self.lastStatus + POLLING_TIME / 1000:
-            return
-        self.lastStatus = time.time()
-
-        for future in scoop._control.futureDict.values():
-            # Skip the root future
-            if scoop.IS_ORIGIN and future.id == (scoop.worker, 0):
-                continue
-
-            if future not in self.inprogress:
-                self.socket.sendStatusRequest(future)
 
     def pop(self):
         """Pop the next future from the queue;
@@ -363,24 +346,19 @@ class FutureQueue(object):
 
         self.updateQueue()
 
-        # If our buffer is underflowing, request more Futures
-        if self.timelen(self) < self.lowwatermark:
-            self.requestFuture()
-
-        # If an unmovable Future is ready to be executed, return it
         if len(self.ready) != 0:
+            # If a future is ready to be returned to the parent, the return that
             return self.ready.popleft()
-
-        # Then, use Futures in the movable queue
         elif len(self.movable) != 0:
+            # Then, use Futures in the movable queue
             self.inprogress.add(self.movable[0])
             return self.movable.popleft()
         else:
             # Otherwise, block until a new task arrives
+            self.requestFuture()
             self.lastStatus = time.time()
             while len(self) == 0:
                 # Block until message arrives
-                self.askForPreviousFutures()
                 self.socket._poll(POLLING_TIME)
                 self.updateQueue()
             if len(self.ready) != 0:
@@ -472,10 +450,10 @@ class FutureQueue(object):
         else:
             self.sendResult(future)
             
-    def sendDoneStatus(self, future):
+    def sendReadyStatus(self, future):
         """This should only be called after the future has been finalized on the worker.
         """
-        self.socket.sendDoneStatus(future)
+        self.socket.sendReadyStatus(future)
 
     def remove(self, future):
         """Remove a future from the queue. The future must be cancellable or

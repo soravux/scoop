@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Lesser General Public
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
-from threading import Thread
+import multiprocessing
 import subprocess
 import shlex
 import sys
@@ -32,6 +32,12 @@ try:
 except ImportError:
     psutil = None
 
+def createBrokerAndRun(BrokerClass, connection_namespace, connection_event, debug):
+    localBroker = BrokerClass(debug=debug)
+    connection_namespace.brokerPort, \
+        connection_namespace.infoPort = localBroker.getPorts()
+    connection_event.set()
+    localBroker.run()
 
 class localBroker(object):
     def __init__(self, debug, nice=0, backend='ZMQ'):
@@ -47,13 +53,25 @@ class localBroker(object):
                 raise ImportError("psutil is needed for nice functionnality.")
             p = psutil.Process(os.getpid())
             p.set_nice(nice)
-        self.localBroker = Broker(debug=debug)
-        self.brokerPort, self.infoPort = self.localBroker.getPorts()
-        self.broker = Thread(target=self.localBroker.run)
+
+        self.mpmanager = multiprocessing.Manager()
+        self.connection_event = self.mpmanager.Event()
+        self.connection_namespace = self.mpmanager.Namespace()
+
+        self.broker = multiprocessing.Process(target=createBrokerAndRun, 
+                                              args=(Broker,
+                                                    self.connection_namespace,
+                                                    self.connection_event,
+                                                    debug))
         self.broker.daemon = True
         self.broker.start()
+
+        self.connection_event.wait()
+
+        self.brokerPort = self.connection_namespace.brokerPort
+        self.infoPort = self.connection_namespace.infoPort
         scoop.logger.debug("Local broker launched on ports {0}, {1}"
-                      ".".format(self.brokerPort, self.infoPort))
+                          ".".format(self.brokerPort, self.infoPort))
 
     def sendConnect(self, data):
         """Send a CONNECT command to the broker
