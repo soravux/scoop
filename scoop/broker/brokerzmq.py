@@ -141,7 +141,7 @@ class Broker(object):
         self.available_workers = set()
         self.unassigned_tasks = deque()
         self.assigned_tasks = defaultdict(set)
-        self.status_times = {}
+        self.heartbeat_times = {}
         self.init_time = time.time()
         self.last_task_check_time = time.time()
         # Shared variables containing {workerID:{varName:varVal},}
@@ -263,7 +263,7 @@ class Broker(object):
                 address = msg[0][3:]
                 # send_time = pickle.loads(msg[2])
                 # print("RECEIVED HEARTBEAT from {} sent at time {:.3f} at time {:.3f}".format(address, send_time, time.time()))
-                self.status_times[address] = time.time()
+                self.heartbeat_times[address] = time.time()
 
             # Answer needing delivery
             elif msg_type == REPLY:
@@ -330,7 +330,7 @@ class Broker(object):
         """
         to_keep = set()
         for address in self.assigned_tasks.keys():
-            addr_time = self.status_times.get(address, self.init_time)
+            addr_time = self.heartbeat_times.get(address, self.init_time)
             if addr_time + scoop.TIME_BEFORE_LOSING_WORKER > time.time():
                 to_keep.add(address)
 
@@ -340,7 +340,7 @@ class Broker(object):
             scoop.logger.warning('Current Time: {}'.format(time.time()))
             scoop.logger.warning('Last Heartbeat stats:')
             for address in self.assigned_tasks.keys():
-                scoop.logger.warning('{0}: {1}'.format(address, self.status_times.get(address, 0)))
+                scoop.logger.warning('{0}: {1}'.format(address, self.heartbeat_times.get(address, 0)))
 
         for address in to_remove:
             # Request resend of the currently lost futures
@@ -366,11 +366,11 @@ class Broker(object):
                 task_id_pickled_set.difference_update(lost_task_ids_pickled)
 
         # if to_remove:
-        #     print("self.status_times = {}".format(list(self.status_times.keys())))
+        #     print("self.heartbeat_times = {}".format(list(self.heartbeat_times.keys())))
         #     print("to_keep = {}".format(to_keep))
 
         for addr in to_remove:
-            self.status_times.pop(addr, None)
+            self.heartbeat_times.pop(addr, None)
 
     def getPorts(self):
         return (self.t_sock_port, self.info_sock_port)
