@@ -301,7 +301,7 @@ def submit(func, *args, **kwargs):
     child = _createFuture(func, *args, **kwargs)
 
     control.futureDict[control.current.id].children[child] = None
-    control.execQueue.append_movable(child)
+    control.execQueue.append_init(child)
     return child
 
 

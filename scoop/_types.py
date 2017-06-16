@@ -21,6 +21,7 @@ import sys
 import greenlet
 import scoop
 from scoop._comm import Communicator, Shutdown
+from scoop._comm.scoopmessages import *
 
 # Backporting collection features
 if sys.version_info < (2, 7):
@@ -269,6 +270,7 @@ class FutureQueue(object):
         self.ready = deque()
         self.inprogress = set()
         self.socket = Communicator()
+        self.request_in_process = False
         if scoop.SIZE == 1 and not scoop.CONFIGURATION.get('headless', False):
             self.lowwatermark = float("inf")
             self.highwatermark = float("inf")
@@ -310,24 +312,33 @@ class FutureQueue(object):
                  " before adding, on worker: {}").format(future.id,
                                                          scoop.worker))
 
+    def append_init(self, future):
+        """
+        This appends a movable future to the queue FOR THE FIRST TIME.
+
+        NOTE: This is different from append_movable in that all the futures
+        are not actually appended but are sent to the broker.
+        """
+        if future.greenlet is None and not future.isDone and future.id[0] == scoop.worker:
+            self.socket.sendFuture(future)
+        else:
+            raise ValueError((
+                "The future id {} being added to queue initially is not "
+                " movable before adding, on worker: {}").format(future.id,
+                                                                scoop.worker))
+
     def append_movable(self, future):
         """
         This appends a movable future to the queue.
 
         NOTE: A Future is movable if it hasn't yet begun execution. This is
-        characterized by the lack of a greenlet and not having completed
+        characterized by the lack of a greenlet and not having completed. Also note
+        that this function is only called when appending a future retrieved from the
+        broker. to append a newly spawned future, use `FutureQueue.append_init`
         """
         if future.greenlet is None and not future.isDone:
             self.movable.append(future)
-
-            # Send the oldest future in the movable deque until under the hwm
-            over_hwm = self.timelen(self.movable) > self.highwatermark
-            while over_hwm and len(self.movable) > 1:
-                sending_future = self.movable.popleft()
-                if sending_future.id[0] != scoop.worker:
-                    scoop._control.delFuture(sending_future)
-                self.socket.sendFuture(sending_future)
-                over_hwm = self.timelen(self.movable) > self.highwatermark
+            assert len(self.movable) == 1, "movable size isnt adding up"
         else:
             raise ValueError((
                 "The future id {} being added to movable queue is not "
@@ -345,13 +356,18 @@ class FutureQueue(object):
 
         # Check if queue is empty
         while len(self) == 0:
-            # If so, Block until message arrives. Also, keep sending requests. This is
-            # because if a node disconnects and reconnects and is lost in between, there
-            # is a possibility that it has been removed from the brokers list of
-            # assignable workers, in which case, it needs to add itself by sending a
-            # future request. The future requests do not add up and only one future
-            # is returned
-            self.requestFuture()
+            # If so, Block until message arrives. Only send future request once (to
+            # ensure FCFS). This has the following potential issue. If a node
+            # disconnects and reconnects and is considered by the broker to be lost,
+            # there is a possibility that it has been removed from the brokers list
+            # of assignable workers, in which case, this worker will forever be
+            # stuck in this loop. However, this is a problem that is expected to
+            # NEVER happen and therefore we leave it be. Currently, I have added
+            # some code that can be used to protect against this (see
+            # FutureQueue.checkRequestStatus, REQUEST_STATUS_REQUEST and related)
+            if not self.request_in_process:
+                self.requestFuture()
+
             self.socket._poll(POLLING_TIME)
             self.updateQueue()
         if len(self.ready) != 0:
@@ -373,6 +389,7 @@ class FutureQueue(object):
     def requestFuture(self):
         """Request futures from the broker"""
         self.socket.sendRequest()
+        self.request_in_process = True
 
     def updateQueue(self):
         """Process inbound communication buffer.
@@ -380,8 +397,12 @@ class FutureQueue(object):
 
         Note that the broker only sends either non-executed (movable)
         futures, or completed futures"""
-        for future in self.socket.recvFuture():
-            if future._ended():
+        for incoming_msg in self.socket.recvIncoming():
+            incoming_msg_categ = incoming_msg[0]
+            incoming_msg_value = incoming_msg[1]
+
+            if incoming_msg_categ == REPLY:
+                future = incoming_msg_value
                 # If the answer is coming back, update its entry
                 try:
                     thisFuture = scoop._control.futureDict[future.id]
@@ -389,21 +410,44 @@ class FutureQueue(object):
                     # Already received?
                     scoop.logger.warn('{0}: Received an unexpected future: '
                                       '{1}'.format(scoop.worker, future.id))
-                    continue
+                    return
                 thisFuture.resultValue = future.resultValue
                 thisFuture.exceptionValue = future.exceptionValue
                 thisFuture.executor = future.executor
                 thisFuture.isDone = future.isDone
                 self.finalizeReturnedFuture(thisFuture)
-            elif future.id not in scoop._control.futureDict:
-                # This is the case where the worker is executing a remotely
-                # generated future
-                scoop._control.futureDict[future.id] = future
-                self.append_movable(scoop._control.futureDict[future.id])
+            elif incoming_msg_categ == TASK:
+                future = incoming_msg_value
+                if future.id not in scoop._control.futureDict:
+                    # This is the case where the worker is executing a remotely
+                    # generated future
+                    scoop._control.futureDict[future.id] = future
+                    self.append_movable(scoop._control.futureDict[future.id])
+                else:
+                    # This is the case where the worker is executing a locally
+                    # generated future
+                    self.append_movable(scoop._control.futureDict[future.id])
+                if len(self.movable) > 0:
+                    # This means that a future has been returned corresponding to the
+                    # future request
+                    self.request_in_process = False
+            elif incoming_msg_categ == RESEND_FUTURE:
+                future_id = incoming_msg_value
+                try:
+                    scoop.logger.warning(
+                        "Lost track of future {0}. Resending it..."
+                        "".format(scoop._control.futureDict[future_id])
+                    )
+                    self.socket.sendFuture(scoop._control.futureDict[future_id])
+                except KeyError:
+                    # Future was received and processed meanwhile
+                    scoop.logger.warning(
+                        "Asked to resend unexpected future id {0}. future not found"
+                        " (likely received and processed in the meanwhile)"
+                        "".format(future_id)
+                    )
             else:
-                # This is the case where the worker is executing a locally
-                # generated future
-                self.append_movable(scoop._control.futureDict[future.id])
+                assert False, "Unrecognized incoming message"
 
     def finalizeReturnedFuture(self, future):
         """Finalize a future that was generated here and executed remotely.

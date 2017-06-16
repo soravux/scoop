@@ -32,24 +32,7 @@ import scoop
 from .. import shared, encapsulation, utils
 from ..shared import SharedElementEncapsulation
 from .scoopexceptions import Shutdown, ReferenceBroken
-
-# Worker requests
-INIT = b"I"
-REQUEST = b"RQ"
-TASK = b"T"
-REPLY = b"RP"
-SHUTDOWN = b"S"
-VARIABLE = b"V"
-BROKER_INFO = b"B"
-STATUS_READY = b"SD"
-HEARTBEAT = b"HB"
-RESEND_FUTURE = b"RF"
-
-# Task statuses
-STATUS_HERE = b"H"
-STATUS_GIVEN = b"G"
-STATUS_NONE = b"N"
-
+from .scoopmessages import *
 
 LINGER_TIME = 1000
 
@@ -249,58 +232,49 @@ class ZMQCommunicator(object):
         else:
             msg = self.socket.recv_multipart()
         
-        try:
-            thisFuture = pickle.loads(msg[1])
-        except (AttributeError, ImportError) as e:
-            scoop.logger.error(
-                "An instance could not find its base reference on a worker. "
-                "Ensure that your objects have their definition available in "
-                "the root scope of your program.\n{error}".format(
-                    error=e,
+        if msg[0] == TASK or msg[0] == REPLY:
+            try:
+                thisFuture = pickle.loads(msg[1])
+            except (AttributeError, ImportError) as e:
+                scoop.logger.error(
+                    "An instance could not find its base reference on a worker. "
+                    "Ensure that your objects have their definition available in "
+                    "the root scope of your program.\n{error}".format(
+                        error=e,
+                    )
                 )
-            )
-            raise ReferenceBroken(e)
+                raise ReferenceBroken(e)
 
-        if msg[0] == TASK:
-            # Try to connect directly to this worker to send the result
-            # afterwards if Future is from a map.
-            if thisFuture.sendResultBack:
-                self.addPeer(thisFuture.id[0])
+            if msg[0] == TASK:
+                # Try to connect directly to this worker to send the result
+                # afterwards if Future is from a map.
+                if thisFuture.sendResultBack:
+                    self.addPeer(thisFuture.id[0])
+
+            isCallable = callable(thisFuture.callable)
+            isDone = thisFuture._ended()
+            if not isCallable and not isDone:
+                # TODO: Also check in root module globals for fully qualified name
+                try:
+                    module_found = hasattr(sys.modules["__main__"],
+                                           thisFuture.callable)
+                except TypeError:
+                    module_found = False
+                if module_found:
+                    thisFuture.callable = getattr(sys.modules["__main__"],
+                                                  thisFuture.callable)
+                else:
+                    raise ReferenceBroken("This element could not be pickled: "
+                                          "{0}.".format(thisFuture))
+            return (msg[0], thisFuture)
 
         elif msg[0] == RESEND_FUTURE:
             # TODO: This should not be here but in FuturesQueue.
             future_id = pickle.loads(msg[1])
-            try:
-                scoop.logger.warning(
-                    "Lost track of future {0}. Resending it..."
-                    "".format(scoop._control.futureDict[future_id])
-                )
-                self.sendFuture(scoop._control.futureDict[future_id])
-            except KeyError:
-                # Future was received and processed meanwhile
-                scoop.logger.warning(
-                    "Asked to resend unexpected future id {0}. future not found"
-                    " (possibly received and processed in the meanwhile)"
-                    "".format(future_id)
-                )
-            return
+            return (RESEND_FUTURE, future_id)
 
-        isCallable = callable(thisFuture.callable)
-        isDone = thisFuture._ended()
-        if not isCallable and not isDone:
-            # TODO: Also check in root module globals for fully qualified name
-            try:
-                module_found = hasattr(sys.modules["__main__"],
-                                       thisFuture.callable)
-            except TypeError:
-                module_found = False
-            if module_found:
-                thisFuture.callable = getattr(sys.modules["__main__"],
-                                              thisFuture.callable)
-            else:
-                raise ReferenceBroken("This element could not be pickled: "
-                                      "{0}.".format(thisFuture))
-        return thisFuture
+        else:
+            assert False, "Unrecognized incoming message {}".format(msg[0])
 
     def pumpInfoSocket(self):
         try:
@@ -360,7 +334,11 @@ class ZMQCommunicator(object):
                 varName: result,
             })
 
-    def recvFuture(self):
+    def recvIncoming(self):
+        """
+        This function continually reads the input from the socket, processes it
+        according to _recv and returns the result
+        """
         while self._poll(0):
             received = self._recv()
             if received:
