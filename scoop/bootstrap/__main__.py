@@ -296,3 +296,4 @@ class Bootstrap(object):
 if __name__ == "__main__":
     b = Bootstrap()
     b.main()
+    sys.exit(os.EX_OK)
