@@ -208,12 +208,25 @@ def parseSLURM(string):
     hostsstr = subprocess.check_output(["scontrol", "show", "hostnames", string])
     if sys.version_info.major > 2:
         hostsstr = hostsstr.decode()
-    # Split using endline
-    hosts = hostsstr.split(os.linesep)
-    # Take out last empty host
-    hosts = filter(None, hosts)
+    # Split using endline and take out last empty host
+    hosts = list(filter(None, hostsstr.split(os.linesep)))
+    # Comply with SLURM's TASKS_PER_NODE specifications
+    # example format: "2(x3),1" which is equivalent to "2,2,2,1"
+    tasks_per_node = os.getenv('SLURM_TASKS_PER_NODE')
+    rep_spec = []
+    for spec in filter(None, tasks_per_node.split(',')):
+        if spec.isnumeric():
+            rep_spec.append(int(spec))
+        else:
+            m = re.match('(\d+)\(x(\d+)\)', spec)
+            assert m, "Invalid tasks_per_node specification."
+            rep_spec.extend([int(m[1])] * int(m[2]))
+
+    assert len(hosts) == len(rep_spec), "Number of nodes in node_list does not match the given tasks_per_node " \
+                                        "specification. "
+
     # Create the desired pair of host and number of hosts
-    hosts = [(host, 1) for host in hosts]
+    hosts = list(zip(hosts, rep_spec))
     return hosts
 
 
