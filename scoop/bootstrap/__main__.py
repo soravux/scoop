@@ -186,7 +186,12 @@ class Bootstrap(object):
                 scoop.logger.error("psutil not installed.")
                 raise ImportError("psutil is needed for nice functionnality.")
             p = psutil.Process(os.getpid())
-            p.set_nice(self.args.nice)
+            #starting with version 2.0.0 set_nice --> nice
+            version_string = psutil.__version__
+            if(int(version_string.split('.')[0]) >= 2):
+              p.nice(self.args.nice)
+            else:
+              p.set_nice(self.args.nice)
 
         if scoop.DEBUG or self.args.profile:
             from scoop import _debug
