@@ -467,7 +467,7 @@ def _send_packet(sock, to, opcode, data):
     sock.sendto(_MAGIC + opcode + data, 0, to)
 
 def _parse_packet(rawdata):
-    """ Returns a tupel (opcode, minusconf-data). opcode is None if this isn't a -conf packet."""
+    """ Returns a tuple (opcode, minusconf-data). opcode is None if this isn't a -conf packet."""
 
     if (len(rawdata) < len(_MAGIC) + 1) or (_MAGIC != rawdata[:len(_MAGIC)]):
         # Wrong protocol
@@ -491,7 +491,7 @@ def _encode_string(val):
 
 def _decode_string(buf, pos):
     """ Decodes a string in the buffer buf, starting at position pos.
-    Returns a tupel of the read string and the next byte to read.
+    Returns a tuple of the read string and the next byte to read.
     """
     for i in range(pos, len(buf)):
         if buf[i:i+1] == _compat_bytes('\x00'):
@@ -528,7 +528,7 @@ def _multicast_join_group(sock, family, addr):
         raise ValueError('Unsupported protocol family ' + family)
 
 def _resolve_addrs(straddrs, port, ignore_unavailable=False, protocols=[socket.AF_INET, socket.AF_INET6]):
-    """ Returns a tupel of tupels of (family, to, original_addr_family, original_addr).
+    """ Returns a list of tuples of (family, to, original_addr_family, original_addr).
 
     If ignore_unavailable is set, addresses for unavailable protocols are ignored.
     protocols determines the protocol family indices supported by the socket in use. """
