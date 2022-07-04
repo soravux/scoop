@@ -201,7 +201,7 @@ class ScoopApp(object):
             The returned args and kwargs must ordered/named according to the namedtuple
             in LAUNCH_HOST_CLASS.LAUNCHING_ARGUMENTS .
 
-            both args and kwargs are supported for full flexibilty,
+            both args and kwargs are supported for full flexibility,
             but usage of kwargs only is strongly advised.
         """
         args = []

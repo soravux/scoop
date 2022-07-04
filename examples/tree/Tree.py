@@ -103,7 +103,7 @@ def executeTree(address=[]):
     """This function executes a tree. To limit the size of the arguments passed
     to the function, the tree must be loaded in memory in every worker. To do
     this, simply call "Tree = importTree(filename)" before using the startup
-    method of the parralisation library you are using"""
+    method of the parallelisation library you are using"""
     global nodeDone
     # Get tree subsection
     localTree = getTree(address)
