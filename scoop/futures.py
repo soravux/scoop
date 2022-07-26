@@ -17,7 +17,13 @@
 import os
 import sys
 from inspect import ismethod
-from collections import namedtuple, Iterable
+
+from collections import namedtuple
+
+try:
+    from collections import Iterable
+except ImportError:
+    from collections.abc import Iterable
 from functools import reduce
 import itertools
 import copy
