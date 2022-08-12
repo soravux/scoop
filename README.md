@@ -42,7 +42,7 @@ Anatomy of a SCOOPed program
 
 SCOOP can handle multiple diversified multi-layered tasks. With it, you can submit your different functions and data simultaneously and effortlessly while the framework executes them locally or remotely. Contrarily to most multiprocessing frameworks, it allows to launch subtasks within tasks.
 
-http://scoop.readthedocs.org/en/latest/_images/introductory_tree.png
+![Intro tree](http://scoop.readthedocs.org/en/latest/_images/introductory_tree.png)
 
 Through SCOOP, you can execute simultaneously tasks that are different by 
 nature, shown by the task color, or different by complexity, shown by the task radius. The module will handle the physical considerations of parallelization, such as task distribution over your resources (load balancing), communications, etc.
