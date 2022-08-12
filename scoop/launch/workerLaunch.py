@@ -222,5 +222,6 @@ class Host(object):
         for process in self.subprocesses:
             try:
                 process.terminate()
+                process.wait()
             except OSError:
                 pass
