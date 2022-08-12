@@ -161,7 +161,7 @@ html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    'index': 'indexsidebar.html',
+    'index': ['indexsidebar.html'],
     '**': ['globaltoc.html',
            'relations.html',
            'sourcelink.html',
