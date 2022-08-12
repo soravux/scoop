@@ -186,7 +186,7 @@ class ScoopApp(object):
 
     def showHostDivision(self, headless):
         """Show the worker distribution over the hosts."""
-        scoop.logger.info('Worker d--istribution: ')
+        scoop.logger.info('Worker distribution: ')
         for worker, number in self.worker_hosts:
             first_worker = (worker == self.worker_hosts[0][0])
             scoop.logger.info('   {0}:\t{1} {2}'.format(
