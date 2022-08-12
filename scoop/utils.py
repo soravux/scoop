@@ -130,7 +130,7 @@ def getCPUcount():
 
 
 def getEnv():
-    """Return the launching environnement"""
+    """Return the launching environment"""
     if "SLURM_NODELIST" in os.environ:
         return "SLURM"
     elif "PBS_ENVIRONMENT" in os.environ:

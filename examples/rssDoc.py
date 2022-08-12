@@ -51,7 +51,7 @@ if __name__ == "__main__":
                     len(leftSignal),
                     PARALLEL_SIZE,
                     )
-    # Execute the RSS computation parallely
+    # Execute the RSS computation parallelly
     presult = futures.mapReduce(RSS,
                                 operator.add,
                                 indexes,

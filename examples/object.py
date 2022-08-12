@@ -35,7 +35,7 @@ def modifyClass(myInstance):
 def main():
     # Create object instances
     myInstances = [myClass() for _ in range(20)]
-    # Modify them parallely
+    # Modify them parallelly
     myAnswers = list(futures.map(modifyClass, myInstances))
 
     # Each result is a new object with the modifications applied

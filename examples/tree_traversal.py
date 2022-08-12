@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     print("Tree generation done.")
 
-    # Splits the tree in two and process the left and right branches parallely
+    # Splits the tree in two and process the left and right branches parallelly
     ts = time.time()
     presult = max(
         futures.map(
