@@ -6,12 +6,12 @@ import scoop
 import sys
 
 try:
-    from pypandoc import convert
+    from pypandoc import convert_file
 except ImportError:
     print("warning: pypandoc module not found, could not convert Markdown to RST")
     read_md = lambda f: open(f, 'r').read()
 else:
-    read_md = lambda f: convert(f, 'rst')
+    read_md = lambda f: convert_file(f, 'rst')
 
 # Backports installation
 extraPackages, extraRequires = [], []

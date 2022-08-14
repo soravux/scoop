@@ -1,0 +1,5 @@
+greenlet>=0.3.4
+pyzmq>=13.1.0
+
+[nice]
+psutil>=0.6.1
