@@ -5,13 +5,9 @@ from setuptools import setup
 import scoop
 import sys
 
-try:
-    from pypandoc import convert_file
-except ImportError:
-    print("warning: pypandoc module not found, could not convert Markdown to RST")
-    read_md = lambda f: open(f, 'r').read()
-else:
-    read_md = lambda f: convert_file(f, 'rst')
+
+read_md = lambda f: open(f, 'r').read()
+
 
 # Backports installation
 extraPackages, extraRequires = [], []
@@ -27,12 +23,13 @@ setup(name='scoop',
       ),
       description='Scalable COncurrent Operations in Python',
       long_description=read_md('README.md'),
+      long_description_content_type="text/markdown",
       author='SCOOP Development Team',
       author_email='scoop-users@googlegroups.com',
       url='http://pyscoop.org',
       install_requires=['greenlet>=0.3.4',
                         'pyzmq>=13.1.0'] + extraRequires,
-      extras_require = {'nice': ['psutil>=0.6.1']},
+      extras_require={'nice': ['psutil>=0.6.1']},
       packages=['scoop',
                 'scoop.bootstrap',
                 'scoop.launch',
