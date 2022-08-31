@@ -20,7 +20,7 @@ import random
 import socket
 import copy
 import logging
-import threading
+from multiprocessing import Process
 try:
     import cPickle as pickle
 except ImportError:
@@ -32,25 +32,7 @@ import scoop
 from .. import shared, encapsulation, utils
 from ..shared import SharedElementEncapsulation
 from .scoopexceptions import Shutdown, ReferenceBroken
-
-# Worker requests
-INIT = b"I"
-REQUEST = b"RQ"
-TASK = b"T"
-REPLY = b"RP"
-SHUTDOWN = b"S"
-VARIABLE = b"V"
-BROKER_INFO = b"B"
-STATUS_REQ = b"SR"
-STATUS_ANS = b"SA"
-STATUS_DONE = b"SD"
-STATUS_UPDATE = b"SU"
-
-# Task statuses
-STATUS_HERE = b"H"
-STATUS_GIVEN = b"G"
-STATUS_NONE = b"N"
-
+from .scoopmessages import *
 
 LINGER_TIME = 1000
 
@@ -157,9 +139,10 @@ class ZMQCommunicator(object):
             self._addBroker(broker)
 
         # Putting futures status reporting in place
-        self.status_update_thread = threading.Thread(target=self._reportFutures)
-        self.status_update_thread.daemon = True
-        self.status_update_thread.start()
+        self.heartbeat_thread = Process(target=ZMQCommunicator._sendHeartBeat,
+                                        args=(self, ("HB_{0}".format(scoop.worker.decode('utf-8'))).encode('utf-8')))
+        self.heartbeat_thread.daemon = True
+        self.heartbeat_thread.start()
 
     def createZMQSocket(self, sock_type):
         """Create a socket of the given sock_type and deactivate message dropping"""
@@ -181,20 +164,34 @@ class ZMQCommunicator(object):
             sock.setsockopt(zmq.ROUTER_MANDATORY, 1)
         return sock
 
-    def _reportFutures(self):
-        """Sends futures status updates to broker at intervals of
-        scoop.TIME_BETWEEN_STATUS_REPORTS seconds. Is intended to be run by a
-        separate thread."""
+    def _sendHeartBeat(self, hb_socket_name):
+        """Sends heartbeat signal to broker at intervals of
+        scoop.TIME_BETWEEN_HEARTBEATS seconds. This signals to the broker that
+        this worker is alive and connected"""
+        # socket for the heartbeat signal
+        self.ZMQcontext = zmq.Context()
+
+        self.heartbeat_socket = self.createZMQSocket(zmq.DEALER)
+        self.heartbeat_socket.setsockopt(zmq.IDENTITY, hb_socket_name)
+
+        for brokerEntry in self.broker_set:
+            broker_address = "tcp://{hostname}:{port}".format(
+                hostname=brokerEntry.hostname,
+                port=brokerEntry.task_port,
+            )
+            # print("WORKER {} CONNECTING TO BROKER: {}".format(hb_socket_name, broker_address))
+            self.heartbeat_socket.connect(broker_address)
         try:
             while True:
-                time.sleep(scoop.TIME_BETWEEN_STATUS_REPORTS)
-                fids = set(x.id for x in scoop._control.execQueue.movable)
-                fids.update(set(x.id for x in scoop._control.execQueue.ready))
-                fids.update(set(x.id for x in scoop._control.execQueue.inprogress))
-                self.socket.send_multipart([
-                    STATUS_UPDATE,
-                    pickle.dumps(fids),
-                ])
+                time.sleep(scoop.TIME_BETWEEN_HEARTBEATS)
+                # print('SENDING HEARTBEAT on worker {} at time {}'.format(scoop.worker, time.time()))
+                try:
+                    self.heartbeat_socket.send_multipart([
+                        HEARTBEAT,
+                        pickle.dumps(time.time(), pickle.HIGHEST_PROTOCOL)
+                    ], zmq.NOBLOCK)
+                except zmq.error.Again as E:
+                    scoop.logger.warning("FAILED HEARTBEAT IN worker {} at time {}".format(scoop.worker, time.time()))
         except AttributeError:
             # The process is being shut down.
             pass
@@ -235,59 +232,49 @@ class ZMQCommunicator(object):
         else:
             msg = self.socket.recv_multipart()
         
-        try:
-            thisFuture = pickle.loads(msg[1])
-        except (AttributeError, ImportError) as e:
-            scoop.logger.error(
-                "An instance could not find its base reference on a worker. "
-                "Ensure that your objects have their definition available in "
-                "the root scope of your program.\n{error}".format(
-                    error=e,
-                )
-            )
-            raise ReferenceBroken(e)
-
-        if msg[0] == TASK:
-            # Try to connect directly to this worker to send the result
-            # afterwards if Future is from a map.
-            if thisFuture.sendResultBack:
-                self.addPeer(thisFuture.id[0])
-
-        elif msg[0] == STATUS_ANS:
-            # TODO: This should not be here but in FuturesQueue.
-            if msg[2] == STATUS_HERE:
-                # TODO: Don't know why should that be done?
-                self.sendRequest()
-            elif msg[2] == STATUS_NONE:
-                # If a task was requested but is nowhere to be found, resend it
-                future_id = pickle.loads(msg[1])
-                try:
-                    scoop.logger.warning(
-                        "Lost track of future {0}. Resending it..."
-                        "".format(scoop._control.futureDict[future_id])
-                    )
-                    self.sendFuture(scoop._control.futureDict[future_id])
-                except KeyError:
-                    # Future was received and processed meanwhile
-                    pass
-            return
-
-        isCallable = callable(thisFuture.callable)
-        isDone = thisFuture._ended()
-        if not isCallable and not isDone:
-            # TODO: Also check in root module globals for fully qualified name
+        if msg[0] == TASK or msg[0] == REPLY:
             try:
-                module_found = hasattr(sys.modules["__main__"],
-                                       thisFuture.callable)
-            except TypeError:
-                module_found = False
-            if module_found:
-                thisFuture.callable = getattr(sys.modules["__main__"],
-                                              thisFuture.callable)
-            else:
-                raise ReferenceBroken("This element could not be pickled: "
-                                      "{0}.".format(thisFuture))
-        return thisFuture
+                thisFuture = pickle.loads(msg[1])
+            except (AttributeError, ImportError) as e:
+                scoop.logger.error(
+                    "An instance could not find its base reference on a worker. "
+                    "Ensure that your objects have their definition available in "
+                    "the root scope of your program.\n{error}".format(
+                        error=e,
+                    )
+                )
+                raise ReferenceBroken(e)
+
+            if msg[0] == TASK:
+                # Try to connect directly to this worker to send the result
+                # afterwards if Future is from a map.
+                if thisFuture.sendResultBack:
+                    self.addPeer(thisFuture.id[0])
+
+            isCallable = callable(thisFuture.callable)
+            isDone = thisFuture._ended()
+            if not isCallable and not isDone:
+                # TODO: Also check in root module globals for fully qualified name
+                try:
+                    module_found = hasattr(sys.modules["__main__"],
+                                           thisFuture.callable)
+                except TypeError:
+                    module_found = False
+                if module_found:
+                    thisFuture.callable = getattr(sys.modules["__main__"],
+                                                  thisFuture.callable)
+                else:
+                    raise ReferenceBroken("This element could not be pickled: "
+                                          "{0}.".format(thisFuture))
+            return (msg[0], thisFuture)
+
+        elif msg[0] == RESEND_FUTURE:
+            # TODO: This should not be here but in FuturesQueue.
+            future_id = pickle.loads(msg[1])
+            return (RESEND_FUTURE, future_id)
+
+        else:
+            assert False, "Unrecognized incoming message {}".format(msg[0])
 
     def pumpInfoSocket(self):
         try:
@@ -347,7 +334,11 @@ class ZMQCommunicator(object):
                 varName: result,
             })
 
-    def recvFuture(self):
+    def recvIncoming(self):
+        """
+        This function continually reads the input from the socket, processes it
+        according to _recv and returns the result
+        """
         while self._poll(0):
             received = self._recv()
             if received:
@@ -392,11 +383,10 @@ class ZMQCommunicator(object):
 
         self._sendReply(
             future.id[0],
-            pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
             pickle.dumps(future, pickle.HIGHEST_PROTOCOL),
         )
 
-    def _sendReply(self, destination, fid, *args):
+    def _sendReply(self, destination, *args):
         """Send a REPLY directly to its destination. If it doesn't work, launch
         it back to the broker."""
         # Try to send the result directly to its parent
@@ -420,15 +410,10 @@ class ZMQCommunicator(object):
                 destination,
             ])
 
+    def sendReadyStatus(self, future):
         self.socket.send_multipart([
-            STATUS_DONE,
-            fid,
-        ])
-
-    def sendStatusRequest(self, future):
-        self.socket.send_multipart([
-            STATUS_REQ,
-            pickle.dumps(future.id, pickle.HIGHEST_PROTOCOL),
+            STATUS_READY,
+            pickle.dumps(future.id)
         ])
 
     def sendVariable(self, key, value):
